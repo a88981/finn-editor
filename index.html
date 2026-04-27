@@ -951,7 +951,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{status:s}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      if(p)saveProject(p);
+      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
       return updated;
     });
   },[]);
@@ -964,7 +964,7 @@ function App(){
         var n=Object.assign({},p);n[field]=val;return n;
       });
       var p=updated.find(function(x){return x.id===id;});
-      if(p)saveProject(p);
+      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
       return updated;
     });
   },[]);
@@ -976,11 +976,13 @@ function App(){
         var u=updates.find(function(x){return x.id===p.id;});
         return u?Object.assign({},p,{kanbanPos:u.kanbanPos}):p;
       });
-      // 只更新有變動的
-      updates.forEach(function(u){
-        var p=updated.find(function(x){return x.id===u.id;});
-        if(p)saveProject(p);
-      });
+      // setTimeout 讓 React 先更新 state，再呼叫 Notion API
+      setTimeout(function(){
+        updates.forEach(function(u){
+          var p=updated.find(function(x){return x.id===u.id;});
+          if(p&&p.notionId)saveProject(p);
+        });
+      },0);
       return updated;
     });
   },[]);
