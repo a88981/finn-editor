@@ -27,6 +27,21 @@ export default async function handler(req, res) {
   const body = req.body;
 
   try {
+    // ── Debug：看原始欄位名稱 ─────────────────────────────────────
+    if (req.method === "GET" && action === "debug") {
+      const response = await fetch(`${NOTION_API}/databases/${DB_ID}/query`, {
+        method: "POST",
+        headers: notionHeaders,
+        body: JSON.stringify({ page_size: 1 }),
+      });
+      const data = await response.json();
+      if (data.results && data.results[0]) {
+        const keys = Object.keys(data.results[0].properties);
+        return res.status(200).json({ fields: keys, sample: data.results[0].properties });
+      }
+      return res.status(200).json({ error: "no data", raw: data });
+    }
+
     // ── 讀取所有案子 ──────────────────────────────────────────────
     if (req.method === "GET" && (!action || action === "list")) {
       let results = [], cursor = undefined, hasMore = true;
