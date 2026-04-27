@@ -692,20 +692,21 @@ function TodoView(props){
   }
 
   var waitingSt=["等待素材","待確認","暫緩"];
-  var activeSt=["初剪待執行","初剪中","初剪修改中","初剪審核中","ES製作中","ES修改中","發包字幕","ES審核中","廠商審核中","Final審核中","Final完成"];
 
-  // 進行中案子（有截止日）
-  var active=projects.filter(function(p){return!p.closed&&activeSt.indexOf(p.status)>=0;});
+  // 進行中案子（不是待執行不是已結案）
+  var active=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)<0;});
   var withDue=[];
+  var noDue=[];
   active.forEach(function(p){
     var info=nextDueInfo(p);
     if(info){withDue.push({p:p,info:info,days:daysUntil(info.date)});}
+    else{noDue.push({p:p,info:null,days:9999});}
   });
   withDue.sort(function(a,b){return a.days-b.days;});
 
   var urgent=withDue.filter(function(x){return x.days<=1;});
   var thisWeek=withDue.filter(function(x){return x.days>1&&x.days<=7;});
-  var later=withDue.filter(function(x){return x.days>7;});
+  var later=withDue.filter(function(x){return x.days>7;}).concat(noDue);
 
   // 等素材案子
   var waiting=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)>=0;})
@@ -721,18 +722,20 @@ function TodoView(props){
   function Row(rp){
     var x=rp.x,cc=cColors[x.p.client]||C.acc;
     var d=x.days;
-    var dStr=d<0?"\u903e\u671f"+Math.abs(d)+"\u5929":d===0?"\u4eca\u5929":d===1?"\u660e\u5929":"\u5269"+d+"\u5929";
-    var dColor=d<0?C.err:d<=1?"#e07010":C.txt2;
+    var dStr=d>=9999?"\u5c1a\u672a\u6392\u7a0b":d<0?"\u903e\u671f"+Math.abs(d)+"\u5929":d===0?"\u4eca\u5929":d===1?"\u660e\u5929":"\u5269"+d+"\u5929";
+    var dColor=d>=9999?C.txt3:d<0?C.err:d<=1?"#e07010":C.txt2;
+    var icon=x.info?x.info.icon:"\ud83d\udccc";
+    var label=x.info?x.info.label+"\u0020"+fmtDate(x.info.date):x.p.status;
     return h("div",{onClick:function(){onEdit(x.p);},style:{display:"flex",alignItems:"center",gap:5,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:C.card,border:"1px solid "+C.brd,marginBottom:7,borderLeft:"3px solid "+cc}},
       h("span",{style:{fontSize:12,color:C.txt3,fontWeight:700,minWidth:16,flexShrink:0}},rp.n+"."),
-      h("span",{style:{fontSize:14,flexShrink:0}},x.info.icon),
+      h("span",{style:{fontSize:14,flexShrink:0}},icon),
       h("div",{style:{flex:1,minWidth:0}},
         h("div",{style:{fontSize:12,fontWeight:800,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.client),
         h("div",{style:{fontSize:13,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.airDate?x.p.airDate+" "+x.p.name:x.p.name)
       ),
       h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
         h("div",{style:{fontSize:12,fontWeight:700,color:dColor}},dStr),
-        h("div",{style:{fontSize:10,color:C.txt3}},x.info.label+" "+fmtDate(x.info.date))
+        h("div",{style:{fontSize:10,color:C.txt3}},label)
       )
     );
   }
