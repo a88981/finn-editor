@@ -773,8 +773,7 @@ function TodoView(props){
   var laterRows=later.map(function(x,i){return h(Row,{key:x.p.id,x:x,n:urgent.length+thisWeek.length+i+1});});
   var waitRows=waiting.map(function(p,i){return h(WaitRow,{key:p.id,p:p,n:i+1});});
 
-  return h("div",{style:{overflowX:"auto"}},
-    h("div",{style:{display:"flex",gap:12,alignItems:"flex-start",minWidth:900}},
+  return h("div",{style:{display:"flex",flexDirection:"column",gap:16}},
       h(Col,{icon:"\ud83d\udd25",title:"\u7dca\u6025",sub:"\u4eca\u5929/\u660e\u5929\u8981\u4ea4",color:"#e08080",count:urgent.length},
         urgentRows.length?urgentRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7dca\u6025\u4ea4\u4ef6 \ud83c\udf89")
       ),
@@ -787,7 +786,6 @@ function TodoView(props){
       h(Col,{icon:"\u2601\ufe0f",title:"\u7b49\u7d20\u6750",sub:"\u53ef\u50ac\u5ba2\u6236\u6a94\u6848",color:"#83afb0",count:waiting.length},
         waitRows.length?waitRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7b49\u5f85\u7d20\u6750")
       )
-    )
   );
 }
 
@@ -1050,7 +1048,7 @@ function UrgentBanner(props){
 function App(){
   var ps=useState([]);var projects=ps[0],setProjects=ps[1];
   var rs=useState(false);var ready=rs[0],setReady=rs[1];
-  var vs=useState("kanban");var view=vs[0],setView=vs[1];
+  var vs=useState("todo2");var view=vs[0],setView=vs[1];
   var ms=useState(null);var modal=ms[0],setModal=ms[1];
   var ts=useState(null);var toast=ts[0],setToast=ts[1];
   var cls=useState(null);var clients=cls[0],setClients=cls[1];  // null = not loaded yet
