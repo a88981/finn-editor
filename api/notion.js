@@ -131,7 +131,7 @@ function pageToProject(page) {
   const pageId = page.id ? page.id.replace(/-/g, "") : "";
 
   return {
-    id: pageId.slice(0, 7) || Math.random().toString(36).slice(2, 9),
+    id: pageId || Math.random().toString(36).slice(2, 9),
     notionId: page.id || "",
     name: txt("專案名稱"),
     client: txt("客戶"),
