@@ -940,29 +940,32 @@ function App(){
     ]).then(function(results){
       var data=results[0],cdata=results[1];
       setProjects(data||[]);
-      setClients(cdata&&cdata.clients?cdata.clients:[]);
-      setCColors(cdata&&cdata.colors?cdata.colors:Object.assign({},DEF_COLORS));
+      var cl=cdata&&cdata.clients?cdata.clients:[];
+      var col=cdata&&cdata.colors?cdata.colors:Object.assign({},DEF_COLORS);
+      clientsRef.current=cl;
+      cColorsRef.current=col;
+      setClients(cl);
+      setCColors(col);
       setReady(true);
-      // 初始載入完成後，允許 saveClients
       setTimeout(function(){clInitRef.current=true;},500);
     });
   },[]);
   // 客戶設定存 localStorage
+  var clientsRef=React.useRef([]);
+  var cColorsRef=React.useRef({});
   function setClientsAndSave(updater){
     setClients(function(prev){
       var next=typeof updater==="function"?updater(prev):updater;
-      if(clInitRef.current){
-        setCColors(function(col){saveClients({clients:next,colors:col});return col;});
-      }
+      clientsRef.current=next;
+      if(clInitRef.current)saveClients({clients:next,colors:cColorsRef.current});
       return next;
     });
   }
   function setCColorsAndSave(updater){
     setCColors(function(prev){
       var next=typeof updater==="function"?updater(prev):updater;
-      if(clInitRef.current){
-        setClients(function(cl){saveClients({clients:cl,colors:next});return cl;});
-      }
+      cColorsRef.current=next;
+      if(clInitRef.current)saveClients({clients:clientsRef.current,colors:next});
       return next;
     });
   }
