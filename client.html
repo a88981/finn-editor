@@ -110,7 +110,17 @@ function ProjectCard(props){
   );
 }
 
-function App(){
+function ClosedCard(props){
+  var p=props.p;
+  return h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#f5f5f5",border:"1px solid #eee",opacity:0.7}},
+    h("span",{style:{fontSize:11}},"\ud83c\udfac"),
+    h("div",{style:{flex:1,minWidth:0}},
+      h("span",{style:{fontSize:12,fontWeight:700,color:"#888",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}},
+        (p.airDate?(p.month?p.month.slice(0,4):"")+"/"+p.airDate+" ":"")+p.name
+      )
+    )
+  );
+}
   var ps=useState([]);var projects=ps[0],setProjects=ps[1];
   var ls=useState(true);var loading=ls[0],setLoading=ls[1];
   var es=useState(null);var error=es[0],setError=es[1];
@@ -202,7 +212,7 @@ function App(){
           h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},closed.length),
           h("span",{style:{fontSize:11,color:C.txt3,marginLeft:"auto"}},showClosed?"\u25b4 \u6536\u8d77":"\u25be \u9ede\u64ca\u5c55\u958b")
         ),
-        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:10,marginTop:10}},closed.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginTop:10}},closed.map(function(p){return h(ClosedCard,{key:p.id,p:p});}))
       )
     )
   );
