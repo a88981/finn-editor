@@ -53,9 +53,30 @@ function deleteProject(notionId){
   return fetch(API+"?action=delete",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({notionId:notionId})}).catch(function(e){console.error("刪除失敗",e);});
 }
 
-// 客戶設定仍存 localStorage
-function loadClients(){return Promise.resolve().then(function(){try{var v=localStorage.getItem(SK_C);return v?JSON.parse(v):null;}catch(e){return null;}});}
-function saveClients(c){try{localStorage.setItem(SK_C,JSON.stringify(c));}catch(e){}}
+// 客戶設定從 Notion 讀取/儲存
+function loadClients(){
+  return fetch(API+"?action=clients")
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data)||data.length===0)return null;
+      var clients=data.map(function(c){return c.name;});
+      var colors={};data.forEach(function(c){if(c.color)colors[c.name]=c.color;});
+      return {clients:clients,colors:colors};
+    })
+    .catch(function(){
+      try{var v=localStorage.getItem(SK_C);return v?JSON.parse(v):null;}catch(e){return null;}
+    });
+}
+function saveClients(c){
+  // 同時存 localStorage 備援
+  try{localStorage.setItem(SK_C,JSON.stringify(c));}catch(e){}
+  // 存到 Notion
+  fetch(API+"?action=save-clients",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(c)
+  }).catch(function(e){console.warn("客戶設定儲存失敗",e);});
+}
 
 // DEFS - added bizDue/bizDone/noBiz fields
 var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
