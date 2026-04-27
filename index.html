@@ -669,6 +669,128 @@ function CalView(props){
   );
 }
 
+// ── TODO VIEW ─────────────────────────────────────────────────────────────────
+function TodoView(props){
+  var projects=props.projects,onEdit=props.onEdit,cColors=props.cColors;
+  var now=new Date();
+  function daysUntil(dateStr){
+    if(!dateStr)return null;
+    var parts=dateStr.split("-");
+    var d=new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2]));
+    return Math.round((d-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/(1000*60*60*24));
+  }
+  function fmtDate(d){if(!d)return"";var p=d.split("-");return p[1]+"/"+p[2];}
+  function nextDueInfo(p){
+    var candidates=[];
+    if(!p.noCut1&&!p.cut1Done&&p.cut1Due)candidates.push({date:p.cut1Due,label:"\u521d\u526a",icon:"\u2702\ufe0f"});
+    if(!p.v1Done&&p.v1Due)candidates.push({date:p.v1Due,label:"ES",icon:"\u2728"});
+    if(!p.noBiz&&!p.bizDone&&p.bizDue)candidates.push({date:p.bizDue,label:"\u696d\u914d",icon:"\ud83d\udcb0"});
+    if(!p.finalDone&&p.finalDue)candidates.push({date:p.finalDue,label:"Final",icon:"\ud83c\udfac"});
+    candidates.sort(function(a,b){return a.date.localeCompare(b.date);});
+    return candidates[0]||null;
+  }
+
+  var waitingSt=["等待素材","待確認","暫緩"];
+  var activeSt=["初剪待執行","初剪中","初剪修改中","初剪審核中","ES製作中","ES修改中","發包字幕","ES審核中","廠商審核中","Final審核中","Final完成"];
+
+  // 進行中案子（有截止日）
+  var active=projects.filter(function(p){return!p.closed&&activeSt.indexOf(p.status)>=0;});
+  var withDue=[];
+  active.forEach(function(p){
+    var info=nextDueInfo(p);
+    if(info){withDue.push({p:p,info:info,days:daysUntil(info.date)});}
+  });
+  withDue.sort(function(a,b){return a.days-b.days;});
+
+  var urgent=withDue.filter(function(x){return x.days<=1;});
+  var thisWeek=withDue.filter(function(x){return x.days>1&&x.days<=7;});
+  var later=withDue.filter(function(x){return x.days>7;});
+
+  // 等素材案子
+  var waiting=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)>=0;})
+    .sort(function(a,b){return(a.month||"9999").localeCompare(b.month||"9999");});
+
+  var counter=0;
+  function num(){counter++;return counter;}
+
+  function Row(rp){
+    var x=rp.x,cc=cColors[x.p.client]||C.acc;
+    var d=x.days;
+    var dStr=d<0?"\u903e\u671f"+Math.abs(d)+"\u5929":d===0?"\u4eca\u5929":d===1?"\u660e\u5929":"\u5269"+d+"\u5929";
+    var dColor=d<0?C.err:d<=1?"#e07010":C.txt2;
+    return h("div",{onClick:function(){onEdit(x.p);},style:{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:C.card,border:"1px solid "+C.brd,marginBottom:6,borderLeft:"3px solid "+cc}},
+      h("span",{style:{fontSize:11,color:C.txt3,fontWeight:700,minWidth:18}},rp.n+"."),
+      h("span",{style:{fontSize:13}},x.info.icon),
+      h("div",{style:{flex:1,minWidth:0}},
+        h("div",{style:{fontSize:11,fontWeight:800,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.client),
+        h("div",{style:{fontSize:12,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.airDate?x.p.airDate+" "+x.p.name:x.p.name)
+      ),
+      h("div",{style:{textAlign:"right",flexShrink:0}},
+        h("div",{style:{fontSize:11,fontWeight:700,color:dColor}},dStr),
+        h("div",{style:{fontSize:10,color:C.txt3}},x.info.label+" "+fmtDate(x.info.date))
+      )
+    );
+  }
+
+  function WaitRow(wp){
+    var p=wp.p,cc=cColors[p.client]||C.acc;
+    // 計算距離開始工作日
+    var startDays=p.editS?daysUntil(p.editS):null;
+    var startWarn=startDays!==null&&startDays<=3;
+    var startColor=startDays!==null&&startDays<0?C.err:startDays<=1?"#e07010":startDays<=3?C.wrn:C.txt3;
+    var startStr=startDays!==null?(startDays<0?"\u5de5\u4f5c\u5df2\u958b\u59cb"+Math.abs(startDays)+"\u5929":startDays===0?"\u4eca\u5929\u958b\u59cb\ud83d\udd25":startDays===1?"\u660e\u5929\u958b\u59cb\u26a0\ufe0f":"\u5269"+startDays+"\u5929\u958b\u59cb"):null;
+    return h("div",{onClick:function(){onEdit(p);},style:{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,cursor:"pointer",background:startWarn?C.wrnBg:C.card,border:"1px solid "+(startWarn?C.wrn:C.brd),marginBottom:6,borderLeft:"3px solid "+cc}},
+      h("span",{style:{fontSize:11,color:C.txt3,fontWeight:700,minWidth:18}},wp.n+"."),
+      h("span",{style:{fontSize:13}},"\ud83d\udce6"),
+      h("div",{style:{flex:1,minWidth:0}},
+        h("div",{style:{fontSize:11,fontWeight:800,color:cc}},p.client),
+        h("div",{style:{fontSize:12,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},p.airDate?p.airDate+" "+p.name:p.name)
+      ),
+      h("div",{style:{textAlign:"right",flexShrink:0}},
+        startStr&&h("div",{style:{fontSize:10,fontWeight:700,color:startColor}},startStr),
+        h("div",{style:{fontSize:10,color:C.txt3}},p.month?p.month.slice(5)+"\u6708":""),
+        h("div",{style:{fontSize:10,color:C.txt3}},p.status)
+      )
+    );
+  }
+
+  function Col(cp){
+    return h("div",{style:{flex:1,minWidth:0}},
+      h("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:10,paddingBottom:6,borderBottom:"2px solid "+cp.color}},
+        h("span",{style:{fontSize:16}},cp.icon),
+        h("div",null,
+          h("div",{style:{fontSize:12,fontWeight:800,color:cp.color}},cp.title),
+          h("div",{style:{fontSize:10,color:C.txt3}},cp.sub)
+        ),
+        h("span",{style:{fontSize:11,background:cp.color+"22",color:cp.color,borderRadius:12,padding:"1px 8px",fontWeight:700,marginLeft:"auto"}},cp.count)
+      ),
+      cp.children
+    );
+  }
+
+  var urgentRows=urgent.map(function(x,i){return h(Row,{key:x.p.id,x:x,n:i+1});});
+  var weekRows=thisWeek.map(function(x,i){return h(Row,{key:x.p.id,x:x,n:urgent.length+i+1});});
+  var laterRows=later.map(function(x,i){return h(Row,{key:x.p.id,x:x,n:urgent.length+thisWeek.length+i+1});});
+  var waitRows=waiting.map(function(p,i){return h(WaitRow,{key:p.id,p:p,n:i+1});});
+
+  return h("div",null,
+    h("div",{style:{display:"flex",gap:12,alignItems:"flex-start"}},
+      h(Col,{icon:"\ud83d\udd25",title:"\u7dca\u6025",sub:"\u4eca\u5929/\u660e\u5929\u8981\u4ea4",color:"#e08080",count:urgent.length},
+        urgentRows.length?urgentRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7dca\u6025\u4ea4\u4ef6 \ud83c\udf89")
+      ),
+      h(Col,{icon:"\ud83c\udfaf",title:"\u672c\u9031",sub:"2-7\u5929\u5167\u8981\u4ea4",color:"#d8903a",count:thisWeek.length},
+        weekRows.length?weekRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u672c\u9031\u6c92\u6709\u4ea4\u4ef6")
+      ),
+      h(Col,{icon:"\u2615",title:"\u4e4b\u5f8c",sub:"8\u5929\u4ee5\u4e0a",color:C.txt3,count:later.length},
+        laterRows.length?laterRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u4ea4\u4ef6")
+      ),
+      h(Col,{icon:"\u2601\ufe0f",title:"\u7b49\u7d20\u6750",sub:"\u53ef\u50ac\u5ba2\u6236\u6a94\u6848",color:"#83afb0",count:waiting.length},
+        waitRows.length?waitRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7b49\u5f85\u7d20\u6750")
+      )
+    )
+  );
+}
+
 // ── LIST VIEW ─────────────────────────────────────────────────────────────────
 function ListView(props){
   var projects=props.projects,onEdit=props.onEdit,onToggle=props.onToggle,clients=props.clients,cColors=props.cColors;
@@ -1092,7 +1214,7 @@ function App(){
           h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap"}},"\uff0b \u65b0\u589e\u6848\u5b50"),
           h("button",{onClick:function(){setShowCM(function(v){return!v;});},style:{background:showCM?C.acc:"#3c3830",border:"1px solid "+(showCM?C.acc:"#58524a"),color:showCM?"#fff":"#a09080",borderRadius:7,padding:"5px 10px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,whiteSpace:"nowrap"}},"\ud83d\udc65 \u5ba2\u6236"),
           h("div",{style:{display:"flex",background:"#3c3830",borderRadius:7,border:"1px solid #58524a",overflow:"hidden"}},
-            [["kanban","\ud83d\uddce \u770b\u677f"],["list","\u2630 \u5217\u8868"],["calendar","\ud83d\udcc5 \u884c\u4e8b\u66c6"],["report","\ud83d\udcca \u6708\u5831\u8868"]].map(function(pair){var k=pair[0],l=pair[1];return h("button",{key:k,onClick:function(){setView(k);},style:{background:view===k?C.acc:"transparent",color:view===k?"#fff":"#a09080",border:"none",padding:"5px 10px",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}},l);})
+            [["todo2","\ud83d\udccb \u5f85\u8fa6"],["kanban","\ud83d\uddce \u770b\u677f"],["list","\u2630 \u5217\u8868"],["calendar","\ud83d\udcc5 \u884c\u4e8b\u66c6"],["report","\ud83d\udcca \u6708\u5831\u8868"]].map(function(pair){var k=pair[0],l=pair[1];return h("button",{key:k,onClick:function(){setView(k);},style:{background:view===k?C.acc:"transparent",color:view===k?"#fff":"#a09080",border:"none",padding:"5px 10px",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}},l);})
           ),
           h("div",{style:{position:"relative"}},
             h("button",{onClick:function(){setShowExport(function(v){return!v;});},style:{background:"#3c3830",border:"1px solid #58524a",color:"#a09080",borderRadius:7,padding:"5px 10px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11,whiteSpace:"nowrap"}},"\u2b07 \u532f\u51fa"),
@@ -1118,6 +1240,7 @@ function App(){
       (view==="kanban"||view==="list")&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
       view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,cColors:activeColors,onReorder:reorderP}),
       view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:activeColors}),
+      view==="todo2"&&h(TodoView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="list"&&h(ListView,{projects:projects,onEdit:setModal,onToggle:togP,clients:activeClients,cColors:activeColors}),
       view==="calendar"&&h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="report"&&h(MonthReport,{projects:projects})
