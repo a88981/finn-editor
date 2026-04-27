@@ -455,7 +455,12 @@ function Kanban(props){
         return h("div",{key:col.key,style:{flex:"0 0 200px"},
           onDragOver:function(e){e.preventDefault();setOverCol(col.key);},
           onDragLeave:function(e){if(!e.currentTarget.contains(e.relatedTarget)){setOverCol(null);}},
-          onDrop:function(e){e.preventDefault();if(dragId&&overCardId===null){onSC(dragId,col.st[0]);}setDragId(null);setOverCol(null);setOverCardId(null);}},
+          onDrop:function(e){
+            e.preventDefault();
+            // overCardId がある場合はカードのonDropが処理するので何もしない
+            if(dragId&&!overCardId){onSC(dragId,col.st[0]);}
+            setDragId(null);setOverCol(null);setOverCardId(null);
+          }},
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
             h("span",{style:{fontSize:12,fontWeight:800,color:col.acc}},col.icon+" "+col.label),
             h("span",{style:{fontSize:11,background:col.acc+"22",color:col.acc,borderRadius:16,padding:"1px 8px",fontWeight:700}},cards.length)
@@ -469,7 +474,7 @@ function Kanban(props){
                 onDragEnd:function(){setDragId(null);setOverCol(null);setOverCardId(null);},
                 onDragOver:function(e){e.preventDefault();e.stopPropagation();setOverCardId(p.id);setOverCol(col.key);},
                 onDragLeave:function(e){if(!e.currentTarget.contains(e.relatedTarget))setOverCardId(null);},
-                onDrop:function(e){e.preventDefault();e.stopPropagation();handleDropOnCard(p.id,col.key);},
+                onDrop:function(e){e.preventDefault();e.stopPropagation();handleDropOnCard(p.id,col.key);setOverCol(null);setOverCardId(null);},
                 onClick:function(){onEdit(p);},
                 style:{background:C.card,borderRadius:10,padding:"9px 10px",cursor:"grab",opacity:dragId===p.id?0.3:1,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",border:"1px solid "+(isOver?cc:C.brd),borderLeft:"3px solid "+cc,marginTop:isOver?12:0,transition:"margin 0.12s"}},
                 h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}},
