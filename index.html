@@ -692,9 +692,8 @@ function TodoView(props){
   }
 
   var waitingSt=["等待素材","待確認","暫緩"];
-
-  // 進行中案子（不是待執行不是已結案）
-  var active=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)<0;});
+  var doneSt=["Final完成"];
+  var active=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)<0&&doneSt.indexOf(p.status)<0;});
   var withDue=[];
   var noDue=[];
   active.forEach(function(p){
