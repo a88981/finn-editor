@@ -137,9 +137,13 @@ function App(){
 
   var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   var doneSt=["Final\u5b8c\u6210"];
-  var waiting=projects.filter(function(p){return waitingSt.indexOf(p.status)>=0;});
-  var done=projects.filter(function(p){return doneSt.indexOf(p.status)>=0;});
-  var active=projects.filter(function(p){return waitingSt.indexOf(p.status)<0&&doneSt.indexOf(p.status)<0;});
+  var os=useState(false);var showDone=os[0],setShowDone=os[1];
+  var cs=useState(false);var showClosed=cs[0],setShowClosed=cs[1];
+
+  var closed=projects.filter(function(p){return p.closed;});
+  var waiting=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)>=0;});
+  var done=projects.filter(function(p){return!p.closed&&doneSt.indexOf(p.status)>=0;});
+  var active=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)<0&&doneSt.indexOf(p.status)<0;});
 
   return h("div",{style:{maxWidth:600,margin:"0 auto",padding:"20px 16px"}},
     h("div",{style:{marginBottom:24,paddingBottom:16,borderBottom:"2px solid "+C.acc}},
@@ -169,15 +173,25 @@ function App(){
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},waiting.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
           :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7b49\u5f85\u57f7\u884c\u7684\u5c08\u6848")
       ),
-      // 已完成
+      // 已完成（可收起）
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:800,color:"#9070c0",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+        h("div",{onClick:function(){setShowDone(function(v){return!v;});},style:{fontSize:13,fontWeight:800,color:"#9070c0",marginBottom:showDone?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
           h("span",null,"\ud83c\udfac \u5df2\u5b8c\u6210"),
-          h("span",{style:{fontSize:11,background:"#f0ebff",color:"#9070c0",borderRadius:12,padding:"1px 8px",fontWeight:700}},done.length)
+          h("span",{style:{fontSize:11,background:"#f0ebff",color:"#9070c0",borderRadius:12,padding:"1px 8px",fontWeight:700}},done.length),
+          h("span",{style:{fontSize:11,color:"#9070c0",marginLeft:"auto"}},showDone?"\u25b4":"\u25be")
         ),
-        done.length>0
+        showDone&&(done.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
-          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u5df2\u5b8c\u6210\u7684\u5c08\u6848")
+          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u5df2\u5b8c\u6210\u7684\u5c08\u6848"))
+      ),
+      // 已結案（可收起）
+      closed.length>0&&h("div",null,
+        h("div",{onClick:function(){setShowClosed(function(v){return!v;});},style:{fontSize:13,fontWeight:800,color:C.txt3,marginBottom:showClosed?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
+          h("span",null,"\ud83d\udcc2 \u5df2\u7d50\u6848"),
+          h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},closed.length),
+          h("span",{style:{fontSize:11,color:C.txt3,marginLeft:"auto"}},showClosed?"\u25b4":"\u25be")
+        ),
+        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:10}},closed.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
       )
     )
   );
