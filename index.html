@@ -412,17 +412,24 @@ function Kanban(props){
         return mb.localeCompare(ma);
       });
     }
-    // 其他欄：優先順序第一，同優先順序內用 kanbanPos，再 fallback nextDue
+    // 其他欄：優先順序 → 同優先順序內看交件日（待執行欄沒交件日用上片日期）→ 手動拖拉(kanbanPos)
     return cards.slice().sort(function(a,b){
       var pa=priOrder(a),pb=priOrder(b);
       if(pa!==pb)return pa-pb;
-      // 同優先順序：kanbanPos優先
+      // 同優先順序：有 kanbanPos 的優先
       var hasA=a.kanbanPos!==null&&a.kanbanPos!==undefined;
       var hasB=b.kanbanPos!==null&&b.kanbanPos!==undefined;
       if(hasA&&hasB)return a.kanbanPos-b.kanbanPos;
       if(hasA)return-1;
       if(hasB)return 1;
-      return nextDue(a).localeCompare(nextDue(b));
+      // 沒拖過的：看最近交件日，待執行欄沒有交件日就用上片日期
+      var da=nextDue(a),db=nextDue(b);
+      var isWaiting=colKey==="todo";
+      if(isWaiting){
+        da=da==="9999"?(a.airDate||"9999"):da;
+        db=db==="9999"?(b.airDate||"9999"):db;
+      }
+      return da.localeCompare(db);
     });
   }
 
@@ -435,8 +442,8 @@ function Kanban(props){
     if(!col)return;
     var isSameCol=col.st.indexOf(dragP.status)>=0&&col.st.indexOf(targetP.status)>=0;
     if(isSameCol){
-      // 只允許在同優先順序內拖拉
-      if(priOrder(dragP)!==priOrder(targetP)){
+      // 只允許同優先順序內拖拉
+      if(colKey!=="fin"&&priOrder(dragP)!==priOrder(targetP)){
         setDragId(null);setOverCol(null);setOverCardId(null);
         return;
       }
@@ -445,8 +452,8 @@ function Kanban(props){
       var toIdx=cards.findIndex(function(p){return p.id===targetId;});
       if(fromIdx<0||toIdx<0)return;
       var arr=cards.slice();arr.splice(fromIdx,1);arr.splice(toIdx,0,dragP);
-      // 只更新同優先順序的卡片的 kanbanPos
-      var samePri=arr.filter(function(p){return priOrder(p)===priOrder(dragP);});
+      // 只更新同優先順序的卡片
+      var samePri=colKey==="fin"?arr:arr.filter(function(p){return priOrder(p)===priOrder(dragP);});
       onReorder(samePri.map(function(p,i){return{id:p.id,kanbanPos:i};}));
     } else if(!isSameCol){
       onSC(dragId,col.st[0]);
