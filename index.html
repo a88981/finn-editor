@@ -58,12 +58,14 @@ function loadClients(){
   return fetch(API+"?action=clients")
     .then(function(r){return r.json();})
     .then(function(data){
-      if(!Array.isArray(data)||data.length===0)return null;
+      if(!Array.isArray(data))return null;
+      // Notion 有資料才用，空的就回傳空陣列（不 fallback）
       var clients=data.map(function(c){return c.name;});
       var colors={};data.forEach(function(c){if(c.color)colors[c.name]=c.color;});
       return {clients:clients,colors:colors};
     })
     .catch(function(){
+      // API 失敗才 fallback 到 localStorage
       try{var v=localStorage.getItem(SK_C);return v?JSON.parse(v):null;}catch(e){return null;}
     });
 }
@@ -946,7 +948,7 @@ function App(){
     ]).then(function(results){
       var data=results[0],cdata=results[1];
       setProjects(data||[]);
-      setClients(cdata&&cdata.clients?cdata.clients:DEF_CLIENTS.slice());
+      setClients(cdata&&cdata.clients?cdata.clients:[]);
       setCColors(cdata&&cdata.colors?cdata.colors:Object.assign({},DEF_COLORS));
       setReady(true);
     });
