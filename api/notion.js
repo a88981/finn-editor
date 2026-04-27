@@ -1,6 +1,7 @@
 // api/notion.js - Vercel Serverless Function
 const NOTION_API = "https://api.notion.com/v1";
 const DB_ID = "9b73ebba-2aec-49ac-be96-4483360a1456";
+const CLIENTS_DB_ID = "6c9acb62-8a9d-4da0-b139-7469a801789f";
 
 export default async function handler(req, res) {
   // CORS
@@ -105,6 +106,59 @@ export default async function handler(req, res) {
         headers: notionHeaders,
         body: JSON.stringify({ archived: true }),
       });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── 讀取客戶設定 ──────────────────────────────────────────────
+    if (req.method === "GET" && action === "clients") {
+      const response = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
+        method: "POST",
+        headers: notionHeaders,
+        body: JSON.stringify({ sorts: [{ property: "排序", direction: "ascending" }] }),
+      });
+      const data = await response.json();
+      if (data.object === "error") return res.status(500).json({ error: data.message });
+      const clients = (data.results || []).map(function(page) {
+        const p = page.properties;
+        return {
+          notionId: page.id,
+          name: p["客戶名稱"]?.title?.[0]?.plain_text || "",
+          color: p["顏色"]?.rich_text?.[0]?.plain_text || "",
+          order: p["排序"]?.number ?? 0,
+        };
+      }).filter(c => c.name);
+      return res.status(200).json(clients);
+    }
+
+    // ── 儲存全部客戶設定（先刪再建）──────────────────────────────
+    if (req.method === "POST" && action === "save-clients") {
+      const { clients, colors } = body;
+      // 先查所有現有客戶
+      const listRes = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
+        method: "POST", headers: notionHeaders, body: JSON.stringify({}),
+      });
+      const listData = await listRes.json();
+      // 封存舊的
+      await Promise.all((listData.results || []).map(page =>
+        fetch(`${NOTION_API}/pages/${page.id}`, {
+          method: "PATCH", headers: notionHeaders,
+          body: JSON.stringify({ archived: true }),
+        })
+      ));
+      // 新增新的
+      await Promise.all((clients || []).map((name, i) =>
+        fetch(`${NOTION_API}/pages`, {
+          method: "POST", headers: notionHeaders,
+          body: JSON.stringify({
+            parent: { database_id: CLIENTS_DB_ID },
+            properties: {
+              "客戶名稱": { title: [{ text: { content: name } }] },
+              "顏色": { rich_text: [{ text: { content: (colors && colors[name]) || "" } }] },
+              "排序": { number: i },
+            },
+          }),
+        })
+      ));
       return res.status(200).json({ ok: true });
     }
 
