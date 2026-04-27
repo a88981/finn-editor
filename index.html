@@ -320,7 +320,7 @@ function Modal(props){
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
             h("div",{style:{background:C.okBg,borderRadius:8,padding:"9px",border:"1px solid #a8d8b8"}},
-              h("div",{style:{fontSize:10,color:C.ok,fontWeight:700,marginBottom:6}},"\u6536\u8cbb"),
+              h("div",{style:{fontSize:10,color:C.ok,fontWeight:700,marginBottom:6}},"\u6536\u5165"),
               h("input",{type:"number",style:Object.assign({},INP,{color:C.ok,marginBottom:6}),value:form.fee||"",onChange:function(e){set("fee",e.target.value);},placeholder:"\u57fa\u672c\u6536\u8cbb"}),
               h(FeeItemList,{items:form.feeItems||[],onChange:function(v){set("feeItems",v);}})
             ),
@@ -438,17 +438,16 @@ function Kanban(props){
       if(hasA&&hasB)return a.kanbanPos-b.kanbanPos;
       if(hasA)return-1;
       if(hasB)return 1;
-      // 沒拖過的：看最近交件日，待執行欄沒有交件日就用上片日期
+      // 沒拖過的：看最近交件日，待執行欄沒有交件日就用工作月份
       var da=nextDue(a),db=nextDue(b);
       var isWaiting=colKey==="todo";
       if(isWaiting){
-        // 有交件日的排前面，沒有的用上片日期排後面
         var aHasDue=da!=="9999",bHasDue=db!=="9999";
         if(aHasDue&&!bHasDue)return-1;
         if(!aHasDue&&bHasDue)return 1;
         if(!aHasDue&&!bHasDue){
-          da=a.airDate||"9999";
-          db=b.airDate||"9999";
+          da=a.month||"9999";
+          db=b.month||"9999";
         }
       }
       return da.localeCompare(db);
