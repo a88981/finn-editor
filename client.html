@@ -156,7 +156,7 @@ function App(){
   var os=useState(true);var showDone=os[0],setShowDone=os[1];
   var cs=useState(false);var showClosed=cs[0],setShowClosed=cs[1];
 
-  var closed=projects.filter(function(p){return p.closed;});
+  var closed=projects.filter(function(p){return p.closed;}).sort(function(a,b){return(b.airDate||"").localeCompare(a.airDate||"");});
   var waiting=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)>=0;}).sort(function(a,b){return(a.airDate||"9999").localeCompare(b.airDate||"9999");});
   var done=projects.filter(function(p){return!p.closed&&doneSt.indexOf(p.status)>=0;}).sort(function(a,b){return(b.airDate||"").localeCompare(a.airDate||"");});
   var reviewSt=["\u521d\u526a\u5be9\u6838\u4e2d","ES\u5be9\u6838\u4e2d","V1\u5be9\u6838\u4e2d","\u5ee0\u5546\u5be9\u6838\u4e2d","Final\u5be9\u6838\u4e2d"];
