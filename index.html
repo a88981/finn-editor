@@ -947,13 +947,30 @@ function App(){
     });
   },[]);
   // 客戶設定存 localStorage
-  var clInitRef=React.useRef(0);
-  useEffect(function(){
-    if(!ready||clients===null)return;
-    clInitRef.current+=1;
-    if(clInitRef.current<=2)return; // 跳過初始載入的兩次觸發（clients + cColors）
-    saveClients({clients:clients,colors:cColors});
-  },[clients,cColors]);
+  function setClientsAndSave(updater){
+    setClients(function(prev){
+      var next=typeof updater==="function"?updater(prev):updater;
+      setTimeout(function(){
+        setCColors(function(prevColors){
+          saveClients({clients:next,colors:prevColors});
+          return prevColors;
+        });
+      },100);
+      return next;
+    });
+  }
+  function setCColorsAndSave(updater){
+    setCColors(function(prev){
+      var next=typeof updater==="function"?updater(prev):updater;
+      setTimeout(function(){
+        setClients(function(prevClients){
+          saveClients({clients:prevClients,colors:next});
+          return prevClients;
+        });
+      },100);
+      return next;
+    });
+  }
 
   // fallback while loading
   var clientsReady=clients!==null;
@@ -1113,7 +1130,7 @@ function App(){
         )
       )
     ),
-    showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
+    showCM&&h(ClientMgr,{clients:activeClients,setClients:setClientsAndSave,cColors:activeColors,setCColors:setCColorsAndSave,onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 20px 32px"}},
       (view==="kanban"||view==="list")&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
       view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,cColors:activeColors,onReorder:reorderP}),
