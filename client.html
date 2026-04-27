@@ -2,7 +2,7 @@
 <html lang="zh-TW"><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>剪輯進度</title>
+<title>小玩剪輯進度</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
@@ -81,7 +81,10 @@ function DueTag(props){
 
 function ProjectCard(props){
   var p=props.p;
-  var sc=statusColor(p.status);
+  var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
+  var isWaiting=waitingSt.indexOf(p.status)>=0;
+  var isDone=p.status==="Final\u5b8c\u6210";
+  var sc=isWaiting?"#a8a090":isDone?"#9070c0":statusColor(p.status);
   var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e\ufe0f";
   return h("div",{style:{background:C.card,borderRadius:14,padding:"16px",border:"1px solid "+C.brd,borderLeft:"4px solid "+sc,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
@@ -132,35 +135,50 @@ function App(){
       });
   },[]);
 
-  var done=projects.filter(function(p){return p.status==="Final\u5b8c\u6210";});
-  var active=projects.filter(function(p){return p.status!=="Final\u5b8c\u6210";});
+  var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
+  var doneSt=["Final\u5b8c\u6210"];
+  var waiting=projects.filter(function(p){return waitingSt.indexOf(p.status)>=0;});
+  var done=projects.filter(function(p){return doneSt.indexOf(p.status)>=0;});
+  var active=projects.filter(function(p){return waitingSt.indexOf(p.status)<0&&doneSt.indexOf(p.status)<0;});
 
   return h("div",{style:{maxWidth:600,margin:"0 auto",padding:"20px 16px"}},
-    // Header
     h("div",{style:{marginBottom:24,paddingBottom:16,borderBottom:"2px solid "+C.acc}},
-      h("div",{style:{fontSize:22,fontWeight:900,color:C.acc}},"\ud83c\udfac \u526a\u8f2f\u9032\u5ea6"),
-      h("div",{style:{fontSize:13,color:C.txt3,marginTop:4}},CLIENT_NAME+"\u7684\u5c08\u6848\u9032\u5ea6\u5831\u544a")
+      h("div",{style:{fontSize:22,fontWeight:900,color:C.acc}},"\ud83c\udfac \u5c0f\u73a9\u526a\u8f2f\u9032\u5ea6"),
+      h("div",{style:{fontSize:13,color:C.txt3,marginTop:4}},CLIENT_NAME+"\u7684\u5c08\u6848\u9032\u5ea6\u8868")
     ),
-
     loading&&h("div",{style:{textAlign:"center",padding:"40px",color:C.txt3}},"\u8f09\u5165\u4e2d\u2026"),
     error&&h("div",{style:{textAlign:"center",padding:"40px",color:C.err}},error),
-
-    !loading&&!error&&h("div",null,
+    !loading&&!error&&h("div",{style:{display:"flex",flexDirection:"column",gap:20}},
       // 進行中
-      active.length>0&&h("div",{style:{marginBottom:24}},
-        h("div",{style:{fontSize:12,fontWeight:700,color:C.txt3,marginBottom:10,letterSpacing:1}},"\u9032\u884c\u4e2d · "+active.length+"\u4ef6"),
-        h("div",{style:{display:"flex",flexDirection:"column",gap:10}},
-          active.map(function(p){return h(ProjectCard,{key:p.id,p:p});})
-        )
+      h("div",null,
+        h("div",{style:{fontSize:13,fontWeight:800,color:C.txt2,marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+          h("span",null,"\u2702\ufe0f \u9032\u884c\u4e2d"),
+          h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},active.length)
+        ),
+        active.length>0
+          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},active.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u76ee\u524d\u6c92\u6709\u9032\u884c\u4e2d\u7684\u5c08\u6848")
       ),
-      // Final完成
-      done.length>0&&h("div",null,
-        h("div",{style:{fontSize:12,fontWeight:700,color:C.txt3,marginBottom:10,letterSpacing:1}},"\u5df2\u5b8c\u6210 · "+done.length+"\u4ef6"),
-        h("div",{style:{display:"flex",flexDirection:"column",gap:10}},
-          done.map(function(p){return h(ProjectCard,{key:p.id,p:p});})
-        )
+      // 等待執行
+      h("div",null,
+        h("div",{style:{fontSize:13,fontWeight:800,color:"#a8a090",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+          h("span",null,"\u23f3 \u7b49\u5f85\u57f7\u884c"),
+          h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},waiting.length)
+        ),
+        waiting.length>0
+          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},waiting.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7b49\u5f85\u57f7\u884c\u7684\u5c08\u6848")
       ),
-      active.length===0&&done.length===0&&h("div",{style:{textAlign:"center",padding:"40px",color:C.txt3}},"\u76ee\u524d\u6c92\u6709\u9032\u884c\u4e2d\u7684\u5c08\u6848")
+      // 已完成
+      h("div",null,
+        h("div",{style:{fontSize:13,fontWeight:800,color:"#9070c0",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+          h("span",null,"\ud83c\udfac \u5df2\u5b8c\u6210"),
+          h("span",{style:{fontSize:11,background:"#f0ebff",color:"#9070c0",borderRadius:12,padding:"1px 8px",fontWeight:700}},done.length)
+        ),
+        done.length>0
+          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u5df2\u5b8c\u6210\u7684\u5c08\u6848")
+      )
     )
   );
 }
