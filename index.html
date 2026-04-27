@@ -824,7 +824,7 @@ function MonthReport(props){
 
 // ── CLIENT MANAGER ─────────────────────────────────────────────────────────────
 function ClientMgr(props){
-  var clients=props.clients,setClients=props.setClients,cColors=props.cColors,setCColors=props.setCColors;
+  var clients=props.clients,setClients=props.setClients,cColors=props.cColors,setCColors=props.setCColors,onSave=props.onSave;
   var ns=useState("");var newName=ns[0],setNewName=ns[1];
   var drag=useState(null);var dragI=drag[0],setDragI=drag[1];
   var over=useState(null);var overI=over[0],setOverI=over[1];
@@ -853,7 +853,10 @@ function ClientMgr(props){
   var PALETTE=["#f9cbd5","#e491b4","#d26c99","#eaa9a6","#db7f7b","#c75e5b","#f8be73","#f0a14e","#e28735","#fee087","#fbcc54","#edb02d","#cbd6b2","#99ba89","#6e9962","#b2d0d0","#83afb0","#619394","#b0c2d2","#87a4b9","#66889f","#c7b8d4","#a091b9","#82729d","#e6d0bf","#cead94","#ad8970","#ccccce","#9c9da1","#76787d"];
   return h("div",{style:{background:C.accBg,borderBottom:"2px solid "+C.acc,padding:"12px 20px"},onClick:function(){setPickerFor(null);}},
     h("div",{style:{maxWidth:1100,margin:"0 auto"}},
-      h("div",{style:{fontSize:12,fontWeight:700,color:C.txt2,marginBottom:8}},"\ud83d\udc65 \u5ba2\u6236\u7ba1\u7406  ",h("span",{style:{fontSize:10,color:C.txt3,fontWeight:400}},"\u62d6\u62c9\u8abf\u5e8f \u00b7 \u9ede\u8272\u584a\u9078\u984f\u8272 \u00b7 \u96d9\u64ca\u6539\u540d")),
+      h("div",{style:{fontSize:12,fontWeight:700,color:C.txt2,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between"}},
+        h("span",null,"\ud83d\udc65 \u5ba2\u6236\u7ba1\u7406  ",h("span",{style:{fontSize:10,color:C.txt3,fontWeight:400}},"\u62d6\u62c9\u8abf\u5e8f \u00b7 \u9ede\u8272\u584a\u9078\u984f\u8272 \u00b7 \u96d9\u64ca\u6539\u540d")),
+        h("button",{onClick:function(){if(onSave)onSave();},style:{background:C.ok,border:"none",color:"#fff",borderRadius:7,padding:"4px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:11}},"\u2601\ufe0f \u5132\u5b58\u5230 Notion")
+      ),
       h("div",{style:{display:"flex",gap:7,marginBottom:9}},
         h("input",{value:newName,onChange:function(e){setNewName(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"\u65b0\u5ba2\u6236\u540d\u7a31\u2026",style:Object.assign({},INP,{flex:1})}),
         h("button",{onClick:add,style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},"\uff0b \u65b0\u589e")
@@ -947,28 +950,11 @@ function App(){
       setClients(cl);
       setCColors(col);
       setReady(true);
-      setTimeout(function(){clInitRef.current=true;},500);
     });
   },[]);
   // 客戶設定存 localStorage
   var clientsRef=React.useRef([]);
   var cColorsRef=React.useRef({});
-  function setClientsAndSave(updater){
-    setClients(function(prev){
-      var next=typeof updater==="function"?updater(prev):updater;
-      clientsRef.current=next;
-      if(clInitRef.current)saveClients({clients:next,colors:cColorsRef.current});
-      return next;
-    });
-  }
-  function setCColorsAndSave(updater){
-    setCColors(function(prev){
-      var next=typeof updater==="function"?updater(prev):updater;
-      cColorsRef.current=next;
-      if(clInitRef.current)saveClients({clients:clientsRef.current,colors:next});
-      return next;
-    });
-  }
 
   // fallback while loading
   var clientsReady=clients!==null;
@@ -1128,7 +1114,7 @@ function App(){
         )
       )
     ),
-    showCM&&h(ClientMgr,{clients:activeClients,setClients:setClientsAndSave,cColors:activeColors,setCColors:setCColorsAndSave,onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
+    showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(){saveClients({clients:clients,colors:cColors});},onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 20px 32px"}},
       (view==="kanban"||view==="list")&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
       view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,cColors:activeColors,onReorder:reorderP}),
