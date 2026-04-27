@@ -723,16 +723,16 @@ function TodoView(props){
     var d=x.days;
     var dStr=d<0?"\u903e\u671f"+Math.abs(d)+"\u5929":d===0?"\u4eca\u5929":d===1?"\u660e\u5929":"\u5269"+d+"\u5929";
     var dColor=d<0?C.err:d<=1?"#e07010":C.txt2;
-    return h("div",{onClick:function(){onEdit(x.p);},style:{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:9,cursor:"pointer",background:C.card,border:"1px solid "+C.brd,marginBottom:7,borderLeft:"3px solid "+cc}},
-      h("span",{style:{fontSize:13,color:C.txt3,fontWeight:700,minWidth:22}},rp.n+"."),
-      h("span",{style:{fontSize:16}},x.info.icon),
+    return h("div",{onClick:function(){onEdit(x.p);},style:{display:"flex",alignItems:"center",gap:5,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:C.card,border:"1px solid "+C.brd,marginBottom:7,borderLeft:"3px solid "+cc}},
+      h("span",{style:{fontSize:12,color:C.txt3,fontWeight:700,minWidth:16,flexShrink:0}},rp.n+"."),
+      h("span",{style:{fontSize:14,flexShrink:0}},x.info.icon),
       h("div",{style:{flex:1,minWidth:0}},
-        h("div",{style:{fontSize:13,fontWeight:800,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.client),
-        h("div",{style:{fontSize:14,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.airDate?x.p.airDate+" "+x.p.name:x.p.name)
+        h("div",{style:{fontSize:12,fontWeight:800,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.client),
+        h("div",{style:{fontSize:13,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.airDate?x.p.airDate+" "+x.p.name:x.p.name)
       ),
-      h("div",{style:{textAlign:"right",flexShrink:0}},
-        h("div",{style:{fontSize:13,fontWeight:700,color:dColor}},dStr),
-        h("div",{style:{fontSize:11,color:C.txt3}},x.info.label+" "+fmtDate(x.info.date))
+      h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
+        h("div",{style:{fontSize:12,fontWeight:700,color:dColor}},dStr),
+        h("div",{style:{fontSize:10,color:C.txt3}},x.info.label+" "+fmtDate(x.info.date))
       )
     );
   }
@@ -744,17 +744,17 @@ function TodoView(props){
     var startWarn=startDays!==null&&startDays<=3;
     var startColor=startDays!==null&&startDays<0?C.err:startDays<=1?"#e07010":startDays<=3?C.wrn:C.txt3;
     var startStr=startDays!==null?(startDays<0?"\u5de5\u4f5c\u5df2\u958b\u59cb"+Math.abs(startDays)+"\u5929":startDays===0?"\u4eca\u5929\u958b\u59cb\ud83d\udd25":startDays===1?"\u660e\u5929\u958b\u59cb\u26a0\ufe0f":"\u5269"+startDays+"\u5929\u958b\u59cb"):null;
-    return h("div",{onClick:function(){onEdit(p);},style:{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:9,cursor:"pointer",background:startWarn?C.wrnBg:C.card,border:"1px solid "+(startWarn?C.wrn:C.brd),marginBottom:7,borderLeft:"3px solid "+cc}},
-      h("span",{style:{fontSize:13,color:C.txt3,fontWeight:700,minWidth:22}},wp.n+"."),
-      h("span",{style:{fontSize:16}},"\ud83d\udce6"),
+    return h("div",{onClick:function(){onEdit(p);},style:{display:"flex",alignItems:"center",gap:5,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:startWarn?C.wrnBg:C.card,border:"1px solid "+(startWarn?C.wrn:C.brd),marginBottom:7,borderLeft:"3px solid "+cc}},
+      h("span",{style:{fontSize:12,color:C.txt3,fontWeight:700,minWidth:16,flexShrink:0}},wp.n+"."),
+      h("span",{style:{fontSize:14,flexShrink:0}},"\ud83d\udce6"),
       h("div",{style:{flex:1,minWidth:0}},
-        h("div",{style:{fontSize:13,fontWeight:800,color:cc}},p.client),
-        h("div",{style:{fontSize:14,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},p.airDate?p.airDate+" "+p.name:p.name)
+        h("div",{style:{fontSize:12,fontWeight:800,color:cc}},p.client),
+        h("div",{style:{fontSize:13,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},p.airDate?p.airDate+" "+p.name:p.name)
       ),
-      h("div",{style:{textAlign:"right",flexShrink:0}},
-        startStr&&h("div",{style:{fontSize:12,fontWeight:700,color:startColor}},startStr),
-        h("div",{style:{fontSize:11,color:C.txt3}},p.month?p.month.slice(5)+"\u6708":""),
-        h("div",{style:{fontSize:11,color:C.txt3}},p.status)
+      h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
+        startStr&&h("div",{style:{fontSize:11,fontWeight:700,color:startColor}},startStr),
+        h("div",{style:{fontSize:10,color:C.txt3}},p.month?p.month.slice(5)+"\u6708":""),
+        h("div",{style:{fontSize:10,color:C.txt3}},p.status)
       )
     );
   }
@@ -1213,7 +1213,7 @@ function App(){
         h("div",null,
           h("div",{style:{fontSize:18,fontWeight:800,color:"#f5a800",letterSpacing:"-0.5px"}},"\ud83c\udfac \u5c0f\u73a9\u526a\u8f2f\u9032\u5ea6"),
         ),
-        h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"nowrap"}},
+        h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}},
           h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap"}},"\uff0b \u65b0\u589e\u6848\u5b50"),
           h("div",{style:{display:"flex",background:"#3c3830",borderRadius:7,border:"1px solid #58524a",overflow:"hidden"}},
             [["todo2","\ud83d\udccb \u5f85\u8fa6"],["kanban","\ud83d\uddce \u770b\u677f"],["list","\u2630 \u5217\u8868"],["calendar","\ud83d\udcc5 \u884c\u4e8b\u66c6"],["report","\ud83d\udcca \u6708\u5831\u8868"]].map(function(pair){var k=pair[0],l=pair[1];return h("button",{key:k,onClick:function(){setView(k);},style:{background:view===k?C.acc:"transparent",color:view===k?"#fff":"#a09080",border:"none",padding:"5px 10px",cursor:"pointer",fontWeight:700,fontSize:11,fontFamily:"inherit",whiteSpace:"nowrap"}},l);})
@@ -1245,8 +1245,8 @@ function App(){
       view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:activeColors}),
       view==="todo2"&&h(TodoView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="list"&&h(ListView,{projects:projects,onEdit:setModal,onToggle:togP,clients:activeClients,cColors:activeColors}),
-      view==="calendar"&&h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors}),
-      view==="report"&&h(MonthReport,{projects:projects})
+      view==="calendar"&&h("div",{style:{zoom:0.87}},h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors})),
+      view==="report"&&h("div",{style:{zoom:0.87}},h(MonthReport,{projects:projects}))
     ),
     modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
