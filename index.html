@@ -53,26 +53,19 @@ function deleteProject(notionId){
   return fetch(API+"?action=delete",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({notionId:notionId})}).catch(function(e){console.error("刪除失敗",e);});
 }
 
-// 客戶設定從 Notion 讀取/儲存
+// 客戶設定從 Notion 讀取/儲存（不使用 localStorage）
 function loadClients(){
   return fetch(API+"?action=clients")
     .then(function(r){return r.json();})
     .then(function(data){
-      if(!Array.isArray(data))return null;
-      // Notion 有資料才用，空的就回傳空陣列（不 fallback）
+      if(!Array.isArray(data))return {clients:[],colors:{}};
       var clients=data.map(function(c){return c.name;});
       var colors={};data.forEach(function(c){if(c.color)colors[c.name]=c.color;});
       return {clients:clients,colors:colors};
     })
-    .catch(function(){
-      // API 失敗才 fallback 到 localStorage
-      try{var v=localStorage.getItem(SK_C);return v?JSON.parse(v):null;}catch(e){return null;}
-    });
+    .catch(function(){return {clients:[],colors:{}};});
 }
 function saveClients(c){
-  // 同時存 localStorage 備援
-  try{localStorage.setItem(SK_C,JSON.stringify(c));}catch(e){}
-  // 存到 Notion
   fetch(API+"?action=save-clients",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
@@ -954,12 +947,13 @@ function App(){
     });
   },[]);
   // 客戶設定存 localStorage
-  var clInitRef=React.useRef(false);
+  var clInitRef=React.useRef(0);
   useEffect(function(){
     if(!ready||clients===null)return;
-    if(!clInitRef.current){clInitRef.current=true;return;} // 跳過第一次（初始載入）
+    clInitRef.current+=1;
+    if(clInitRef.current<=1)return; // 跳過初始載入的第一次觸發
     saveClients({clients:clients,colors:cColors});
-  },[clients,cColors,ready]);
+  },[clients,cColors]);
 
   // fallback while loading
   var clientsReady=clients!==null;
