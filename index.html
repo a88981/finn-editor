@@ -426,8 +426,14 @@ function Kanban(props){
       var da=nextDue(a),db=nextDue(b);
       var isWaiting=colKey==="todo";
       if(isWaiting){
-        da=da==="9999"?(a.airDate||"9999"):da;
-        db=db==="9999"?(b.airDate||"9999"):db;
+        // 有交件日的排前面，沒有的用上片日期排後面
+        var aHasDue=da!=="9999",bHasDue=db!=="9999";
+        if(aHasDue&&!bHasDue)return-1;
+        if(!aHasDue&&bHasDue)return 1;
+        if(!aHasDue&&!bHasDue){
+          da=a.airDate||"9999";
+          db=b.airDate||"9999";
+        }
       }
       return da.localeCompare(db);
     });
