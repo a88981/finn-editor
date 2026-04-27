@@ -116,13 +116,14 @@ function App(){
     fetch(API+"?action=list")
       .then(function(r){return r.json();})
       .then(function(data){
-        var filtered=(data||[]).filter(function(p){return p.client===CLIENT_NAME&&!p.closed;});
-        // 按進度排序：進行中的在前，Final完成的在後
-        var order={"Final\u5b8c\u6210":99};
+        var filtered=(data||[]).filter(function(p){return p.client===CLIENT_NAME;});
+        // 按進度排序
+        var order={"Final\u5b8c\u6210":98,"":99};
         filtered.sort(function(a,b){
-          var oa=order[a.status]||0,ob=order[b.status]||0;
+          if(a.closed&&!b.closed)return 1;
+          if(!a.closed&&b.closed)return-1;
+          var oa=order[a.status]!==undefined?order[a.status]:0,ob=order[b.status]!==undefined?order[b.status]:0;
           if(oa!==ob)return oa-ob;
-          // 按最近交件日
           function nd(p){var dates=[];if(!p.noCut1&&!p.cut1Done&&p.cut1Due)dates.push(p.cut1Due);if(!p.v1Done&&p.v1Due)dates.push(p.v1Due);if(!p.noBiz&&!p.bizDone&&p.bizDue)dates.push(p.bizDue);if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);dates.sort();return dates[0]||"9999";}
           return nd(a).localeCompare(nd(b));
         });
@@ -137,7 +138,7 @@ function App(){
 
   var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   var doneSt=["Final\u5b8c\u6210"];
-  var os=useState(false);var showDone=os[0],setShowDone=os[1];
+  var os=useState(true);var showDone=os[0],setShowDone=os[1];
   var cs=useState(false);var showClosed=cs[0],setShowClosed=cs[1];
 
   var closed=projects.filter(function(p){return p.closed;});
@@ -186,12 +187,12 @@ function App(){
       ),
       // 已結案（可收起）
       closed.length>0&&h("div",null,
-        h("div",{onClick:function(){setShowClosed(function(v){return!v;});},style:{fontSize:13,fontWeight:800,color:C.txt3,marginBottom:showClosed?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
+        h("div",{onClick:function(){setShowClosed(function(v){return!v;});},style:{fontSize:13,fontWeight:800,color:C.txt3,marginBottom:showClosed?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",padding:"8px 12px",background:"#f5f5f5",borderRadius:8,border:"1px solid #eee"}},
           h("span",null,"\ud83d\udcc2 \u5df2\u7d50\u6848"),
           h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},closed.length),
-          h("span",{style:{fontSize:11,color:C.txt3,marginLeft:"auto"}},showClosed?"\u25b4":"\u25be")
+          h("span",{style:{fontSize:11,color:C.txt3,marginLeft:"auto"}},showClosed?"\u25b4 \u6536\u8d77":"\u25be \u9ede\u64ca\u5c55\u958b")
         ),
-        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:10}},closed.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:10,marginTop:10}},closed.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
       )
     )
   );
