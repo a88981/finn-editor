@@ -130,6 +130,16 @@ export default async function handler(req, res) {
       return res.status(200).json(clients);
     }
 
+    // ── 刪除單一客戶 ──────────────────────────────────────────────
+    if (req.method === "DELETE" && action === "delete-client") {
+      const { notionId } = body;
+      await fetch(`${NOTION_API}/pages/${notionId}`, {
+        method: "PATCH", headers: notionHeaders,
+        body: JSON.stringify({ archived: true }),
+      });
+      return res.status(200).json({ ok: true });
+    }
+
     // ── 儲存全部客戶設定（先刪再建）──────────────────────────────
     if (req.method === "POST" && action === "save-clients") {
       const { clients, colors } = body;
@@ -138,16 +148,17 @@ export default async function handler(req, res) {
         method: "POST", headers: notionHeaders, body: JSON.stringify({}),
       });
       const listData = await listRes.json();
-      // 封存舊的
-      await Promise.all((listData.results || []).map(page =>
-        fetch(`${NOTION_API}/pages/${page.id}`, {
+      // 逐一封存舊的（sequential 避免 rate limit）
+      for (const page of (listData.results || [])) {
+        await fetch(`${NOTION_API}/pages/${page.id}`, {
           method: "PATCH", headers: notionHeaders,
           body: JSON.stringify({ archived: true }),
-        })
-      ));
+        });
+      }
       // 新增新的
-      await Promise.all((clients || []).map((name, i) =>
-        fetch(`${NOTION_API}/pages`, {
+      for (let i = 0; i < (clients || []).length; i++) {
+        const name = clients[i];
+        await fetch(`${NOTION_API}/pages`, {
           method: "POST", headers: notionHeaders,
           body: JSON.stringify({
             parent: { database_id: CLIENTS_DB_ID },
@@ -157,8 +168,8 @@ export default async function handler(req, res) {
               "排序": { number: i },
             },
           }),
-        })
-      ));
+        });
+      }
       return res.status(200).json({ ok: true });
     }
 
