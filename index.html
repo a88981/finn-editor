@@ -949,31 +949,20 @@ function App(){
   },[]);
   // 客戶設定存 localStorage
   function setClientsAndSave(updater){
-    if(!clInitRef.current)return setClients(updater);
     setClients(function(prev){
       var next=typeof updater==="function"?updater(prev):updater;
-      setTimeout(function(){
-        setClients(function(c){
-          setCColors(function(col){
-            saveClients({clients:c,colors:col});
-            return col;
-          });
-          return c;
-        });
-      },200);
+      if(clInitRef.current){
+        setCColors(function(col){saveClients({clients:next,colors:col});return col;});
+      }
       return next;
     });
   }
   function setCColorsAndSave(updater){
-    if(!clInitRef.current)return setCColors(updater);
     setCColors(function(prev){
       var next=typeof updater==="function"?updater(prev):updater;
-      setTimeout(function(){
-        setClients(function(c){
-          saveClients({clients:c,colors:next});
-          return c;
-        });
-      },200);
+      if(clInitRef.current){
+        setClients(function(cl){saveClients({clients:cl,colors:next});return cl;});
+      }
       return next;
     });
   }
