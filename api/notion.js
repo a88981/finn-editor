@@ -1,7 +1,7 @@
 // api/notion.js - Vercel Serverless Function
 const NOTION_API = "https://api.notion.com/v1";
 const DB_ID = "9b73ebba-2aec-49ac-be96-4483360a1456";
-const CLIENTS_DB_ID = "6c9acb62-8a9d-4da0-b139-7469a801789f";
+const CLIENTS_DB_ID = "7f44768f-64cf-404a-abe1-c153e68b1179";
 
 export default async function handler(req, res) {
   // CORS
