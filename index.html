@@ -1245,8 +1245,8 @@ function App(){
       view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:activeColors}),
       view==="todo2"&&h(TodoView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="list"&&h(ListView,{projects:projects,onEdit:setModal,onToggle:togP,clients:activeClients,cColors:activeColors}),
-      view==="calendar"&&h("div",{style:{zoom:0.87}},h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors})),
-      view==="report"&&h("div",{style:{zoom:0.87}},h(MonthReport,{projects:projects}))
+      view==="calendar"&&h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},h("div",{style:{minWidth:600,zoom:0.8}},h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors}))),
+      view==="report"&&h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},h("div",{style:{minWidth:500,zoom:0.85}},h(MonthReport,{projects:projects})))
     ),
     modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
