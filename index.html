@@ -952,7 +952,12 @@ function App(){
     });
   },[]);
   // 客戶設定存 localStorage
-  useEffect(function(){if(ready&&clients!==null)saveClients({clients:clients,colors:cColors});},[clients,cColors,ready]);
+  var clInitRef=React.useRef(false);
+  useEffect(function(){
+    if(!ready||clients===null)return;
+    if(!clInitRef.current){clInitRef.current=true;return;} // 跳過第一次（初始載入）
+    saveClients({clients:clients,colors:cColors});
+  },[clients,cColors,ready]);
 
   // fallback while loading
   var clientsReady=clients!==null;
