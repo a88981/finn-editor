@@ -186,7 +186,7 @@ function App(){
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},active.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
           :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u76ee\u524d\u6c92\u6709\u9032\u884c\u4e2d\u7684\u5c08\u6848")
       ),
-      // 等待執行
+      // 待執行
       h("div",null,
         h("div",{style:{fontSize:13,fontWeight:800,color:"#a8a090",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
           h("span",null,"\u23f3 \u7b49\u5f85\u57f7\u884c"),
