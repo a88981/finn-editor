@@ -934,7 +934,6 @@ function App(){
   var scms=useState(false);var showCM=scms[0],setShowCM=scms[1];
 
   useEffect(function(){
-    // 載入：Notion（案子）+ localStorage（客戶設定）
     Promise.all([
       loadData(),
       loadClients()
@@ -944,30 +943,37 @@ function App(){
       setClients(cdata&&cdata.clients?cdata.clients:[]);
       setCColors(cdata&&cdata.colors?cdata.colors:Object.assign({},DEF_COLORS));
       setReady(true);
+      // 初始載入完成後，允許 saveClients
+      setTimeout(function(){clInitRef.current=true;},500);
     });
   },[]);
   // 客戶設定存 localStorage
   function setClientsAndSave(updater){
+    if(!clInitRef.current)return setClients(updater);
     setClients(function(prev){
       var next=typeof updater==="function"?updater(prev):updater;
       setTimeout(function(){
-        setCColors(function(prevColors){
-          saveClients({clients:next,colors:prevColors});
-          return prevColors;
+        setClients(function(c){
+          setCColors(function(col){
+            saveClients({clients:c,colors:col});
+            return col;
+          });
+          return c;
         });
-      },100);
+      },200);
       return next;
     });
   }
   function setCColorsAndSave(updater){
+    if(!clInitRef.current)return setCColors(updater);
     setCColors(function(prev){
       var next=typeof updater==="function"?updater(prev):updater;
       setTimeout(function(){
-        setClients(function(prevClients){
-          saveClients({clients:prevClients,colors:next});
-          return prevClients;
+        setClients(function(c){
+          saveClients({clients:c,colors:next});
+          return c;
         });
-      },100);
+      },200);
       return next;
     });
   }
