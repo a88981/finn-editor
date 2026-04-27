@@ -951,7 +951,7 @@ function App(){
   useEffect(function(){
     if(!ready||clients===null)return;
     clInitRef.current+=1;
-    if(clInitRef.current<=1)return; // 跳過初始載入的第一次觸發
+    if(clInitRef.current<=2)return; // 跳過初始載入的兩次觸發（clients + cColors）
     saveClients({clients:clients,colors:cColors});
   },[clients,cColors]);
 
