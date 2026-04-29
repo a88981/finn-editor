@@ -212,6 +212,232 @@ function CostItemList(props){
 }
 
 // ── SCHED SECTION ─────────────────────────────────────────────────────────────
+// ── SCHED CAL PREVIEW ─────────────────────────────────────────────────────────
+function SchedCalPreview(props){
+  var form=props.form,projects=props.projects,editingId=props.editingId;
+  var cs=useState(function(){
+    var d=form.editS||form.cut1S||form.v1S||form.bizS;
+    if(d){var dt=new Date(d);return{y:dt.getFullYear(),m:dt.getMonth()};}
+    var now=new Date();return{y:now.getFullYear(),m:now.getMonth()};
+  });
+  var cal=cs[0],setCal=cs[1];
+
+  var COLORS={ed:"#c0bab0",c1:"#e08080",v1:"#d8903a",bz:"#4a90c8",fin:"#9070c0"};
+  var STAGE_ICON={"\u5b8c\u6574\u6642\u7a0b":"\ud83c\udfac","\u521d\u526a":"\u2702\ufe0f","ES":"\u2728","\u696d\u914d":"\ud83d\udcb0"};
+  var MN=["\u4e00\u6708","\u4e8c\u6708","\u4e09\u6708","\u56db\u6708","\u4e94\u6708","\u516d\u6708","\u4e03\u6708","\u516b\u6708","\u4e5d\u6708","\u5341\u6708","\u5341\u4e00\u6708","\u5341\u4e8c\u6708"];
+
+  function inRFull(day,y,m,s,e){
+    if(!s)return false;
+    var sd=new Date(s),ed=new Date(e||s);
+    var cur=new Date(y,m,day);
+    return cur>=sd&&cur<=ed;
+  }
+  function isDot(day,y,m,dateStr){
+    if(!dateStr)return false;
+    var d=new Date(dateStr);
+    return d.getFullYear()===y&&d.getMonth()===m&&d.getDate()===day;
+  }
+
+  var newRanges=[];
+  if(form.editS)newRanges.push({s:form.editS,e:form.editE,d:null,color:COLORS.ed,label:"\u5b8c\u6574\u6642\u7a0b"});
+  if(!form.noCut1&&form.cut1S)newRanges.push({s:form.cut1S,e:form.cut1E,d:form.cut1Due,color:COLORS.c1,label:"\u521d\u526a"});
+  if(form.v1S)newRanges.push({s:form.v1S,e:form.v1E,d:form.v1Due,color:COLORS.v1,label:"ES"});
+  if(!form.noBiz&&form.bizS)newRanges.push({s:form.bizS,e:form.bizE,d:form.bizDue,color:COLORS.bz,label:"\u696d\u914d"});
+
+  var otherRanges=[];
+  (projects||[]).filter(function(p){return!p.closed&&p.id!==editingId&&p.notionId!==editingId;}).forEach(function(p){
+    if(p.editS)otherRanges.push({s:p.editS,e:p.editE||p.editS,color:COLORS.ed,pName:p.client+" "+p.name.slice(0,5),stage:"\u5b8c\u6574\u6642\u7a0b"});
+    if(!p.noCut1&&p.cut1S)otherRanges.push({s:p.cut1S,e:p.cut1E||p.cut1S,color:COLORS.c1,pName:p.client+" "+p.name.slice(0,5),stage:"\u521d\u526a"});
+    if(p.v1S)otherRanges.push({s:p.v1S,e:p.v1E||p.v1S,color:COLORS.v1,pName:p.client+" "+p.name.slice(0,5),stage:"ES"});
+    if(!p.noBiz&&p.bizS)otherRanges.push({s:p.bizS,e:p.bizE||p.bizS,color:COLORS.bz,pName:p.client+" "+p.name.slice(0,5),stage:"\u696d\u914d"});
+  });
+
+  var conflictMap={};
+  newRanges.forEach(function(nr){
+    otherRanges.forEach(function(or){
+      var ns=new Date(nr.s),ne=new Date(nr.e||nr.s);
+      var os=new Date(or.s),oe=new Date(or.e||or.s);
+      if(ns<=oe&&ne>=os){
+        var key=nr.label+"→"+or.pName+"_"+or.stage;
+        if(!conflictMap[key])conflictMap[key]={myStage:nr.label,myColor:nr.color,pName:or.pName,stage:or.stage,stageColor:or.color};
+      }
+    });
+  });
+
+  function renderMonth(y,m){
+    var dims=new Date(y,m+1,0).getDate();
+    var fd=new Date(y,m,1).getDay();
+    var cells=[];
+    for(var i=0;i<fd;i++)cells.push(h("div",{key:"e"+i,style:{minHeight:28}}));
+    for(var day=1;day<=dims;day++){
+      var d=day;var yy=y;var mm=m;
+      var bars=[];var hasNew=false;var hasOther=false;
+      newRanges.forEach(function(r,j){
+        if(inRFull(d,yy,mm,r.s,r.e)){hasNew=true;bars.push(h("div",{key:"n"+j,style:{height:4,borderRadius:1,background:r.color,marginTop:1}}));}
+        if(r.d&&isDot(d,yy,mm,r.d)){bars.push(h("div",{key:"dot"+j,style:{width:5,height:5,borderRadius:"50%",background:r.color,margin:"1px auto 0"}}));}
+      });
+      otherRanges.forEach(function(r,j){
+        if(inRFull(d,yy,mm,r.s,r.e)){hasOther=true;bars.push(h("div",{key:"o"+j,style:{height:4,borderRadius:1,background:r.color,marginTop:1,opacity:0.25}}));}
+      });
+      if(form.finalDue&&isDot(d,yy,mm,form.finalDue)){bars.push(h("div",{key:"fin",style:{width:5,height:5,borderRadius:"50%",background:COLORS.fin,margin:"1px auto 0"}}));}
+      cells.push(h("div",{key:d,style:{minHeight:28,borderRadius:3,padding:"1px",background:hasNew&&hasOther?"#fff0f0":"transparent",border:hasNew&&hasOther?"0.5px solid #f0c0c0":"none"}},
+        h("div",{style:{fontSize:9,textAlign:"center",color:C.txt3,lineHeight:1.4}},d),
+        bars
+      ));
+    }
+    return cells;
+  }
+
+  var m2=cal.m+1>11?0:cal.m+1;
+  var y2=cal.m+1>11?cal.y+1:cal.y;
+
+  return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:10,padding:"11px"}},
+    h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}},
+      h("button",{onClick:function(){setCal(function(c){var m=c.m-1,y=c.y;if(m<0){m=11;y--;}return{y:y,m:m};});},style:{width:24,height:24,borderRadius:6,border:"1px solid "+C.brd,background:"transparent",cursor:"pointer",fontSize:13,color:C.txt2}},"\u2039"),
+      h("span",{style:{fontSize:12,fontWeight:500,color:C.txt}},cal.y+"\u5e74"),
+      h("button",{onClick:function(){setCal(function(c){var m=c.m+1,y=c.y;if(m>11){m=0;y++;}return{y:y,m:m};});},style:{width:24,height:24,borderRadius:6,border:"1px solid "+C.brd,background:"transparent",cursor:"pointer",fontSize:13,color:C.txt2}},"\u203a")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+      h("div",null,
+        h("div",{style:{fontSize:11,fontWeight:600,color:C.txt2,textAlign:"center",marginBottom:4}},MN[cal.m]),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:2}},
+          ["\u65e5","\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d"].map(function(d){return h("div",{key:d,style:{fontSize:9,textAlign:"center",color:C.txt3}},d);})
+        ),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}},renderMonth(cal.y,cal.m))
+      ),
+      h("div",null,
+        h("div",{style:{fontSize:11,fontWeight:600,color:C.txt2,textAlign:"center",marginBottom:4}},MN[m2]),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:2}},
+          ["\u65e5","\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d"].map(function(d){return h("div",{key:d,style:{fontSize:9,textAlign:"center",color:C.txt3}},d);})
+        ),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}},renderMonth(y2,m2))
+      )
+    ),
+    h("div",{style:{display:"flex",flexWrap:"wrap",gap:7,marginTop:8,borderTop:"1px solid "+C.brd,paddingTop:7}},
+      [{color:COLORS.c1,label:"\u521d\u526a"},{color:COLORS.v1,label:"ES"},{color:COLORS.bz,label:"\u696d\u914d"},{color:COLORS.fin,label:"Final\u25cf"},{color:"rgba(200,200,200,0.5)",label:"\u5176\u4ed6\u6848\u5b50"}].map(function(it){
+        return h("div",{key:it.label,style:{display:"flex",alignItems:"center",gap:3,fontSize:10,color:C.txt3}},
+          h("div",{style:{width:10,height:4,borderRadius:1,background:it.color}}),it.label
+        );
+      })
+    ),
+    Object.keys(conflictMap).length>0&&h("div",{style:{marginTop:7,padding:"6px 10px",borderRadius:7,background:C.errBg,border:"0.5px solid #f0a8a8",fontSize:11,color:C.err}},
+      "\u26a0\ufe0f \u6642\u7a0b\u91cd\u758a",
+      h("div",{style:{marginTop:4,display:"flex",flexDirection:"column",gap:3}},
+        Object.keys(conflictMap).map(function(k){
+          var c=conflictMap[k];
+          return h("div",{key:k,style:{display:"flex",alignItems:"center",gap:4,fontSize:11}},
+            h("span",null,STAGE_ICON[c.myStage]||"\ud83d\udccc"),
+            h("span",{style:{color:C.txt3,fontSize:9}},"vs"),
+            h("span",null,STAGE_ICON[c.stage]||"\ud83d\udccc"),
+            h("span",{style:{fontWeight:700,color:c.stageColor}},c.pName)
+          );
+        })
+      )
+    ),
+    Object.keys(conflictMap).length===0&&newRanges.length>0&&h("div",{style:{marginTop:7,padding:"6px 10px",borderRadius:7,background:C.okBg,border:"0.5px solid #a8d8b8",fontSize:11,color:C.ok}},
+      "\u2705 \u76ee\u524d\u6c92\u6709\u6642\u7a0b\u885d\u7a81"
+    )
+  );
+}
+
+// ── CONFLICT PREVIEW ──────────────────────────────────────────────────────────
+function ConflictPreview(props){
+  var form=props.form,projects=props.projects,editingId=props.editingId;
+
+  // 找出目前 form 有哪些時程
+  var newRanges=[];
+  if(form.editS)newRanges.push({s:form.editS,e:form.editE||form.editS,label:"\u526a\u8f2f",color:"#a091b9"});
+  if(!form.noCut1&&form.cut1S)newRanges.push({s:form.cut1S,e:form.cut1E||form.cut1S,label:"\u521d\u526a",color:"#e08080"});
+  if(form.v1S)newRanges.push({s:form.v1S,e:form.v1E||form.v1S,label:"ES",color:"#d8903a"});
+  if(!form.noBiz&&form.bizS)newRanges.push({s:form.bizS,e:form.bizE||form.bizS,label:"\u696d\u914d",color:"#4a90c8"});
+
+  if(newRanges.length===0)return null;
+
+  // 找出顯示月份（用第一個時程的月份）
+  var baseDate=new Date(newRanges[0].s);
+  var year=baseDate.getFullYear(),month=baseDate.getMonth();
+  var daysInMonth=new Date(year,month+1,0).getDate();
+  var firstDow=new Date(year,month,1).getDay();
+  var MN=["\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d","\u4e03","\u516b","\u4e5d","\u5341","\u5341\u4e00","\u5341\u4e8c"];
+
+  function toDay(dateStr){
+    if(!dateStr)return null;
+    var d=new Date(dateStr);
+    if(d.getFullYear()===year&&d.getMonth()===month)return d.getDate();
+    return null;
+  }
+  function inRange(day,s,e){var sd=toDay(s),ed=toDay(e||s);return sd&&ed&&day>=sd&&day<=ed;}
+
+  // 其他案子的時程
+  var others=[];
+  (projects||[]).filter(function(p){return!p.closed&&p.id!==editingId;}).forEach(function(p){
+    var cc=p.client||"";
+    var name=cc+(p.name?" "+p.name.slice(0,6):"");
+    if(p.editS)others.push({s:p.editS,e:p.editE||p.editS,label:name,color:"#ccc"});
+    if(!p.noCut1&&p.cut1S)others.push({s:p.cut1S,e:p.cut1E||p.cut1S,label:name,color:"#e08080"});
+    if(p.v1S)others.push({s:p.v1S,e:p.v1E||p.v1S,label:name,color:"#d8903a"});
+    if(!p.noBiz&&p.bizS)others.push({s:p.bizS,e:p.bizE||p.bizS,label:name,color:"#4a90c8"});
+  });
+
+  // 找衝突
+  var conflicts=[];
+  newRanges.forEach(function(nr){
+    others.forEach(function(or){
+      var ns=new Date(nr.s),ne=new Date(nr.e||nr.s);
+      var os=new Date(or.s),oe=new Date(or.e||or.s);
+      if(ns<=oe&&ne>=os){
+        var key=or.label;
+        if(conflicts.indexOf(key)<0)conflicts.push(key);
+      }
+    });
+  });
+
+  // 渲染迷你行事曆
+  var cells=[];
+  for(var i=0;i<firstDow;i++)cells.push(null);
+  for(var d=1;d<=daysInMonth;d++)cells.push(d);
+
+  return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:10,padding:"11px",marginTop:4}},
+    h("div",{style:{fontSize:12,fontWeight:700,color:C.txt2,marginBottom:8}},
+      year+"/"+String(month+1).padStart(2,"0")+" \u6642\u7a0b\u9810\u89bd"
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,marginBottom:2}},
+      ["\u65e5","\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d"].map(function(d){return h("div",{key:d,style:{fontSize:9,textAlign:"center",color:C.txt3}},d);})
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}},
+      cells.map(function(day,i){
+        if(!day)return h("div",{key:"e"+i,style:{minHeight:28}});
+        var bars=[];
+        newRanges.forEach(function(nr,j){
+          if(inRange(day,nr.s,nr.e))bars.push(h("div",{key:"n"+j,style:{height:5,borderRadius:1,background:nr.color,marginTop:1,opacity:0.9}}));
+        });
+        others.forEach(function(or,j){
+          if(inRange(day,or.s,or.e))bars.push(h("div",{key:"o"+j,style:{height:4,borderRadius:1,background:or.color,marginTop:1,opacity:0.45}}));
+        });
+        var hasConflict=bars.length>1&&newRanges.some(function(nr){return inRange(day,nr.s,nr.e);})&&others.some(function(or){return inRange(day,or.s,or.e);});
+        return h("div",{key:day,style:{minHeight:28,background:hasConflict?"#fff0f0":"transparent",borderRadius:3,padding:"2px 1px",border:hasConflict?"0.5px solid #f0c0c0":"none"}},
+          h("div",{style:{fontSize:9,textAlign:"center",color:C.txt3,lineHeight:1.2}},day),
+          bars
+        );
+      })
+    ),
+    h("div",{style:{marginTop:6,display:"flex",gap:6,flexWrap:"wrap"}},
+      newRanges.map(function(r){return h("div",{key:r.label,style:{display:"flex",alignItems:"center",gap:3,fontSize:10,color:C.txt3}},
+        h("div",{style:{width:10,height:5,borderRadius:1,background:r.color}}),r.label+"(\u65b0)"
+      );}),
+      others.length>0&&h("div",{style:{display:"flex",alignItems:"center",gap:3,fontSize:10,color:C.txt3}},
+        h("div",{style:{width:10,height:5,borderRadius:1,background:"#ccc"}}),"\u5176\u4ed6\u6848\u5b50"
+      )
+    ),
+    conflicts.length>0&&h("div",{style:{marginTop:8,background:C.errBg,border:"0.5px solid #f0a8a8",borderRadius:6,padding:"6px 10px",fontSize:11,color:C.err}},
+      "\u26a0\ufe0f \u6642\u7a0b\u91cd\u758a\uff1a"+conflicts.join("\u3001")
+    ),
+    conflicts.length===0&&newRanges.length>0&&h("div",{style:{marginTop:8,background:C.okBg,border:"0.5px solid #a8d8b8",borderRadius:6,padding:"6px 10px",fontSize:11,color:C.ok}},
+      "\u2705 \u76ee\u524d\u6c92\u6709\u6642\u7a0b\u885d\u7a81"
+    )
+  );
+}
+
 function SchedSec(props){
   var title=props.title,accent=props.accent,isDone=props.isDone,doneKey=props.doneKey,noKey=props.noKey,sKey=props.sKey,eKey=props.eKey,dKey=props.dKey,dLabel=props.dLabel,form=props.form,set=props.set;
   var isNo=noKey&&form[noKey];
@@ -248,7 +474,7 @@ function SchedSec(props){
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
 function Modal(props){
-  var project=props.project,onSave=props.onSave,onDelete=props.onDelete,onClose=props.onClose,clients=props.clients,cColors=props.cColors;
+  var project=props.project,onSave=props.onSave,onDelete=props.onDelete,onClose=props.onClose,clients=props.clients,cColors=props.cColors,projects=props.projects||[];
   var fs=useState(Object.assign({},DEFS,project));var form=fs[0],setForm=fs[1];
   var ts=useState("basic");var tab=ts[0],setTab=ts[1];
   function set(k,v){setForm(function(f){var n=Object.assign({},f);n[k]=v;return n;});}
@@ -343,35 +569,62 @@ function Modal(props){
         h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u5099\u8a3b"),h("textarea",{style:Object.assign({},INP,{resize:"vertical",minHeight:60,lineHeight:1.6}),value:form.note||"",onChange:function(e){set("note",e.target.value);},placeholder:"\u984d\u5916\u8aaa\u660e\u2026"}))
       ),
 
-      tab==="schedule"&&h("div",{style:{display:"grid",gap:10}},
-        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:10,padding:"11px"}},
-          h("div",{style:{fontSize:12,fontWeight:700,color:C.txt2,marginBottom:8}},"\ud83d\uddc3 \u5b8c\u6574\u526a\u8f2f\u6642\u7a0b",rD(form.editS,form.editE)?h("span",{style:{fontSize:11,color:C.acc,fontWeight:700,marginLeft:8}},rD(form.editS,form.editE)+"\u5929"):""),
-          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
-            h("div",null,h("div",{style:{fontSize:10,color:C.txt3,fontWeight:700,marginBottom:3}},"\u958b\u59cb"),h(CalPicker,{value:form.editS,onChange:function(v){set("editS",v);},accent:C.txt2})),
-            h("div",null,h("div",{style:{fontSize:10,color:C.txt3,fontWeight:700,marginBottom:3}},"\u7d50\u675f"),h(CalPicker,{value:form.editE,onChange:function(v){set("editE",v);},accent:C.txt2}))
+      tab==="schedule"&&h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+        // ── 雙月行事曆預覽 ──
+        h(SchedCalPreview,{form:form,projects:projects,editingId:form.id||form.notionId}),
+        // ── 完整時程 ──
+        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px"}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:C.txt2,marginBottom:6,display:"flex",alignItems:"center",gap:5}},
+            "\ud83c\udfac \u5b8c\u6574\u6642\u7a0b",
+            rD(form.editS,form.editE)?h("span",{style:{fontSize:10,color:C.txt3,background:C.card2,borderRadius:5,padding:"0 5px"}},rD(form.editS,form.editE)+"\u5929"):null
+          ),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.editS,onChange:function(v){set("editS",v);},accent:C.txt2})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.editE,onChange:function(v){set("editE",v);},accent:C.txt2})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.ok,marginBottom:2,fontWeight:700}},"Final"),h(CalPicker,{value:form.finalDue,onChange:function(v){set("finalDue",v);},accent:C.ok}))
           )
         ),
-        h(SchedSec,{title:"\u2702\ufe0f \u521d\u526a\u6642\u7a0b",accent:"#e08080",isDone:!!form.cut1Done,doneKey:"cut1Done",noKey:"noCut1",sKey:"cut1S",eKey:"cut1E",dKey:"cut1Due",dLabel:"\u521d\u526a\u4ea4\u4ef6\u65e5",form:form,set:set}),
-        h(SchedSec,{title:"\u2728 V1 \u6642\u7a0b",accent:"#9080c8",isDone:!!form.v1Done,doneKey:"v1Done",sKey:"v1S",eKey:"v1E",dKey:"v1Due",dLabel:"V1 \u4ea4\u4ef6\u65e5",form:form,set:set}),
-        h(SchedSec,{title:"\ud83d\udcb0 \u696d\u914d\u6642\u7a0b",accent:"#d8a040",isDone:!!form.bizDone,doneKey:"bizDone",noKey:"noBiz",sKey:"bizS",eKey:"bizE",dKey:"bizDue",dLabel:"\u696d\u914d\u4ea4\u4ef6\u65e5",form:form,set:set}),
-        h("div",{style:{background:C.card,border:"1px solid "+(form.finalDone?"#a8d8b8":C.acc+"55"),borderRadius:10,padding:"11px"}},
-          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
-            h("div",{style:{display:"flex",alignItems:"center",gap:6}},
-              h("div",{style:{fontSize:12,fontWeight:700,color:C.ok}},"\ud83c\udfac Final \u622a\u6b62\u65e5"),
-              (function(){
-                if(!form.finalDue||form.finalDone)return null;
-                var d=dU(form.finalDue);
-                var color=d<0?C.err:d<=3?C.wrn:C.txt3;
-                var text=d<0?"(\u903e\u671f"+Math.abs(d)+"\u5929)":d===0?"(\u4eca\u5929\u622a\u6b62)":"(\u9084\u6709"+d+"\u5929)";
-                return h("span",{style:{fontSize:10,color:color}},text);
-              })()
-            ),
-            h("label",{style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",background:form.finalDone?C.okBg:"transparent",borderRadius:7,padding:"3px 9px",border:"1px solid "+(form.finalDone?"#a8d8b8":C.brd)}},
-              h("input",{type:"checkbox",checked:!!form.finalDone,onChange:function(e){set("finalDone",e.target.checked);},style:{accentColor:C.ok,width:12,height:12}}),
-              h("span",{style:{fontSize:10,color:form.finalDone?C.ok:C.txt3}},form.finalDone?"\u2705 \u5df2\u5b8c\u6210":"\u6a19\u8a18\u5b8c\u6210")
+        // ── 初剪時程 ──
+        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px",opacity:form.noCut1?0.4:1}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:"#e08080",marginBottom:6,display:"flex",alignItems:"center",gap:5}},
+            "\u2702\ufe0f \u521d\u526a\u6642\u7a0b",
+            rD(form.cut1S,form.cut1E)?h("span",{style:{fontSize:10,color:C.txt3,background:C.card2,borderRadius:5,padding:"0 5px"}},rD(form.cut1S,form.cut1E)+"\u5929"):null,
+            h("label",{style:{display:"flex",alignItems:"center",gap:3,fontSize:10,color:C.txt3,cursor:"pointer",marginLeft:"auto",fontWeight:400}},
+              h("input",{type:"checkbox",checked:!!form.noCut1,onChange:function(e){set("noCut1",e.target.checked);},style:{accentColor:C.acc,width:11,height:11}}),"\u7121\u6b64\u968e\u6bb5"
             )
           ),
-          h("div",{style:{opacity:form.finalDone?0.4:1}},h(CalPicker,{value:form.finalDue,onChange:function(v){set("finalDue",v);},accent:C.ok}))
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,pointerEvents:form.noCut1?"none":"auto"}},
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.cut1S,onChange:function(v){set("cut1S",v);},accent:"#e08080"})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.cut1E,onChange:function(v){set("cut1E",v);},accent:"#e08080"})),
+            h("div",null,h("div",{style:{fontSize:9,color:"#e08080",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h(CalPicker,{value:form.cut1Due,onChange:function(v){set("cut1Due",v);},accent:"#e08080"}))
+          )
+        ),
+        // ── ES時程 ──
+        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px"}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:"#d8903a",marginBottom:6,display:"flex",alignItems:"center",gap:5}},
+            "\u2728 ES\u6642\u7a0b",
+            rD(form.v1S,form.v1E)?h("span",{style:{fontSize:10,color:C.txt3,background:C.card2,borderRadius:5,padding:"0 5px"}},rD(form.v1S,form.v1E)+"\u5929"):null
+          ),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.v1S,onChange:function(v){set("v1S",v);},accent:"#d8903a"})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.v1E,onChange:function(v){set("v1E",v);},accent:"#d8903a"})),
+            h("div",null,h("div",{style:{fontSize:9,color:"#d8903a",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h(CalPicker,{value:form.v1Due,onChange:function(v){set("v1Due",v);},accent:"#d8903a"}))
+          )
+        ),
+        // ── 業配時程 ──
+        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px",opacity:form.noBiz?0.4:1}},
+          h("div",{style:{fontSize:11,fontWeight:700,color:"#4a90c8",marginBottom:6,display:"flex",alignItems:"center",gap:5}},
+            "\ud83d\udcb0 \u696d\u914d\u6642\u7a0b",
+            rD(form.bizS,form.bizE)?h("span",{style:{fontSize:10,color:C.txt3,background:C.card2,borderRadius:5,padding:"0 5px"}},rD(form.bizS,form.bizE)+"\u5929"):null,
+            h("label",{style:{display:"flex",alignItems:"center",gap:3,fontSize:10,color:C.txt3,cursor:"pointer",marginLeft:"auto",fontWeight:400}},
+              h("input",{type:"checkbox",checked:!!form.noBiz,onChange:function(e){set("noBiz",e.target.checked);},style:{accentColor:C.acc,width:11,height:11}}),"\u7121\u6b64\u968e\u6bb5"
+            )
+          ),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,pointerEvents:form.noBiz?"none":"auto"}},
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.bizS,onChange:function(v){set("bizS",v);},accent:"#4a90c8"})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.bizE,onChange:function(v){set("bizE",v);},accent:"#4a90c8"})),
+            h("div",null,h("div",{style:{fontSize:9,color:"#4a90c8",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h(CalPicker,{value:form.bizDue,onChange:function(v){set("bizDue",v);},accent:"#4a90c8"}))
+          )
         )
       ),
 
@@ -1253,7 +1506,7 @@ function App(){
       view==="calendar"&&h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="report"&&h(MonthReport,{projects:projects})
     ),
-    modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors}),
+    modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors,projects:projects}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
   );
 }
