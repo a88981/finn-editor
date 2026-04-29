@@ -246,7 +246,6 @@ function SchedCalPreview(props){
 
   var otherRanges=[];
   (projects||[]).filter(function(p){return!p.closed&&p.id!==editingId&&p.notionId!==editingId;}).forEach(function(p){
-    if(p.editS)otherRanges.push({s:p.editS,e:p.editE||p.editS,color:COLORS.ed,pName:p.client+" "+p.name.slice(0,5),stage:"\u5b8c\u6574\u6642\u7a0b"});
     if(!p.noCut1&&p.cut1S)otherRanges.push({s:p.cut1S,e:p.cut1E||p.cut1S,color:COLORS.c1,pName:p.client+" "+p.name.slice(0,5),stage:"\u521d\u526a"});
     if(p.v1S)otherRanges.push({s:p.v1S,e:p.v1E||p.v1S,color:COLORS.v1,pName:p.client+" "+p.name.slice(0,5),stage:"ES"});
     if(!p.noBiz&&p.bizS)otherRanges.push({s:p.bizS,e:p.bizE||p.bizS,color:COLORS.bz,pName:p.client+" "+p.name.slice(0,5),stage:"\u696d\u914d"});
