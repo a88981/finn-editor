@@ -578,7 +578,7 @@ function Modal(props){
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
             h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.editS||"",onChange:function(e){set("editS",e.target.value);}})),
             h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.editE||"",onChange:function(e){set("editE",e.target.value);}})),
-            h("div",null,h("div",{style:{fontSize:9,color:C.ok,marginBottom:2,fontWeight:700}},"Final"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.finalDue||"",onChange:function(e){set("finalDue",e.target.value);}}))
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"Final"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.finalDue||"",onChange:function(e){set("finalDue",e.target.value);}}))
           )
         ),
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px",opacity:form.noCut1?0.4:1}},
@@ -617,7 +617,7 @@ function Modal(props){
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,pointerEvents:form.noBiz?"none":"auto"}},
             h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizS||"",onChange:function(e){set("bizS",e.target.value);}})),
             h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizE||"",onChange:function(e){set("bizE",e.target.value);}})),
-            h("div",null,h("div",{style:{fontSize:9,color:"#4a90c8",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizDue||"",onChange:function(e){set("bizDue",e.target.value);}}))
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u4ea4\u4ef6\u65e5"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizDue||"",onChange:function(e){set("bizDue",e.target.value);}}))
           )
         )
       ),
