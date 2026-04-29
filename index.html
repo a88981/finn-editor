@@ -484,10 +484,9 @@ function Modal(props){
     // 少於30秒算0.5分（不足1分不計入超時）；30秒以上進位1分
     return s>=30?m+1:m+(s>0?0.5:0);
   }
-  var overRate=Number(form.overRate)||850;
+  var overRate=Number(form.overRate)||0;
   var lenMins=parseMinutes(form.length);
-  // 超時分鐘：只有整分鐘才算（0.5分鐘的部分不算超時）
-  var overMins=Math.max(0,Math.floor(lenMins)-10);
+  var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
   var ec=(form.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
