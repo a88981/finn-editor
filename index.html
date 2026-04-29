@@ -239,7 +239,7 @@ function SchedCalPreview(props){
   }
 
   var newRanges=[];
-  if(form.editS)newRanges.push({s:form.editS,e:form.editE,d:null,color:COLORS.ed,label:"\u5b8c\u6574\u6642\u7a0b"});
+  if(form.editS)newRanges.push({s:form.editS,e:form.editE,d:null,color:COLORS.ed,label:"\u5b8c\u6574\u6642\u7a0b",skipConflict:true});
   if(!form.noCut1&&form.cut1S)newRanges.push({s:form.cut1S,e:form.cut1E,d:form.cut1Due,color:COLORS.c1,label:"\u521d\u526a"});
   if(form.v1S)newRanges.push({s:form.v1S,e:form.v1E,d:form.v1Due,color:COLORS.v1,label:"ES"});
   if(!form.noBiz&&form.bizS)newRanges.push({s:form.bizS,e:form.bizE,d:form.bizDue,color:COLORS.bz,label:"\u696d\u914d"});
@@ -253,7 +253,7 @@ function SchedCalPreview(props){
   });
 
   var conflictMap={};
-  newRanges.forEach(function(nr){
+  newRanges.filter(function(nr){return!nr.skipConflict;}).forEach(function(nr){
     otherRanges.forEach(function(or){
       var ns=new Date(nr.s),ne=new Date(nr.e||nr.s);
       var os=new Date(or.s),oe=new Date(or.e||or.s);
