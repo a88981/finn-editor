@@ -487,7 +487,7 @@ function Modal(props){
   var now=new Date();
   var mOpts=[];for(var mi=1;mi<=12;mi++){var yr=now.getFullYear();mOpts.push({val:yr+"-"+String(mi).padStart(2,"0"),lbl:yr+"/"+mi+"\u6708"});}
   return h("div",{style:{position:"fixed",inset:0,background:"rgba(44,40,37,0.45)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center",padding:16,zoom:1/1.15}},
-    h("div",{style:{background:C.bg,border:"1px solid "+C.brd,borderRadius:18,padding:22,width:"100%",maxWidth:560,boxShadow:"0 16px 48px rgba(0,0,0,0.18)",maxHeight:"94vh",overflowY:"auto"}},
+    h("div",{style:{background:C.bg,border:"1px solid "+C.brd,borderRadius:18,padding:22,width:"100%",maxWidth:680,boxShadow:"0 16px 48px rgba(0,0,0,0.18)",maxHeight:"94vh",overflowY:"auto"}},
       h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}},
         h("div",{style:{fontSize:15,fontWeight:800,color:C.txt}},isNew?"\u2795 \u65b0\u589e\u6848\u5b50":"\u270f\ufe0f \u7de8\u8f2f\u6848\u5b50"),
         h("button",{onClick:onClose,style:{background:"none",border:"none",color:C.txt3,fontSize:20,cursor:"pointer"}},"\xd7")
@@ -570,21 +570,18 @@ function Modal(props){
       ),
 
       tab==="schedule"&&h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
-        // ── 雙月行事曆預覽 ──
         h(SchedCalPreview,{form:form,projects:projects,editingId:form.id||form.notionId}),
-        // ── 完整時程 ──
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px"}},
           h("div",{style:{fontSize:11,fontWeight:700,color:C.txt2,marginBottom:6,display:"flex",alignItems:"center",gap:5}},
             "\ud83c\udfac \u5b8c\u6574\u6642\u7a0b",
             rD(form.editS,form.editE)?h("span",{style:{fontSize:10,color:C.txt3,background:C.card2,borderRadius:5,padding:"0 5px"}},rD(form.editS,form.editE)+"\u5929"):null
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.editS,onChange:function(v){set("editS",v);},accent:C.txt2})),
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.editE,onChange:function(v){set("editE",v);},accent:C.txt2})),
-            h("div",null,h("div",{style:{fontSize:9,color:C.ok,marginBottom:2,fontWeight:700}},"Final"),h(CalPicker,{value:form.finalDue,onChange:function(v){set("finalDue",v);},accent:C.ok}))
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.editS||"",onChange:function(e){set("editS",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.editE||"",onChange:function(e){set("editE",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.ok,marginBottom:2,fontWeight:700}},"Final"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.finalDue||"",onChange:function(e){set("finalDue",e.target.value);}}))
           )
         ),
-        // ── 初剪時程 ──
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px",opacity:form.noCut1?0.4:1}},
           h("div",{style:{fontSize:11,fontWeight:700,color:"#e08080",marginBottom:6,display:"flex",alignItems:"center",gap:5}},
             "\u2702\ufe0f \u521d\u526a\u6642\u7a0b",
@@ -594,24 +591,22 @@ function Modal(props){
             )
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,pointerEvents:form.noCut1?"none":"auto"}},
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.cut1S,onChange:function(v){set("cut1S",v);},accent:"#e08080"})),
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.cut1E,onChange:function(v){set("cut1E",v);},accent:"#e08080"})),
-            h("div",null,h("div",{style:{fontSize:9,color:"#e08080",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h(CalPicker,{value:form.cut1Due,onChange:function(v){set("cut1Due",v);},accent:"#e08080"}))
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.cut1S||"",onChange:function(e){set("cut1S",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.cut1E||"",onChange:function(e){set("cut1E",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:"#e08080",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.cut1Due||"",onChange:function(e){set("cut1Due",e.target.value);}}))
           )
         ),
-        // ── ES時程 ──
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px"}},
           h("div",{style:{fontSize:11,fontWeight:700,color:"#d8903a",marginBottom:6,display:"flex",alignItems:"center",gap:5}},
             "\u2728 ES\u6642\u7a0b",
             rD(form.v1S,form.v1E)?h("span",{style:{fontSize:10,color:C.txt3,background:C.card2,borderRadius:5,padding:"0 5px"}},rD(form.v1S,form.v1E)+"\u5929"):null
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.v1S,onChange:function(v){set("v1S",v);},accent:"#d8903a"})),
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.v1E,onChange:function(v){set("v1E",v);},accent:"#d8903a"})),
-            h("div",null,h("div",{style:{fontSize:9,color:"#d8903a",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h(CalPicker,{value:form.v1Due,onChange:function(v){set("v1Due",v);},accent:"#d8903a"}))
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.v1S||"",onChange:function(e){set("v1S",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.v1E||"",onChange:function(e){set("v1E",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:"#d8903a",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.v1Due||"",onChange:function(e){set("v1Due",e.target.value);}}))
           )
         ),
-        // ── 業配時程 ──
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px",opacity:form.noBiz?0.4:1}},
           h("div",{style:{fontSize:11,fontWeight:700,color:"#4a90c8",marginBottom:6,display:"flex",alignItems:"center",gap:5}},
             "\ud83d\udcb0 \u696d\u914d\u6642\u7a0b",
@@ -621,9 +616,9 @@ function Modal(props){
             )
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,pointerEvents:form.noBiz?"none":"auto"}},
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h(CalPicker,{value:form.bizS,onChange:function(v){set("bizS",v);},accent:"#4a90c8"})),
-            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h(CalPicker,{value:form.bizE,onChange:function(v){set("bizE",v);},accent:"#4a90c8"})),
-            h("div",null,h("div",{style:{fontSize:9,color:"#4a90c8",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h(CalPicker,{value:form.bizDue,onChange:function(v){set("bizDue",v);},accent:"#4a90c8"}))
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u958b\u59cb"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizS||"",onChange:function(e){set("bizS",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u7d50\u675f"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizE||"",onChange:function(e){set("bizE",e.target.value);}})),
+            h("div",null,h("div",{style:{fontSize:9,color:"#4a90c8",marginBottom:2,fontWeight:700}},"\u4ea4\u4ef6\u65e5"),h("input",{type:"date",style:Object.assign({},INP,{fontSize:11,height:28}),value:form.bizDue||"",onChange:function(e){set("bizDue",e.target.value);}}))
           )
         )
       ),
