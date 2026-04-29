@@ -6,7 +6,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#ffffff;font-family:system-ui,sans-serif;color:#2c2825;min-height:100vh;zoom:1.15;}
+body{background:#ffffff;font-family:system-ui,sans-serif;color:#2c2825;min-height:100vh;}
+@media (min-width:768px){body{zoom:1.15;}}
 select option{background:#fff;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:#fafafa;}
@@ -639,7 +640,8 @@ function CalView(props){
   }
   function isToday(d){return d&&year===now.getFullYear()&&month===now.getMonth()&&d===now.getDate();}
   var FTABS=[{key:"edit",label:"\u5168\u90e8\u6642\u7a0b",color:C.txt2},{key:"cut1",label:"\u521d\u526a",color:"#e08080"},{key:"v1",label:"ES",color:"#d8903a"},{key:"biz",label:"\u696d\u914d",color:"#4a90c8"},{key:"due",label:"\u4ea4\u4ef6\u65e5",color:"#9070c0"}];
-  return h("div",null,
+  return h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
+    h("div",{style:{minWidth:500}},
     h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:8}},
       h("button",{onClick:function(){if(month===0){setMonth(11);setYear(function(y){return y-1;});}else setMonth(function(m){return m-1;});},style:{background:C.card,border:"1px solid "+C.brd,color:C.txt2,borderRadius:8,padding:"5px 14px",cursor:"pointer",fontSize:16}},"\u2039"),
       h("span",{style:{fontWeight:800,fontSize:16,color:C.txt}},year+" "+MN[month]),
@@ -667,6 +669,7 @@ function CalView(props){
         );
       })
     )
+  )
   );
 }
 
@@ -1247,8 +1250,8 @@ function App(){
       view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:activeColors}),
       view==="todo2"&&h(TodoView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="list"&&h(ListView,{projects:projects,onEdit:setModal,onToggle:togP,clients:activeClients,cColors:activeColors}),
-      view==="calendar"&&h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},h("div",{style:{minWidth:600,zoom:0.8}},h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors}))),
-      view==="report"&&h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},h("div",{style:{minWidth:600,zoom:0.75}},h(MonthReport,{projects:projects})))
+      view==="calendar"&&h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors}),
+      view==="report"&&h(MonthReport,{projects:projects})
     ),
     modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
