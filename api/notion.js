@@ -207,12 +207,17 @@ function pageToProject(page) {
     order: sel("優先順序") || "-",
     length: txt("影片長度"),
     fee: num("收費"),
-    costItems: [],
     taxCut: chk("扣稅10%"),
-    feeItems: [],
     closed: chk("已結案"),
     note: txt("備註"),
     kanbanPos: num("看板位置") || null,
+    ...(function(){
+      try{
+        var raw=txt("額外資料");
+        if(raw){var ex=JSON.parse(raw);return{feeItems:ex.feeItems||[],costItems:ex.costItems||[],overRate:ex.overRate!==undefined?ex.overRate:850};}
+      }catch(e){}
+      return{feeItems:[],costItems:[],overRate:850};
+    })()
     editS: dt("剪輯開始"),
     editE: dt("剪輯結束"),
     cut1S: dt("初剪開始"),
@@ -271,6 +276,6 @@ function projectToProperties(p) {
     "業配完成":  { checkbox: !!p.bizDone },
     "無業配":    { checkbox: !!p.noBiz },
     "Final截止日":{ date: date(p.finalDue) },
-    "Final完成": { checkbox: !!p.finalDone },
+    "額外資料":  { rich_text: richText(JSON.stringify({feeItems:p.feeItems||[],costItems:p.costItems||[],overRate:p.overRate!==undefined?p.overRate:850})) },
   };
 }
