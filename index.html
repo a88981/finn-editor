@@ -76,7 +76,7 @@ function saveClients(c){
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
-var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
+var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
 
 var SEED=[
@@ -172,27 +172,21 @@ function CalPicker(props){
 
 // ── FEE ITEMS ─────────────────────────────────────────────────────────────────
 function FeeItemList(props){
-  var items=props.items,onChange=props.onChange;
-  var tot=items.reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
+  var items=props.items,onChange=props.onChange,overFee=props.overFee||0;
+  var tot=(props.baseFee||0)+items.reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0)+overFee;
   return h("div",null,
     items.map(function(item,i){
       var lt=(Number(item.qty)||0)*(Number(item.price)||0);
-      return h("div",{key:item.id,style:{background:C.card2,borderRadius:7,padding:"8px",border:"1px solid "+C.brd,marginBottom:6}},
-        h("div",{style:{display:"flex",gap:5,alignItems:"center",marginBottom:5}},
-          h("input",{style:Object.assign({},INP,{fontSize:11,padding:"4px 7px",flex:1}),value:item.label||"",placeholder:"\u7d30\u9805\u540d\u7a31",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{label:e.target.value});onChange(n);}}),
-          h("button",{onClick:function(){onChange(items.filter(function(_,j){return j!==i;}));},style:{background:"none",border:"none",color:C.txt3,cursor:"pointer",fontSize:15}},"\xd7")
-        ),
-        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 12px 1fr 12px auto",gap:4,alignItems:"center"}},
-          h("input",{type:"number",style:Object.assign({},INP,{fontSize:11,padding:"4px 7px",textAlign:"center"}),value:item.qty||"",placeholder:"\u6578\u91cf",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{qty:e.target.value});onChange(n);}}),
-          h("span",{style:{textAlign:"center",color:C.txt3,fontSize:11}},"\xd7"),
-          h("input",{type:"number",style:Object.assign({},INP,{fontSize:11,padding:"4px 7px",textAlign:"center"}),value:item.price||"",placeholder:"\u55ae\u50f9",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{price:e.target.value});onChange(n);}}),
-          h("span",{style:{textAlign:"center",color:C.txt3,fontSize:11}},"="),
-          h("span",{style:{fontSize:11,color:lt>0?C.ok:C.txt3,fontWeight:700,minWidth:60,textAlign:"right"}},lt>0?NT(lt):"\u2014")
-        )
+      return h("div",{key:item.id,style:{display:"grid",gridTemplateColumns:"1fr 44px 56px auto 20px",gap:4,alignItems:"center",marginBottom:4}},
+        h("input",{style:Object.assign({},INP,{fontSize:11,padding:"3px 6px"}),value:item.label||"",placeholder:"\u7d30\u9805\u540d\u7a31",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{label:e.target.value});onChange(n);}}),
+        h("input",{type:"number",style:Object.assign({},INP,{fontSize:11,padding:"3px 4px",textAlign:"center"}),value:item.qty||"",placeholder:"\u6578",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{qty:e.target.value});onChange(n);}}),
+        h("input",{type:"number",style:Object.assign({},INP,{fontSize:11,padding:"3px 4px",textAlign:"right"}),value:item.price||"",placeholder:"\u55ae\u50f9",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{price:e.target.value});onChange(n);}}),
+        h("span",{style:{fontSize:10,color:lt>0?C.ok:C.txt3,fontWeight:lt>0?700:400,minWidth:52,textAlign:"right"}},lt>0?NT(lt):"\u2014"),
+        h("button",{onClick:function(){onChange(items.filter(function(_,j){return j!==i;}));},style:{background:"none",border:"none",color:C.txt3,cursor:"pointer",fontSize:13,lineHeight:1}},"\xd7")
       );
     }),
     h("button",{onClick:function(){onChange(items.concat([{id:uid(),label:"",qty:"",price:""}]));},style:{background:"none",border:"1px dashed "+C.acc2,borderRadius:6,color:C.acc,cursor:"pointer",fontSize:10,padding:"4px 0",width:"100%",fontFamily:"inherit"}},"\uff0b \u65b0\u589e\u6536\u8cbb\u7d30\u9805"),
-    items.length>0&&h("div",{style:{marginTop:4,fontSize:11,color:C.ok,fontWeight:700,textAlign:"right"}},"\u5c0f\u8a08 "+NT(tot))
+    h("div",{style:{marginTop:6,paddingTop:6,borderTop:"0.5px solid #a8d8b8",fontSize:11,color:C.ok,fontWeight:700,textAlign:"right"}},"\u5c0f\u8a08 "+NT(tot))
   );
 }
 function CostItemList(props){
@@ -200,14 +194,14 @@ function CostItemList(props){
   var tot=items.reduce(function(s,x){return s+(Number(x.amount)||0);},0);
   return h("div",null,
     items.map(function(item,i){
-      return h("div",{key:item.id,style:{display:"grid",gridTemplateColumns:"1fr 88px 24px",gap:5,alignItems:"center",marginBottom:5}},
-        h("input",{style:Object.assign({},INP,{fontSize:11,padding:"4px 7px"}),value:item.label||"",placeholder:"\u4f8b\uff1a\u5b57\u5e55\u5916\u5305",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{label:e.target.value});onChange(n);}}),
-        h("input",{type:"number",style:Object.assign({},INP,{fontSize:11,padding:"4px 7px",textAlign:"right",color:C.err}),value:item.amount||"",placeholder:"0",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{amount:e.target.value});onChange(n);}}),
-        h("button",{onClick:function(){onChange(items.filter(function(_,j){return j!==i;}));},style:{background:C.errBg,border:"none",borderRadius:5,color:C.err,cursor:"pointer",fontSize:12,width:24,height:26}},"\xd7")
+      return h("div",{key:item.id,style:{display:"grid",gridTemplateColumns:"1fr 72px 20px",gap:4,alignItems:"center",marginBottom:4}},
+        h("input",{style:Object.assign({},INP,{fontSize:11,padding:"3px 6px"}),value:item.label||"",placeholder:"\u4f8b\uff1a\u5b57\u5e55\u5916\u5305",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{label:e.target.value});onChange(n);}}),
+        h("input",{type:"number",style:Object.assign({},INP,{fontSize:11,padding:"3px 6px",textAlign:"right",color:C.err}),value:item.amount||"",placeholder:"0",onChange:function(e){var n=items.slice();n[i]=Object.assign({},item,{amount:e.target.value});onChange(n);}}),
+        h("button",{onClick:function(){onChange(items.filter(function(_,j){return j!==i;}));},style:{background:"none",border:"none",color:C.err,cursor:"pointer",fontSize:13,lineHeight:1}},"\xd7")
       );
     }),
     h("button",{onClick:function(){onChange(items.concat([{id:uid(),label:"\u5b57\u5e55",amount:""}]));},style:{background:"none",border:"1px dashed #f0a0a0",borderRadius:6,color:C.err,cursor:"pointer",fontSize:10,padding:"4px 0",width:"100%",fontFamily:"inherit"}},"\uff0b \u65b0\u589e\u652f\u51fa\u7d30\u9805"),
-    items.length>0&&h("div",{style:{marginTop:4,fontSize:10,color:C.err,fontWeight:700,textAlign:"right"}},"\u5c0f\u8a08 "+NT(tot))
+    h("div",{style:{marginTop:6,paddingTop:6,borderTop:"0.5px solid #f0a8a8",fontSize:11,color:C.err,fontWeight:700,textAlign:"right"}},"\u5c0f\u8a08 "+NT(tot))
   );
 }
 
@@ -480,7 +474,22 @@ function Modal(props){
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  var tr=g+rc,tax=form.taxCut?Math.round(tr*0.1):0;
+  // 超時費計算
+  function parseMinutes(str){
+    if(!str)return 0;
+    var parts=String(str).split(":");
+    if(parts.length<2)return parseInt(str)||0;
+    var m=parseInt(parts[0])||0;
+    var s=parseInt(parts[1])||0;
+    // 少於30秒算0.5分（不足1分不計入超時）；30秒以上進位1分
+    return s>=30?m+1:m+(s>0?0.5:0);
+  }
+  var overRate=Number(form.overRate)||850;
+  var lenMins=parseMinutes(form.length);
+  // 超時分鐘：只有整分鐘才算（0.5分鐘的部分不算超時）
+  var overMins=Math.max(0,Math.floor(lenMins)-10);
+  var overFee=overMins*overRate;
+  var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
   var ec=(form.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
   var tc=tax+ec,net=tr-tc;
   var now=new Date();
@@ -547,15 +556,53 @@ function Modal(props){
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
             h("div",{style:{background:C.okBg,borderRadius:8,padding:"9px",border:"1px solid #a8d8b8"}},
-              h("div",{style:{fontSize:10,color:C.ok,fontWeight:700,marginBottom:6}},"\u6536\u5165"),
-              h("input",{type:"number",style:Object.assign({},INP,{color:C.ok,marginBottom:6}),value:form.fee||"",onChange:function(e){set("fee",e.target.value);},placeholder:"\u57fa\u672c\u6536\u8cbb"}),
-              h(FeeItemList,{items:form.feeItems||[],onChange:function(v){set("feeItems",v);}})
+              h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+                h("div",{style:{fontSize:10,color:C.ok,fontWeight:700}},"\u6536\u5165"),
+                h("button",{onClick:function(e){
+                  e.preventDefault();
+                  var overFee2=overMins*(Number(form.overRate)||850);
+                  var feeItems=form.feeItems||[];
+                  var feeRc=feeItems.reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
+                  var tot2=(Number(form.fee)||0)+feeRc+overFee2;
+                  var lines=[];
+                  var title=(form.client&&form.client!=="-"?"【"+form.client+"】":"")+( form.name||"");
+                  lines.push("\ud83c\udfac "+title);
+                  if(form.length)lines.push("\u5f71\u7247\u9577\u5ea6\uff1a"+form.length+(overMins>0?"(\u591a"+overMins+"\u5206)":""));
+                  if(form.fee)lines.push("\u57fa\u672c\u6536\u8cbb\uff1a"+NT(Number(form.fee)));
+                  if(overFee2>0)lines.push("\u8d85\u6642\u8cbb\uff1a"+overMins+"\u5206 \xd7 "+NT(Number(form.overRate)||850)+" = "+NT(overFee2));
+                  feeItems.forEach(function(x){var lt=(Number(x.qty)||0)*(Number(x.price)||0);if(lt>0)lines.push((x.label||"\u7d30\u9805")+"\uff1a"+NT(lt));});
+                  lines.push("\u7e3d\u8a08\uff1a"+NT(tot2));
+                  var text=lines.join("\n");
+                  var ta=document.createElement("textarea");
+                  ta.value=text;ta.style.cssText="position:fixed;top:0;left:0;opacity:0;";
+                  document.body.appendChild(ta);ta.focus();ta.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(ta);
+                  showT("\u5df2\u8907\u88fd\u6536\u5165\u660e\u7d30 \u2713");
+                },style:{background:"#d8f0e4",border:"none",color:"#3d7a50",cursor:"pointer",fontSize:10,fontFamily:"inherit",padding:"2px 8px",borderRadius:6}},"\ud83d\udccb \u8907\u88fd")
+              ),
+              h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:6}},
+                h("div",null,
+                  h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u57fa\u672c\u6536\u8cbb"),
+                  h("input",{type:"number",style:Object.assign({},INP,{color:C.ok,fontSize:11}),value:form.fee||"",onChange:function(e){set("fee",e.target.value);},placeholder:"0"})
+                ),
+                h("div",null,
+                  h("div",{style:{fontSize:9,color:C.txt3,marginBottom:2}},"\u8d85\u6642\u8cbb \u5143/\u5206"),
+                  h("input",{type:"number",style:Object.assign({},INP,{fontSize:11}),value:form.overRate!==undefined?form.overRate:850,onChange:function(e){set("overRate",e.target.value);},placeholder:"850"})
+                )
+              ),
+              overFee>0&&h("div",{style:{fontSize:10,color:C.ok,background:"#d8f0e4",borderRadius:6,padding:"4px 8px",marginBottom:6}},
+                "\u23f1 "+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
+              ),
+              h(FeeItemList,{items:form.feeItems||[],onChange:function(v){set("feeItems",v);},overFee:overFee,baseFee:Number(form.fee)||0,projectName:form.name||""})
             ),
             h("div",{style:{background:C.errBg,borderRadius:8,padding:"9px",border:"1px solid #f0a8a8"}},
-              h("div",{style:{fontSize:10,color:C.err,fontWeight:700,marginBottom:6}},"\u652f\u51fa"),
-              h("label",{style:{display:"flex",alignItems:"center",gap:5,cursor:"pointer",marginBottom:7,fontSize:11,color:form.taxCut?"#c05020":C.txt3,background:form.taxCut?"#fff7f0":"transparent",borderRadius:6,padding:"5px 7px",border:"1px solid "+(form.taxCut?"#f0b8a0":C.brd)}},
-                h("input",{type:"checkbox",checked:!!form.taxCut,onChange:function(e){set("taxCut",e.target.checked);},style:{accentColor:"#c05020"}}),
-                "\u6263 10% \u7a05",form.taxCut&&tr>0&&h("span",{style:{marginLeft:"auto",color:"#c05020",fontWeight:700}},"\u2212"+NT(tax))
+              h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+                h("div",{style:{fontSize:10,color:C.err,fontWeight:700}},"\u652f\u51fa"),
+                h("label",{style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:10,color:form.taxCut?"#c05020":"#e08080",background:form.taxCut?"#ffe0d8":"#fff0ee",borderRadius:6,padding:"2px 8px"}},
+                  h("input",{type:"checkbox",checked:!!form.taxCut,onChange:function(e){set("taxCut",e.target.checked);},style:{accentColor:"#c05020"}}),
+                  "\u6263 10% \u7a05",form.taxCut&&tr>0&&h("span",{style:{marginLeft:4,color:"#c05020",fontWeight:700}},"\u2212"+NT(tax))
+                )
               ),
               h(CostItemList,{items:form.costItems||[],onChange:function(v){set("costItems",v);}})
             )
