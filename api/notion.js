@@ -208,16 +208,12 @@ function pageToProject(page) {
     length: txt("影片長度"),
     fee: num("收費"),
     taxCut: chk("扣稅10%"),
+    feeItems: (function(){try{var r=txt("額外資料");if(r)return JSON.parse(r).feeItems||[];}catch(e){}return[];}()),
+    costItems: (function(){try{var r=txt("額外資料");if(r)return JSON.parse(r).costItems||[];}catch(e){}return[];}()),
+    overRate: (function(){try{var r=txt("額外資料");if(r){var ex=JSON.parse(r);return ex.overRate!==undefined?ex.overRate:850;}}catch(e){}return 850;}()),
     closed: chk("已結案"),
     note: txt("備註"),
     kanbanPos: num("看板位置") || null,
-    ...(function(){
-      try{
-        var raw=txt("額外資料");
-        if(raw){var ex=JSON.parse(raw);return{feeItems:ex.feeItems||[],costItems:ex.costItems||[],overRate:ex.overRate!==undefined?ex.overRate:850};}
-      }catch(e){}
-      return{feeItems:[],costItems:[],overRate:850};
-    })()
     editS: dt("剪輯開始"),
     editE: dt("剪輯結束"),
     cut1S: dt("初剪開始"),
