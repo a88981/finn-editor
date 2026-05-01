@@ -1080,8 +1080,8 @@ function TodoView(props){
       h(Col,{icon:"\ud83d\udd25",title:"\u7dca\u6025",sub:"\u4eca\u5929/\u660e\u5929\u8981\u4ea4",color:"#e08080",count:urgent.length},
         urgentRows.length?urgentRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7dca\u6025\u4ea4\u4ef6 \ud83c\udf89")
       ),
-      h(Col,{icon:"\ud83c\udfaf",title:"\u672c\u9031",sub:"2-7\u5929\u5167\u8981\u4ea4",color:"#d8903a",count:thisWeek.length},
-        weekRows.length?weekRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u672c\u9031\u6c92\u6709\u4ea4\u4ef6")
+      h(Col,{icon:"\ud83c\udfaf",title:"\u9032\u884c\u4e2d",sub:"2-7\u5929\u5167\u8981\u4ea4",color:"#d8903a",count:thisWeek.length},
+        weekRows.length?weekRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u9032\u884c\u4e2d\u6c92\u6709\u4ea4\u4ef6")
       ),
       h(Col,{icon:"\u2615",title:"\u4e4b\u5f8c",sub:"8\u5929\u4ee5\u4e0a",color:C.txt3,count:later.length},
         laterRows.length?laterRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u4ea4\u4ef6")
@@ -1110,7 +1110,7 @@ function ListView(props){
 
   var tabs=[
     {key:"active",label:"\u5c08\u6848",color:"#4a80b0",count:preFiltered.filter(function(p){return!p.closed&&p.status!=="Final\u5b8c\u6210";}).length},
-    {key:"unpaid",label:"\u672a\u4ed8\u6b3e",color:C.wrn,count:preFiltered.filter(function(p){return!p.closed&&p.status==="Final\u5b8c\u6210";}).length},
+    {key:"unpaid",label:"\u672a\u7d50\u6848",color:C.wrn,count:preFiltered.filter(function(p){return!p.closed&&p.status==="Final\u5b8c\u6210";}).length},
     {key:"done",label:"\u5df2\u7d50\u6848",color:C.ok,count:preFiltered.filter(function(p){return p.closed;}).length}
   ];
   var filtered=preFiltered.filter(function(p){
@@ -1234,7 +1234,7 @@ function MonthReport(props){
             h("td",{style:Object.assign({},td,{color:r.net>=0?C.ok:C.err,fontWeight:800})},NT(r.net)),
             h("td",{style:td},h("span",{style:{background:rateBg,color:rateColor,borderRadius:5,padding:"2px 7px",fontSize:11,fontWeight:700}},rate+"%"))
           ));
-          if(isExp){r.projects.forEach(function(p){var f=calcP(p);acc.push(h("tr",{key:p.id,style:{background:C.card2}},h("td",{style:Object.assign({},tdL,{paddingLeft:26,fontSize:11,color:C.txt2})},p.name),h("td",{style:Object.assign({},td,{fontSize:11})},p.type==="\u9577\u7247"?"\u2713":""),h("td",{style:Object.assign({},td,{fontSize:11})},p.type==="\u77ed\u5f71"?"\u2713":""),h("td",{style:Object.assign({},td,{fontSize:11,color:C.ok})},f.total?NT(f.total):"\u2014"),h("td",{style:Object.assign({},td,{fontSize:11,color:C.err})},f.totalCost?NT(f.totalCost):"\u2014"),h("td",{style:Object.assign({},td,{fontSize:11,color:f.net>=0?C.ok:C.err,fontWeight:700})},f.total?NT(f.net):"\u2014"),h("td",{style:Object.assign({},td,{fontSize:11,color:C.txt3})},p.status)));});}
+          if(isExp){r.projects.forEach(function(p){var f=calcP(p);acc.push(h("tr",{key:p.id,style:{background:C.card2}},h("td",{style:Object.assign({},tdL,{paddingLeft:26,fontSize:11,color:C.txt2})},p.name),h("td",{style:Object.assign({},td,{fontSize:11})},p.type==="\u9577\u7247"?"\u2713":""),h("td",{style:Object.assign({},td,{fontSize:11})},p.type==="\u77ed\u5f71"?"\u2713":""),h("td",{style:Object.assign({},td,{fontSize:11,color:C.ok})},f.total?NT(f.total):"\u2014"),h("td",{style:Object.assign({},td,{fontSize:11,color:C.err})},f.totalCost?NT(f.totalCost):"\u2014"),h("td",{style:Object.assign({},td,{fontSize:11,color:f.net>=0?C.ok:C.err,fontWeight:700})},f.total?NT(f.net):"\u2014"),h("td",{style:Object.assign({},td,{fontSize:11,color:p.closed?C.txt3:C.txt3})},p.closed?"\u5df2\u7d50\u6848":p.status)));});}
           return acc;
         },[])),
         rows.length>=1&&h("tfoot",null,h("tr",{style:{background:C.accBg,borderTop:"2px solid "+C.brd}},h("td",{style:Object.assign({},tdL,{fontWeight:800,color:C.txt})},"\u5408\u8a08\uff08"+all.count+"\u4ef6\uff09"),h("td",{style:Object.assign({},td,{color:C.txt2,fontWeight:700})},all.long),h("td",{style:Object.assign({},td,{color:C.txt2,fontWeight:700})},all.short),h("td",{style:Object.assign({},td,{color:C.ok,fontWeight:800})},NT(all.total)),h("td",{style:Object.assign({},td,{color:C.err,fontWeight:800})},NT(all.tc)),h("td",{style:Object.assign({},td,{color:all.net>=0?C.ok:C.err,fontWeight:800})},NT(all.net)),h("td",{style:td},h("span",{style:{background:allRate>=70?C.okBg:allRate>=40?C.accBg:C.errBg,color:allRate>=70?C.ok:allRate>=40?C.acc:C.err,borderRadius:5,padding:"2px 7px",fontSize:11,fontWeight:700}},allRate+"%"))))
