@@ -208,7 +208,7 @@ function CostItemList(props){
 // ── SCHED SECTION ─────────────────────────────────────────────────────────────
 // ── SCHED CAL PREVIEW ─────────────────────────────────────────────────────────
 function SchedCalPreview(props){
-  var form=props.form,projects=props.projects,editingId=props.editingId;
+  var form=props.form,projects=props.projects,editingId=props.editingId,holidays=props.holidays||[];
   var cs=useState(function(){
     var d=form.editS||form.cut1S||form.v1S||form.bizS;
     if(d){var dt=new Date(d);return{y:dt.getFullYear(),m:dt.getMonth()};}
@@ -264,7 +264,7 @@ function SchedCalPreview(props){
     for(var i=0;i<fd;i++)cells.push(h("div",{key:"e"+i,style:{minHeight:28}}));
     for(var day=1;day<=dims;day++){
       var d=day;var yy=y;var mm=m;
-      var bars=[];var hasNew=false;var hasOther=false;
+      var bars=[];var hasNew=false;var hasOther=false;var ds=toISO(yy,mm,d);var isHv=holidays.some(function(h){return ds>=h.s&&ds<=h.e;});
       newRanges.forEach(function(r,j){
         if(inRFull(d,yy,mm,r.s,r.e)){hasNew=true;bars.push(h("div",{key:"n"+j,style:{height:4,borderRadius:1,background:r.color,marginTop:1}}));}
         if(r.d&&isDot(d,yy,mm,r.d)){bars.push(h("div",{key:"dot"+j,style:{width:5,height:5,borderRadius:"50%",background:r.color,margin:"1px auto 0"}}));}
@@ -273,7 +273,7 @@ function SchedCalPreview(props){
         if(inRFull(d,yy,mm,r.s,r.e)){hasOther=true;bars.push(h("div",{key:"o"+j,style:{height:4,borderRadius:1,background:r.color,marginTop:1,opacity:0.25}}));}
       });
       if(form.finalDue&&isDot(d,yy,mm,form.finalDue)){bars.push(h("div",{key:"fin",style:{width:5,height:5,borderRadius:"50%",background:COLORS.fin,margin:"1px auto 0"}}));}
-      cells.push(h("div",{key:d,style:{minHeight:28,borderRadius:3,padding:"1px",background:hasNew&&hasOther?"#fff0f0":"transparent",border:hasNew&&hasOther?"0.5px solid #f0c0c0":"none"}},
+      cells.push(h("div",{key:d,style:{minHeight:28,borderRadius:3,padding:"1px",background:hasNew&&hasOther?"#fff0f0":isHv?"#f0e8d8":"transparent",border:hasNew&&hasOther?"0.5px solid #f0c0c0":isHv?"0.5px solid #d8903a":"none"}},
         h("div",{style:{fontSize:9,textAlign:"center",color:C.txt3,lineHeight:1.4}},d),
         bars
       ));
@@ -467,7 +467,7 @@ function SchedSec(props){
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
 function Modal(props){
-  var project=props.project,onSave=props.onSave,onDelete=props.onDelete,onClose=props.onClose,clients=props.clients,cColors=props.cColors,projects=props.projects||[];
+  var project=props.project,onSave=props.onSave,onDelete=props.onDelete,onClose=props.onClose,clients=props.clients,cColors=props.cColors,projects=props.projects||[],holidays=props.holidays||[];
   var fs=useState(Object.assign({},DEFS,project));var form=fs[0],setForm=fs[1];
   var ts=useState("basic");var tab=ts[0],setTab=ts[1];
   function set(k,v){setForm(function(f){var n=Object.assign({},f);n[k]=v;return n;});}
@@ -615,7 +615,7 @@ function Modal(props){
       ),
 
       tab==="schedule"&&h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
-        h(SchedCalPreview,{form:form,projects:projects,editingId:form.id||form.notionId}),
+        h(SchedCalPreview,{form:form,projects:projects,editingId:form.id||form.notionId,holidays:holidays}),
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:9,padding:"9px 10px"}},
           h("div",{style:{fontSize:11,fontWeight:700,color:C.txt2,marginBottom:6,display:"flex",alignItems:"center",gap:5}},
             "\ud83c\udfac \u5b8c\u6574\u6642\u7a0b",
@@ -1625,7 +1625,7 @@ function App(){
       view==="calendar"&&h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors,holidays:holidays,onAddHoliday:addHoliday,onDelHoliday:delHoliday,onEditHoliday:editHoliday}),
       view==="report"&&h(MonthReport,{projects:projects})
     ),
-    modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors,projects:projects}),
+    modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
   );
 }
