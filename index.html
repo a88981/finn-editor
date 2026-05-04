@@ -978,7 +978,7 @@ function CalView(props){
     return ev;
   }
   function isToday(d){return d&&year===now.getFullYear()&&month===now.getMonth()&&d===now.getDate();}
-  var FTABS=[{key:"edit",label:"📅 \u5168\u90e8\u6642\u7a0b",color:C.txt2},{key:"cut1",label:"✂️ \u521d\u526a",color:"#e08080"},{key:"v1",label:"✨ ES",color:"#d8903a"},{key:"biz",label:"💰 \u696d\u914d",color:"#4a90c8"},{key:"due",label:"🎬 \u4ea4\u4ef6\u65e5",color:"#9070c0"},{key:"holiday",label:"🏝️ \u4f11\u5047",color:"#e07070"},{key:"finn",label:"💛 \u5c0f\u73a9",color:"#e6ac00"},{key:"divination",label:"🔮 占卜",color:"#d87098"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#8b6bbf"}];
+  var FTABS=[{key:"edit",label:"📅 \u5168\u90e8\u6642\u7a0b",color:C.txt2},{key:"cut1",label:"✂️ \u521d\u526a",color:"#e08080"},{key:"v1",label:"✨ ES",color:"#d8903a"},{key:"biz",label:"💰 \u696d\u914d",color:"#4a90c8"},{key:"due",label:"💛 \u4ea4\u4ef6\u65e5",color:"#9070c0"},{key:"holiday",label:"🏝️ \u4f11\u5047",color:"#e07070"},{key:"finn",label:"💛 \u5c0f\u73a9",color:"#e6ac00"},{key:"divination",label:"🔮 占卜",color:"#d87098"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#8b6bbf"}];
   return h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
     h("div",{style:{minWidth:500}},
     h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:8}},
@@ -1625,7 +1625,7 @@ function App(){
     h("div",{style:{background:C.hdr,padding:"12px 20px",boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}},
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}},
         h("div",null,
-          h("div",{style:{fontSize:18,fontWeight:800,color:"#f5a800",letterSpacing:"-0.5px"}},"\ud83c\udfac \u5c0f\u73a9\u526a\u8f2f\u9032\u5ea6"),
+          h("div",{style:{fontSize:18,fontWeight:800,color:"#f5a800",letterSpacing:"-0.5px"}},"\ud83c\udfac \u5c0f\u73a9\u5de5\u4f5c\u9032\u5ea6"),
         ),
         h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}},
           h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap"}},"\uff0b \u65b0\u589e\u6848\u5b50"),
