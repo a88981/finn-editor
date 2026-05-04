@@ -1613,4 +1613,9 @@ function App(){
       view==="report"&&h(MonthReport,{projects:projects})
     ),
     modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
-    toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:
+    toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+})();
+</script></body></html>
