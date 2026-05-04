@@ -281,6 +281,7 @@ function SchedCalPreview(props){
         if(inRFull(d,yy,mm,r.s,r.e)){hasOther=true;bars.push(h("div",{key:"o"+j,style:{height:4,borderRadius:1,background:r.color,marginTop:1,opacity:0.25}}));}
       });
       if(form.finalDue&&isDot(d,yy,mm,form.finalDue)){bars.push(h("div",{key:"fin",style:{width:5,height:5,borderRadius:"50%",background:COLORS.fin,margin:"1px auto 0"}}));}
+      var _ds2=toISO(yy,mm,d);var isHv=(holidays||[]).some(function(h){return _ds2>=h.s&&_ds2<=h.e;});
       cells.push(h("div",{key:d,style:{minHeight:28,borderRadius:3,padding:"1px",background:hasNew&&hasOther?"#fff0f0":isHv?"#fdf0f0":"transparent",border:hasNew&&hasOther?"0.5px solid #f0c0c0":isHv?"0.5px solid #e07070":"none"}},
         h("div",{style:{fontSize:9,textAlign:"center",color:C.txt3,lineHeight:1.4}},d),
         bars
