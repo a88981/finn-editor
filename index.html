@@ -72,8 +72,8 @@ function loadCalendarExtras(){
     .then(function(r){return r.json();})
     .catch(function(){return{holidays:[],finnDays:[]};});
 }
-function saveCalendarExtras(holidays,finnDays){
-  fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({holidays:holidays,finnDays:finnDays})}).catch(function(e){console.warn(e);});
+function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
+  fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({holidays:holidays,finnDays:finnDays,divinDays:divinDays||[],nanaDays:nanaDays||[]})}).catch(function(e){console.warn(e);});
 }
 function saveClients(c){
   fetch(API+"?action=save-clients",{
@@ -978,7 +978,7 @@ function CalView(props){
     return ev;
   }
   function isToday(d){return d&&year===now.getFullYear()&&month===now.getMonth()&&d===now.getDate();}
-  var FTABS=[{key:"edit",label:"📅 \u5168\u90e8\u6642\u7a0b",color:C.txt2},{key:"cut1",label:"✂️ \u521d\u526a",color:"#e08080"},{key:"v1",label:"✨ ES",color:"#d8903a"},{key:"biz",label:"💰 \u696d\u914d",color:"#4a90c8"},{key:"due",label:"💛 \u4ea4\u4ef6\u65e5",color:"#9070c0"},{key:"holiday",label:"🏝️ \u4f11\u5047",color:"#e07070"},{key:"finn",label:"💛 \u5c0f\u73a9",color:"#e6ac00"},{key:"divination",label:"🔮 占卜",color:"#d87098"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#8b6bbf"}];
+  var FTABS=[{key:"edit",label:"📅 \u5168\u90e8\u6642\u7a0b",color:C.txt2},{key:"cut1",label:"✂️ \u521d\u526a",color:"#e08080"},{key:"v1",label:"✨ ES",color:"#d8903a"},{key:"biz",label:"💰 \u696d\u914d",color:"#4a90c8"},{key:"due",label:"🎬 \u4ea4\u4ef6\u65e5",color:"#9070c0"},{key:"finn",label:"💛 \u5c0f\u73a9",color:"#e6ac00"},{key:"divination",label:"🔮 占卜",color:"#d87098"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#8b6bbf"},{key:"holiday",label:"🏝️ \u4f11\u5047",color:"#e07070"}];
   return h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
     h("div",{style:{minWidth:500}},
     h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:8}},
@@ -1471,6 +1471,8 @@ function App(){
       setCColors(col);
       if(calX.holidays)setHolidays(calX.holidays);
       if(calX.finnDays)setFinnDays(calX.finnDays);
+      if(calX.divinDays)setDivinDays(calX.divinDays);
+      if(calX.nanaDays)setNanaDays(calX.nanaDays);
       setReady(true);
     });
   },[]);
@@ -1483,19 +1485,19 @@ function App(){
   var activeClients=clientsReady?clients:DEF_CLIENTS;
   var activeColors=cColors||DEF_COLORS;
 
-  function saveHolidays(list){setHolidays(list);saveCalendarExtras(list,finnDays);}
+  function saveHolidays(list){setHolidays(list);saveCalendarExtras(list,finnDays,divinDays,nanaDays);}
   function addHoliday(s,e2,label){saveHolidays(holidays.concat([{id:uid(),s:s,e:e2||s,label:label||""}]));}
   function delHoliday(id){saveHolidays(holidays.filter(function(h){return h.id!==id;}));}
   function editHoliday(id,fields){saveHolidays(holidays.map(function(h){return h.id===id?Object.assign({},h,fields):h;}));}
-  function saveFinnDays(list){setFinnDays(list);saveCalendarExtras(holidays,list);}
+  function saveFinnDays(list){setFinnDays(list);saveCalendarExtras(holidays,list,divinDays,nanaDays);}
   function addFinn(s,e2,label){saveFinnDays(finnDays.concat([{id:uid(),s:s,e:e2||s,label:label||""}]));}
   function delFinn(id){saveFinnDays(finnDays.filter(function(f){return f.id!==id;}));}
   function editFinn(id,fields){saveFinnDays(finnDays.map(function(f){return f.id===id?Object.assign({},f,fields):f;}));}
-  function saveDivinDays(list){setDivinDays(list);try{localStorage.setItem("edit-tracker-divin",JSON.stringify(list));}catch(e){}}
+  function saveDivinDays(list){setDivinDays(list);try{localStorage.setItem("edit-tracker-divin",JSON.stringify(list));}catch(e){} saveCalendarExtras(holidays,finnDays,list,nanaDays);}
   function addDivin(s,e2,label){saveDivinDays(divinDays.concat([{id:uid(),s:s,e:e2||s,label:label||""}]));}
   function delDivin(id){saveDivinDays(divinDays.filter(function(f){return f.id!==id;}));}
   function editDivin(id,fields){saveDivinDays(divinDays.map(function(f){return f.id===id?Object.assign({},f,fields):f;}));}
-  function saveNanaDays(list){setNanaDays(list);try{localStorage.setItem("edit-tracker-nana",JSON.stringify(list));}catch(e){}}
+  function saveNanaDays(list){setNanaDays(list);try{localStorage.setItem("edit-tracker-nana",JSON.stringify(list));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,list);}
   function addNana(s,e2,label){saveNanaDays(nanaDays.concat([{id:uid(),s:s,e:e2||s,label:label||""}]));}
   function delNana(id){saveNanaDays(nanaDays.filter(function(f){return f.id!==id;}));}
   function editNana(id,fields){saveNanaDays(nanaDays.map(function(f){return f.id===id?Object.assign({},f,fields):f;}));}
@@ -1625,7 +1627,7 @@ function App(){
     h("div",{style:{background:C.hdr,padding:"12px 20px",boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}},
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}},
         h("div",null,
-          h("div",{style:{fontSize:18,fontWeight:800,color:"#f5a800",letterSpacing:"-0.5px"}},"\ud83c\udfac \u5c0f\u73a9\u5de5\u4f5c\u9032\u5ea6"),
+          h("div",{style:{fontSize:18,fontWeight:800,color:"#f5a800",letterSpacing:"-0.5px"}},"💛 小玩工作進度"),
         ),
         h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}},
           h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap"}},"\uff0b \u65b0\u589e\u6848\u5b50"),
