@@ -173,6 +173,66 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+
+    // ── 讀取行事曆額外資料（休假+小玩）──────────────────────────
+    if (req.method === "GET" && action === "get-calendar-extras") {
+      const response = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
+        method: "POST",
+        headers: notionHeaders,
+        body: JSON.stringify({ filter: { property: "客戶名稱", title: { equals: "__calendar_extras__" } } }),
+      });
+      const data = await response.json();
+      if (data.object === "error") return res.status(500).json({ error: data.message });
+      const page = (data.results || [])[0];
+      if (!page) return res.status(200).json({ holidays: [], finnDays: [] });
+      const raw = page.properties["顏色"]?.rich_text?.[0]?.plain_text || "";
+      try {
+        return res.status(200).json(JSON.parse(raw));
+      } catch(e) {
+        return res.status(200).json({ holidays: [], finnDays: [] });
+      }
+    }
+
+    // ── 儲存行事曆額外資料（休假+小玩）──────────────────────────
+    if (req.method === "POST" && action === "save-calendar-extras") {
+      const json = JSON.stringify(body);
+      // 找現有頁面
+      const listRes = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
+        method: "POST",
+        headers: notionHeaders,
+        body: JSON.stringify({ filter: { property: "客戶名稱", title: { equals: "__calendar_extras__" } } }),
+      });
+      const listData = await listRes.json();
+      const existing = (listData.results || [])[0];
+      if (existing) {
+        // 更新
+        await fetch(`${NOTION_API}/pages/${existing.id}`, {
+          method: "PATCH",
+          headers: notionHeaders,
+          body: JSON.stringify({
+            properties: {
+              "顏色": { rich_text: [{ text: { content: json.slice(0, 2000) } }] },
+            },
+          }),
+        });
+      } else {
+        // 新建
+        await fetch(`${NOTION_API}/pages`, {
+          method: "POST",
+          headers: notionHeaders,
+          body: JSON.stringify({
+            parent: { database_id: CLIENTS_DB_ID },
+            properties: {
+              "客戶名稱": { title: [{ text: { content: "__calendar_extras__" } }] },
+              "顏色": { rich_text: [{ text: { content: json.slice(0, 2000) } }] },
+              "排序": { number: 9999 },
+            },
+          }),
+        });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     return res.status(404).json({ error: "Not found" });
 
   } catch (e) {
