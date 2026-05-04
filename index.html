@@ -347,7 +347,7 @@ function ConflictPreview(props){
 
   // 找出目前 form 有哪些時程
   var newRanges=[];
-  if(form.editS)newRanges.push({s:form.editS,e:form.editE||form.editS,label:"\u526a\u8f2f",color:"#a091b9"});
+  if(form.editS)newRanges.push({s:form.editS,e:form.editE||form.editS,label:"剪輯",color:"#a091b9"});
   if(!form.noCut1&&form.cut1S)newRanges.push({s:form.cut1S,e:form.cut1E||form.cut1S,label:"\u521d\u526a",color:"#e08080"});
   if(form.v1S)newRanges.push({s:form.v1S,e:form.v1E||form.v1S,label:"ES",color:"#d8903a"});
   if(!form.noBiz&&form.bizS)newRanges.push({s:form.bizS,e:form.bizE||form.bizS,label:"\u696d\u914d",color:"#4a90c8"});
@@ -930,8 +930,8 @@ function CalView(props){
     setHvModal({s:ds,e:ds,label:"",type:"hv"});
   }
   function togF(k){setFilters(function(f){var n=Object.assign({},f);n[k]=!f[k];return n;});}
-  var EDIT_KEYS=["cut1","v1","biz","due"];
-  var SCHED_KEYS=["finn","divination","nana","holiday"];
+  var EDIT_KEYS=["cut1","v1","biz"];
+  var SCHED_KEYS=["due","finn","divination","nana","holiday"];
   function togGroup(keys){
     var allOn=keys.every(function(k){return filters[k];});
     setFilters(function(f){var n=Object.assign({},f);keys.forEach(function(k){n[k]=!allOn;});return n;});
@@ -993,10 +993,10 @@ function CalView(props){
       h("button",{onClick:function(){if(month===11){setMonth(0);setYear(function(y){return y+1;});}else setMonth(function(m){return m+1;});},style:{background:C.card,border:"1px solid "+C.brd,color:C.txt2,borderRadius:8,padding:"5px 14px",cursor:"pointer",fontSize:16}},"\u203a")
     ),
     h("div",{style:{display:"flex",gap:5,marginBottom:6,flexWrap:"wrap",alignItems:"center"}},
+      h("button",{onClick:function(){togGroup(EDIT_KEYS);},style:{padding:"4px 12px",borderRadius:16,border:"1px solid "+(EDIT_KEYS.every(function(k){return filters[k];})?C.err:C.brd),background:EDIT_KEYS.every(function(k){return filters[k];})?C.err+"18":"transparent",color:EDIT_KEYS.every(function(k){return filters[k];})?C.err:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"剪輯"),
+      h("button",{onClick:function(){togGroup(SCHED_KEYS);},style:{padding:"4px 12px",borderRadius:16,border:"1px solid "+(SCHED_KEYS.every(function(k){return filters[k];})?C.acc2:C.brd),background:SCHED_KEYS.every(function(k){return filters[k];})?C.acc2+"18":"transparent",color:SCHED_KEYS.every(function(k){return filters[k];})?C.acc2:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"行程"),
       FTABS.map(function(ft){var on=filters[ft.key];return h("button",{key:ft.key,onClick:function(){togF(ft.key);},style:{display:"flex",alignItems:"center",gap:5,padding:"4px 12px",borderRadius:16,border:"1px solid "+(on?ft.color:C.brd),background:on?ft.color+"18":C.card2,color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?700:400,transition:"all 0.15s"}},
-        h("span",{style:{width:8,height:8,borderRadius:"50%",background:on?ft.color:C.brd2,display:"inline-block"}}),ft.label);}),
-      h("button",{onClick:function(){togGroup(EDIT_KEYS);},style:{marginLeft:"auto",padding:"4px 12px",borderRadius:16,border:"1px solid "+(EDIT_KEYS.every(function(k){return filters[k];})?C.err:C.brd),background:EDIT_KEYS.every(function(k){return filters[k];})?C.err+"18":"transparent",color:EDIT_KEYS.every(function(k){return filters[k];})?C.err:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"\u526a\u8f2f"),
-      h("button",{onClick:function(){togGroup(SCHED_KEYS);},style:{padding:"4px 12px",borderRadius:16,border:"1px solid "+(SCHED_KEYS.every(function(k){return filters[k];})?C.acc2:C.brd),background:SCHED_KEYS.every(function(k){return filters[k];})?C.acc2+"18":"transparent",color:SCHED_KEYS.every(function(k){return filters[k];})?C.acc2:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"\u884c\u7a0b")
+        ft.label);})
     ),
     h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:2}},
       ["\u65e5","\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d"].map(function(d){return h("div",{key:d,style:{textAlign:"center",fontSize:10,color:C.txt3,fontWeight:700,padding:"3px"}},d);})
@@ -1588,7 +1588,7 @@ function App(){
       var url=URL.createObjectURL(blob);
       var a=document.createElement("a");
       a.href=url;
-      a.download="\u5c0f\u73a9\u526a\u8f2f"+(yearFilter?"_"+yearFilter:"")+".json";
+      a.download="\u5c0f\u73a9剪輯"+(yearFilter?"_"+yearFilter:"")+".json";
       a.style.display="none";document.body.appendChild(a);a.click();document.body.removeChild(a);
       setTimeout(function(){URL.revokeObjectURL(url);},500);
       setShowExport(false);
