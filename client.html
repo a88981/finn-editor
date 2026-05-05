@@ -89,7 +89,7 @@ function ProjectCard(props){
   var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   var isWaiting=waitingSt.indexOf(p.status)>=0;
   var isDone=p.status==="Final\u5b8c\u6210";
-  var sc=p.closed?"#c0bab0":isWaiting?"#d0ccc0":isDone?"#FFD686":statusColor(p.status);
+  var sc=p.closed?"#c0bab0":isWaiting?"#77879c":isDone?"#83779c":statusColor(p.status);
   var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e\ufe0f";
   return h("div",{style:{background:p.closed?"#f5f5f5":C.card,borderRadius:12,padding:"16px",border:"0.5px solid #C0D3D9",borderLeft:"2.5px solid "+sc,opacity:p.closed?0.7:1}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
