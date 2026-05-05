@@ -179,7 +179,7 @@ function App(){
     !loading&&!error&&h("div",{style:{display:"flex",flexDirection:"column",gap:20}},
       // 進行中
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:500,color:C.txt2,marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+        h("div",{style:{fontSize:13,fontWeight:500,color:"#b08080",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
           h("span",null,"\u2702\ufe0f \u9032\u884c\u4e2d"),
           h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},active.length)
         ),
@@ -189,7 +189,7 @@ function App(){
       ),
       // 等待執行
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:500,color:"#C0D3D9",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+        h("div",{style:{fontSize:13,fontWeight:500,color:"#7a9ab0",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
           h("span",null,"\u23f3 \u5f85\u57f7\u884c"),
           h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},waiting.length)
         ),
@@ -199,7 +199,7 @@ function App(){
       ),
       // 已完成（可收起）
       h("div",null,
-        h("div",{onClick:function(){setShowDone(function(v){return!v;});},style:{fontSize:13,fontWeight:500,color:"#FFD686",marginBottom:showDone?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
+        h("div",{onClick:function(){setShowDone(function(v){return!v;});},style:{fontSize:13,fontWeight:500,color:"#9088b0",marginBottom:showDone?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
           h("span",null,"\ud83c\udfac \u5df2\u5b8c\u6210"),
           h("span",{style:{fontSize:11,background:"#f0ebff",color:"#FFD686",borderRadius:12,padding:"1px 8px",fontWeight:500}},done.length),
           h("span",{style:{fontSize:11,color:"#FFD686",marginLeft:"auto"}},showDone?"\u25b4":"\u25be")
