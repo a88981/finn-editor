@@ -317,6 +317,7 @@ function projectToProperties(p) {
     "業配完成":  { checkbox: !!p.bizDone },
     "無業配":    { checkbox: !!p.noBiz },
     "Final截止日":{ date: date(p.finalDue) },
+    "Final完成":   { checkbox: !!p.finalDone },
     "額外資料":  { rich_text: richText(JSON.stringify({feeItems:p.feeItems||[],costItems:p.costItems||[],overRate:p.overRate!==undefined?p.overRate:850})) },
   };
 }
