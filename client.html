@@ -8,9 +8,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#f8f8f8;font-family:system-ui,sans-serif;color:#2a1a05;min-height:100vh;}
+body{background:#faf9f7;font-family:"Noto Sans TC","Noto Sans KR",system-ui,sans-serif;color:#2c3a45;min-height:100vh;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
 </style>
 </head><body>
 <div id="root"></div>
@@ -24,31 +25,31 @@ var CLIENT_NAME="\ud83d\udca7\u963f\u6ef4"; // 客戶名稱，可改
 
 // ── 顏色 ──────────────────────────────────────────────────────────
 var C={
-  bg:"#f8f8f8",card:"#ffffff",brd:"#eeeeee",brd2:"#dddddd",
-  txt:"#2a1a05",txt2:"#6b4a10",txt3:"#aaa",
-  acc:"#f5a800",ok:"#3d7a50",okBg:"#edf7f1",
-  err:"#c04040",wrn:"#d07010",wrnBg:"#fff8e0"
+  bg:"#faf9f7",card:"#ffffff",brd:"#C0D3D9",brd2:"#a8c0c8",
+  txt:"#2c3a45",txt2:"#4a6070",txt3:"#7a9aaa",
+  acc:"#FFD686",ok:"#6a9080",okBg:"#edf4f2",
+  err:"#b06070",wrn:"#C0D3D9",wrnBg:"#f5f0e8"
 };
 
 // ── 進度顏色 ──────────────────────────────────────────────────────
 var STATUS_COLOR={
-  "\u7b49\u5f85\u7d20\u6750":"#a8a090",
-  "\u5f85\u78ba\u8a8d":"#a8a090",
-  "\u66ab\u7de9":"#a8a090",
-  "\u521d\u526a\u5f85\u57f7\u884c":"#e08080",
-  "\u521d\u526a\u4e2d":"#e08080",
-  "\u521d\u526a\u4fee\u6539\u4e2d":"#e08080",
-  "\u521d\u526a\u5be9\u6838\u4e2d":"#6090c8",
-  "ES\u88fd\u4f5c\u4e2d":"#d8903a",
-  "ES\u4fee\u6539\u4e2d":"#d8903a",
-  "V1\u88fd\u4f5c\u4e2d":"#d8903a",
-  "V1\u4fee\u6539\u4e2d":"#d8903a",
-  "\u767c\u5305\u5b57\u5e55":"#d8903a",
-  "ES\u5be9\u6838\u4e2d":"#6090c8",
-  "V1\u5be9\u6838\u4e2d":"#6090c8",
-  "\u5ee0\u5546\u5be9\u6838\u4e2d":"#6090c8",
-  "Final\u5be9\u6838\u4e2d":"#6090c8",
-  "Final\u5b8c\u6210":"#9070c0",
+  "\u7b49\u5f85\u7d20\u6750":"#C0D3D9",
+  "\u5f85\u78ba\u8a8d":"#C0D3D9",
+  "\u66ab\u7de9":"#C0D3D9",
+  "\u521d\u526a\u5f85\u57f7\u884c":"#C0D3D9",
+  "\u521d\u526a\u4e2d":"#C0D3D9",
+  "\u521d\u526a\u4fee\u6539\u4e2d":"#C0D3D9",
+  "\u521d\u526a\u5be9\u6838\u4e2d":"#FFD686",
+  "ES\u88fd\u4f5c\u4e2d":"#FCE5B3",
+  "ES\u4fee\u6539\u4e2d":"#FCE5B3",
+  "V1\u88fd\u4f5c\u4e2d":"#FCE5B3",
+  "V1\u4fee\u6539\u4e2d":"#FCE5B3",
+  "\u767c\u5305\u5b57\u5e55":"#FCE5B3",
+  "ES\u5be9\u6838\u4e2d":"#FFD686",
+  "V1\u5be9\u6838\u4e2d":"#FFD686",
+  "\u5ee0\u5546\u5be9\u6838\u4e2d":"#FFD686",
+  "Final\u5be9\u6838\u4e2d":"#FFD686",
+  "Final\u5b8c\u6210":"#FFD686",
 };
 
 function statusColor(s){return STATUS_COLOR[s]||"#aaa";}
@@ -79,7 +80,7 @@ function DueTag(props){
   return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:11,color:color,fontWeight:days<=1?700:400}},
     h("span",null,icon),
     h("span",null,label+" "+fmtDate(date)),
-    h("span",{style:{fontSize:10,fontWeight:700}},dStr)
+    h("span",{style:{fontSize:10,fontWeight:500}},dStr)
   );
 }
 
@@ -88,16 +89,16 @@ function ProjectCard(props){
   var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   var isWaiting=waitingSt.indexOf(p.status)>=0;
   var isDone=p.status==="Final\u5b8c\u6210";
-  var sc=p.closed?"#c0bab0":isWaiting?"#d0ccc0":isDone?"#9070c0":statusColor(p.status);
+  var sc=p.closed?"#c0bab0":isWaiting?"#d0ccc0":isDone?"#FFD686":statusColor(p.status);
   var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e\ufe0f";
-  return h("div",{style:{background:p.closed?"#f5f5f5":C.card,borderRadius:14,padding:"16px",border:"1px solid "+C.brd,borderLeft:"4px solid "+sc,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",opacity:p.closed?0.7:1}},
+  return h("div",{style:{background:p.closed?"#f5f5f5":C.card,borderRadius:12,padding:"16px",border:"0.5px solid #C0D3D9",borderLeft:"2.5px solid "+sc,opacity:p.closed?0.7:1}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
       h("div",null,
         p.airDate&&h("div",{style:{fontSize:11,color:C.txt3,marginBottom:2}},"\ud83d\udcc5 \u4e0a\u7247 "+p.airDate),
-        h("div",{style:{fontSize:15,fontWeight:800,color:sc,lineHeight:1.3}},p.name)
+        h("div",{style:{fontSize:15,fontWeight:500,color:sc,lineHeight:1.3}},p.name)
       ),
       h("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}},
-        h("span",{style:{fontSize:12,background:sc+"18",color:sc,borderRadius:20,padding:"3px 10px",fontWeight:700,whiteSpace:"nowrap"}},p.status),
+        h("span",{style:{fontSize:12,background:sc+"18",color:sc,borderRadius:20,padding:"3px 10px",fontWeight:500,whiteSpace:"nowrap"}},p.status),
         h("span",{style:{fontSize:11,color:C.txt3}},typeIcon+" "+p.type+(p.length?" · "+p.length:""))
       )
     ),
@@ -113,10 +114,10 @@ function ProjectCard(props){
 
 function ClosedCard(props){
   var p=props.p;
-  return h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#f5f5f5",border:"1px solid #eee",opacity:0.7}},
+  return h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#faf9f7",border:"0.5px solid #C0D3D9",opacity:0.7}},
     h("span",{style:{fontSize:11}},"\ud83c\udfac"),
     h("div",{style:{flex:1,minWidth:0}},
-      h("span",{style:{fontSize:12,fontWeight:700,color:"#888",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}},
+      h("span",{style:{fontSize:12,fontWeight:500,color:"#888",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}},
         (p.airDate?(p.month?p.month.slice(0,4):"")+"/"+p.airDate+" ":"")+p.name
       )
     )
@@ -170,17 +171,17 @@ function App(){
   });
 
   return h("div",{style:{maxWidth:600,margin:"0 auto",padding:"20px 16px"}},
-    h("div",{style:{marginBottom:24,paddingBottom:16,borderBottom:"2px solid "+C.acc}},
-      h("div",{style:{fontSize:22,fontWeight:900,color:C.acc}},"\ud83c\udfac \u5c0f\u73a9x\u963f\u6ef4\u526a\u8f2f\u9032\u5ea6\u8868"),
+    h("div",{style:{marginBottom:24,paddingBottom:16,borderBottom:"1.5px solid "+C.acc}},
+      h("div",{style:{fontSize:22,fontWeight:500,color:"#7a9ab0"}},"\ud83c\udfac \u5c0f\u73a9x\u963f\u6ef4\u526a\u8f2f\u9032\u5ea6\u8868"),
     ),
     loading&&h("div",{style:{textAlign:"center",padding:"40px",color:C.txt3}},"\u8f09\u5165\u4e2d\u2026"),
     error&&h("div",{style:{textAlign:"center",padding:"40px",color:C.err}},error),
     !loading&&!error&&h("div",{style:{display:"flex",flexDirection:"column",gap:20}},
       // 進行中
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:800,color:C.txt2,marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+        h("div",{style:{fontSize:13,fontWeight:500,color:C.txt2,marginBottom:10,display:"flex",alignItems:"center",gap:6}},
           h("span",null,"\u2702\ufe0f \u9032\u884c\u4e2d"),
-          h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},active.length)
+          h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},active.length)
         ),
         active.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},active.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
@@ -188,9 +189,9 @@ function App(){
       ),
       // 等待執行
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:800,color:"#a8a090",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+        h("div",{style:{fontSize:13,fontWeight:500,color:"#C0D3D9",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
           h("span",null,"\u23f3 \u5f85\u57f7\u884c"),
-          h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},waiting.length)
+          h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},waiting.length)
         ),
         waiting.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},waiting.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
@@ -198,10 +199,10 @@ function App(){
       ),
       // 已完成（可收起）
       h("div",null,
-        h("div",{onClick:function(){setShowDone(function(v){return!v;});},style:{fontSize:13,fontWeight:800,color:"#9070c0",marginBottom:showDone?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
+        h("div",{onClick:function(){setShowDone(function(v){return!v;});},style:{fontSize:13,fontWeight:500,color:"#FFD686",marginBottom:showDone?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
           h("span",null,"\ud83c\udfac \u5df2\u5b8c\u6210"),
-          h("span",{style:{fontSize:11,background:"#f0ebff",color:"#9070c0",borderRadius:12,padding:"1px 8px",fontWeight:700}},done.length),
-          h("span",{style:{fontSize:11,color:"#9070c0",marginLeft:"auto"}},showDone?"\u25b4":"\u25be")
+          h("span",{style:{fontSize:11,background:"#f0ebff",color:"#FFD686",borderRadius:12,padding:"1px 8px",fontWeight:500}},done.length),
+          h("span",{style:{fontSize:11,color:"#FFD686",marginLeft:"auto"}},showDone?"\u25b4":"\u25be")
         ),
         showDone&&(done.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
@@ -209,9 +210,9 @@ function App(){
       ),
       // 已結案（可收起）
       closed.length>0&&h("div",null,
-        h("div",{onClick:function(){setShowClosed(function(v){return!v;});},style:{fontSize:13,fontWeight:800,color:C.txt3,marginBottom:showClosed?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",padding:"8px 12px",background:"#f5f5f5",borderRadius:8,border:"1px solid #eee"}},
+        h("div",{onClick:function(){setShowClosed(function(v){return!v;});},style:{fontSize:13,fontWeight:500,color:C.txt3,marginBottom:showClosed?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",padding:"8px 12px",background:"#f5f5f5",borderRadius:8,border:"1px solid #eee"}},
           h("span",null,"\ud83d\udcc2 \u5df2\u7d50\u6848"),
-          h("span",{style:{fontSize:11,background:"#eee",color:C.txt3,borderRadius:12,padding:"1px 8px",fontWeight:700}},closed.length),
+          h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},closed.length),
           h("span",{style:{fontSize:11,color:C.txt3,marginLeft:"auto"}},showClosed?"\u25b4 \u6536\u8d77":"\u25be \u9ede\u64ca\u5c55\u958b")
         ),
         showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginTop:10}},closed.map(function(p){return h(ClosedCard,{key:p.id,p:p});}))
