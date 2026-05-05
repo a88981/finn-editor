@@ -72,12 +72,12 @@ function DueTag(props){
   var date=props.date,done=props.done,icon=props.icon,label=props.label;
   if(!date)return null;
   var days=daysUntil(date);
-  if(done)return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#bbb",textDecoration:"line-through"}},
+  if(done)return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:13,color:"#bbb",textDecoration:"line-through"}},
     h("span",null,icon),h("span",null,label+" "+fmtDate(date)),h("span",{style:{fontSize:10}},"\u2713")
   );
   var color=days<0?C.err:days===0?"#e07010":days===1?"#d07010":days<=3?C.wrn:C.txt3;
   var dStr=days<0?"\u903e\u671f"+Math.abs(days)+"\u5929":days===0?"\u4eca\u5929":days===1?"\u660e\u5929":"\u5269"+days+"\u5929";
-  return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:11,color:color,fontWeight:days<=1?700:400}},
+  return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:13,color:color,fontWeight:days<=1?500:400}},
     h("span",null,icon),
     h("span",null,label+" "+fmtDate(date)),
     h("span",{style:{fontSize:10,fontWeight:500}},dStr)
