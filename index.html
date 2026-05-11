@@ -6,18 +6,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#ffffff;font-family:system-ui,sans-serif;color:#2c2825;min-height:100vh;}
+body{background:#faf9f5;font-family:system-ui,sans-serif;color:#2c2825;min-height:100vh;}
 @media (min-width:768px){body{zoom:1.15;}}
 select option{background:#fff;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:#fafafa;}
-::-webkit-scrollbar-thumb{background:#f0c040;border-radius:3px;}
+::-webkit-scrollbar-thumb{background:#efba2c;border-radius:3px;}
 @keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 input,select,textarea{font-family:inherit;outline:none;}
 </style></head><body>
 <div id="root"></div>
 <script>
 (function(){
+var holidays=[],finnDays=[],divinDays=[],nanaDays=[];
 var _R=React,useState=_R.useState,useEffect=_R.useEffect,useCallback=_R.useCallback,h=_R.createElement;
 // ── 儲存層：Notion API（透過 Netlify Function）+ localStorage 備援 ──
 var API="/api/notion";
@@ -116,7 +117,7 @@ var KCOLS=[
 var PRI=["-","\u6025\u6848","1","2","3","4","5","6","7"];
 var PRC={"-":"#aaa","\u6025\u6848":"#b85c5c","1":"#b87040","2":"#a09030","3":"#70a040","4":"#40a060","5":"#40a090","6":"#4080b0","7":"#7060a0"};
 var MN=["1\u6708","2\u6708","3\u6708","4\u6708","5\u6708","6\u6708","7\u6708","8\u6708","9\u6708","10\u6708","11\u6708","12\u6708"];
-var C={bg:"#ffffff",card:"#ffffff",card2:"#fffbe8",brd:"#fce8b0",brd2:"#f0c040",txt:"#2a1a05",txt2:"#6b4a10",txt3:"#c09040",acc:"#f5a800",acc2:"#f5a800",accBg:"#fff8d0",hdr:"#fff4c0",ok:"#3d7a50",okBg:"#edf7f1",err:"#c04040",errBg:"#fff0f0",wrn:"#d07010",wrnBg:"#fff8e0"};
+var C={bg:"#faf9f5",card:"#ffffff",card2:"#faf8f0",brd:"#e8e4d8",brd2:"#d0ccc6",txt:"#2c2820",txt2:"#6a5e40",txt3:"#a89a78",acc:"#efba2c",acc2:"#efba2c",accBg:"#faf8f0",hdr:"#faf8f0",ok:"#3d7a50",okBg:"#edf7f1",err:"#c04040",errBg:"#fff0f0",wrn:"#d07010",wrnBg:"#fff8e0"};
 var INP={background:C.card,border:"1px solid "+C.brd,borderRadius:7,padding:"7px 10px",color:C.txt,fontSize:13,width:"100%",boxSizing:"border-box"};
 
 function uid(){return Math.random().toString(36).slice(2,9);}
@@ -157,7 +158,7 @@ function CalPicker(props){
   var cells=[];for(var i=0;i<fd;i++)cells.push(null);for(var i=1;i<=dims;i++)cells.push(i);
   function isT(d){return d&&vy===now.getFullYear()&&vm===now.getMonth()&&d===now.getDate();}
   return h("div",{style:{background:C.card,border:"1px solid "+C.brd2,borderRadius:10,padding:10}},
-    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,padding:"0 2px"}},
       h("button",{onClick:function(){setView(function(v){return v.m===0?{y:v.y-1,m:11}:{y:v.y,m:v.m-1};});},style:{background:"none",border:"none",color:C.txt2,cursor:"pointer",fontSize:18,padding:"0 6px"}},"\u2039"),
       h("span",{style:{fontSize:12,fontWeight:700,color:C.txt}},vy+" "+MN[vm]),
       h("button",{onClick:function(){setView(function(v){return v.m===11?{y:v.y+1,m:0}:{y:v.y,m:v.m+1};});},style:{background:"none",border:"none",color:C.txt2,cursor:"pointer",fontSize:18,padding:"0 6px"}},"\u203a")
@@ -168,10 +169,40 @@ function CalPicker(props){
     h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}},
       cells.map(function(d,i){
         var isSel=d===sel,isToday=isT(d);
-        return h("button",{key:i,onClick:function(){if(d)onChange(toISO(vy,vm,d));},style:{border:"none",borderRadius:5,padding:"5px 0",fontSize:11,cursor:d?"pointer":"default",background:isSel?accent:isToday?accent+"22":"transparent",color:isSel?"#fff":isToday?accent:d?C.txt2:"transparent",fontWeight:(isSel||isToday)?700:400}},d||"");
+        return h("button",{key:i,onClick:function(){if(d)onChange(toISO(vy,vm,d));},style:{border:"none",borderRadius:5,padding:"5px 0",fontSize:11,cursor:"pointer",background:isSel?accent:isToday?accent+"22":"transparent",color:isSel?"#fff":isToday?accent:d?C.txt2:"transparent",fontWeight:(isSel||isToday)?700:400}},d||"");
       })
     ),
-    h("div",{style:{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+    selectedDay&&h("div",{style:{marginTop:8,padding:"10px 12px",background:C.card,borderRadius:8,border:"0.5px solid "+C.brd}},
+      h("div",{style:{fontSize:12,fontWeight:500,color:C.txt,marginBottom:8}},
+        selectedDay.slice(5,7)+"/"+selectedDay.slice(8,10)+" 的行程"
+      ),
+      (function(){
+        var d2=parseInt(selectedDay.slice(8,10));
+        var ev=getEv(d2);
+        var hvs=getHolidaySpans(d2);
+        var fns=getFinnSpans(d2);
+        var dvs=getDivinSpans(d2);
+        var nns=getNanaSpans(d2);
+        var items=[];
+        hvs.forEach(function(h){items.push({label:h.label||"休假",color:"#e07070",icon:"🏝️"});});
+        fns.forEach(function(f){items.push({label:f.label||"小玩",color:"#e6ac00",icon:"💛"});});
+        dvs.forEach(function(d){items.push({label:d.label||"占卜",color:"#d87098",icon:"🔮"});});
+        nns.forEach(function(n){items.push({label:n.label||"暖暖",color:"#8b6bbf",icon:"🐈‍⬛"});});
+        ev.forEach(function(e){if(e.k==="d"||e.k==="r")items.push({label:e.label,color:e.color,icon:"✂️"});});
+        if(items.length===0)return h("div",{style:{fontSize:11,color:C.txt3,padding:"4px 0"}},"這天沒有行程");
+        return h("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+          items.map(function(item,i){
+            return h("div",{key:i,style:{display:"flex",alignItems:"center",gap:8,
+              padding:"6px 8px",borderRadius:6,background:item.color+"15",
+              borderLeft:"2px solid "+item.color}},
+              item.icon&&h("span",{style:{fontSize:13,marginRight:2}},item.icon),
+              h("span",{style:{fontSize:12,color:C.txt}},item.label)
+            );
+          })
+        );
+      })()
+    ),
+   h("div",{style:{marginTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
       h("span",{style:{fontSize:11,color:value?accent:C.txt3,fontWeight:700}},value?fmt(value):"\u672a\u9078\u64c7"),
       value&&h("button",{onClick:function(){onChange("");},style:{background:"none",border:"none",color:C.txt3,cursor:"pointer",fontSize:11}},"\u2715 \u6e05\u9664")
     )
@@ -699,8 +730,8 @@ function CheckRow(props){
   else if(d<=3){text="\u5269"+d+"\u5929("+ds+")\u8981\u4ea4"+label;color=C.acc;}
   else{text="\u5269"+d+"\u5929("+ds+")\u8981\u4ea4"+label;color=C.txt3;}
   return h("div",{style:{display:"flex",alignItems:"center",gap:5},onClick:function(e){e.stopPropagation();}},
-    h("div",{onClick:function(){onToggle(p.id,field,!isDone);},style:{width:15,height:15,borderRadius:3,flexShrink:0,cursor:"pointer",border:"2px solid "+(isDone?C.txt3:C.brd2),background:isDone?C.txt3:C.card,display:"flex",alignItems:"center",justifyContent:"center"}},
-      isDone&&h("span",{style:{color:"#fff",fontSize:10,fontWeight:900,lineHeight:1}},"\u2713")
+    h("div",{onClick:function(){onToggle(p.id,field,!isDone);},style:{width:13,height:13,borderRadius:3,flexShrink:0,cursor:"pointer",border:"0.5px solid "+(isDone?C.txt:C.brd),background:isDone?C.txt:"transparent",display:"flex",alignItems:"center",justifyContent:"center"}},
+      isDone&&h("span",{style:{color:"#fff",fontSize:9,fontWeight:500,lineHeight:1}},"\u2713")
     ),
     h("span",{style:{fontSize:10,color:color,fontWeight:d!==null&&d<=3&&!isDone?700:400,textDecoration:isDone?"line-through":"none"}},icon+" "+text)
   );
@@ -787,10 +818,10 @@ function Kanban(props){
   }
 
   return h("div",{style:{overflowX:"auto",paddingBottom:12}},
-    h("div",{style:{display:"flex",gap:10,minWidth:950,alignItems:"flex-start"}},
+    h("div",{style:{display:"flex",gap:14,minWidth:960,alignItems:"flex-start"}},
       KCOLS.map(function(col){
         var cards=sortCol(active.filter(function(p){return col.st.indexOf(p.status)>=0;}),col.key);
-        return h("div",{key:col.key,style:{flex:"0 0 200px"},
+        return h("div",{key:col.key,style:{flex:"0 0 205px"},
           onDragOver:function(e){e.preventDefault();setOverCol(col.key);},
           onDragLeave:function(e){if(!e.currentTarget.contains(e.relatedTarget)){setOverCol(null);}},
           onDrop:function(e){
@@ -800,10 +831,10 @@ function Kanban(props){
             setDragId(null);setOverCol(null);setOverCardId(null);
           }},
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
-            h("span",{style:{fontSize:12,fontWeight:800,color:col.acc}},col.icon+" "+col.label),
-            h("span",{style:{fontSize:11,background:col.acc+"22",color:col.acc,borderRadius:16,padding:"1px 8px",fontWeight:700}},cards.length)
+            h("span",{style:{fontSize:11,fontWeight:500,color:col.acc,letterSpacing:"0.06em"}},col.icon+" "+col.label),
+            h("span",{style:{fontSize:10,background:col.acc+"15",color:col.acc,borderRadius:16,padding:"1px 8px",fontWeight:400}},cards.length)
           ),
-          h("div",{style:{display:"flex",flexDirection:"column",gap:7,minHeight:60,background:overCol===col.key&&!overCardId?col.acc+"12":"transparent",border:overCol===col.key&&!overCardId?"2px dashed "+col.acc+"55":"2px solid transparent",borderRadius:10,padding:overCol===col.key&&!overCardId?"6px":"0"}},
+          h("div",{style:{display:"flex",flexDirection:"column",gap:6,minHeight:60,background:overCol===col.key&&!overCardId?col.acc+"12":"transparent",border:overCol===col.key&&!overCardId?"2px dashed "+col.acc+"55":"2px solid transparent",borderRadius:10,padding:overCol===col.key&&!overCardId?"6px":"0"}},
             cards.map(function(p){
               var cc=cColors[p.client]||C.acc,pc=PRC[p.order];
               var isOver=overCardId===p.id&&dragId!==p.id;
@@ -814,17 +845,17 @@ function Kanban(props){
                 onDragLeave:function(e){if(!e.currentTarget.contains(e.relatedTarget))setOverCardId(null);},
                 onDrop:function(e){e.preventDefault();e.stopPropagation();handleDropOnCard(p.id,col.key);setOverCol(null);setOverCardId(null);},
                 onClick:function(){onEdit(p);},
-                style:{background:C.card,borderRadius:10,padding:"9px 10px",cursor:"grab",opacity:dragId===p.id?0.3:1,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",border:"1px solid "+(isOver?cc:C.brd),borderLeft:"3px solid "+cc,marginTop:isOver?12:0,transition:"margin 0.12s"}},
+                style:{background:C.card,borderRadius:10,padding:"12px 14px",cursor:"grab",opacity:dragId===p.id?0.3:1,border:"0.5px solid "+(isOver?cc:C.brd),borderLeft:"2px solid "+cc,marginTop:isOver?12:0,transition:"margin 0.12s"}},
                 h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}},
-                  h("span",{style:{fontSize:10,fontWeight:800,color:cc}},p.client),
+                  h("span",{style:{fontSize:10,fontWeight:500,color:cc,letterSpacing:"0.04em"}},p.client),
                   h("div",{style:{display:"flex",gap:3}},
                     pc&&p.order&&p.order!=="-"&&h("span",{style:{fontSize:9,background:pc+"22",color:pc,borderRadius:4,padding:"1px 5px",fontWeight:800}},p.order),
                     p.month&&h("span",{style:{fontSize:9,color:C.txt3}},p.month.slice(5)+"\u6708")
                   )
                 ),
-                h("div",{style:{fontSize:12,color:C.txt,lineHeight:1.3,marginBottom:3,fontWeight:600}},p.airDate?fmtAir(p.airDate)+" "+p.name:p.name),
+                h("div",{style:{fontSize:13,color:C.txt,lineHeight:1.35,marginBottom:6,fontWeight:400}},p.airDate?fmtAir(p.airDate)+" "+p.name:p.name),
                 h("div",{style:{margin:"4px 0 6px",display:"flex",alignItems:"center",gap:4}},
-                  h("span",{style:{fontSize:9,background:col.acc+"18",color:col.acc,borderRadius:4,padding:"2px 6px",fontWeight:700}},p.status),
+                  h("span",{style:{fontSize:10,background:col.acc+"15",color:col.acc,borderRadius:6,padding:"2px 8px",fontWeight:400}},p.status),
                   p.type&&h("span",{style:{fontSize:10}},p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e\ufe0f")
                 ),
                 h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginBottom:5}},
@@ -895,6 +926,7 @@ function CalView(props){
   var ys=useState(now.getFullYear());var year=ys[0],setYear=ys[1];
   var fs=useState({edit:false,cut1:true,v1:true,biz:true,due:true,holiday:true,finn:true,divination:true,nana:true});var filters=fs[0],setFilters=fs[1];
   var hcs=useState(null);var hClick=hcs[0],setHClick=hcs[1];
+  var sds=useState(null);var selectedDay=sds[0],setSelectedDay=sds[1];
   var hms=useState(null);var hvModal=hms[0],setHvModal=hms[1];
   var hms2=useState(null);var hvMenu=hms2[0],setHvMenu=hms2[1];
   var hes=useState(null);var hvEdit=hes[0],setHvEdit=hes[1];
@@ -986,8 +1018,8 @@ function CalView(props){
   }
   function isToday(d){return d&&year===now.getFullYear()&&month===now.getMonth()&&d===now.getDate();}
   var FTABS=[{key:"edit",label:"📅 \u5168\u90e8\u6642\u7a0b",color:C.txt2},{key:"cut1",label:"✂️ \u521d\u526a",color:"#e08080"},{key:"v1",label:"✨ ES",color:"#d8903a"},{key:"biz",label:"💰 \u696d\u914d",color:"#4a90c8"},{key:"due",label:"🎬 \u4ea4\u4ef6\u65e5",color:"#9070c0"},{key:"finn",label:"💛 \u5c0f\u73a9",color:"#e6ac00"},{key:"divination",label:"🔮 占卜",color:"#d87098"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#8b6bbf"},{key:"holiday",label:"🏝️ \u4f11\u5047",color:"#e07070"}];
-  return h("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
-    h("div",{style:{minWidth:500}},
+  return h(React.Fragment,null,
+  h("div",{style:{width:"100%",boxSizing:"border-box"}},
     h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,flexWrap:"wrap",gap:8}},
       h("button",{onClick:function(){if(month===0){setMonth(11);setYear(function(y){return y-1;});}else setMonth(function(m){return m-1;});},style:{background:C.card,border:"1px solid "+C.brd,color:C.txt2,borderRadius:8,padding:"5px 14px",cursor:"pointer",fontSize:16}},"\u2039"),
       h("span",{style:{fontWeight:800,fontSize:16,color:C.txt}},year+" "+MN[month]),
@@ -1013,59 +1045,92 @@ function CalView(props){
         var dsStr=d?toISO(year,month,d):"";
         var isPick1=hClick&&hClick.ds===dsStr;
         var cellBg=d?C.card:"transparent";
-        var cellBorder=isPick1?"2px dashed #e07070":tod?"2px solid "+C.acc:"1px solid "+C.brd;
-        return h("div",{key:i,onClick:function(){handleDayClick(d);},style:{minHeight:100,background:cellBg,borderRadius:8,padding:"5px",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
+        var dsStr2=d?toISO(year,month,d):"";var isSelected=selectedDay===dsStr2&&d;
+var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1px solid "+C.acc:"0.5px solid "+C.brd;
+        return h("div",{key:i,onClick:function(){if(d){var ds2=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2?null:ds2;});}handleDayClick(d);},style:{minHeight:"clamp(60px,12vw,100px)",background:cellBg,borderRadius:6,padding:"clamp(3px,1vw,6px)",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
           (isHv&&filters.holiday)&&h("div",{style:{position:"absolute",top:0,left:0,right:0,height:3,background:"#e07070",borderRadius:"8px 8px 0 0"}}),
           (isFn&&filters.finn)&&h("div",{style:{position:"absolute",top:(isHv&&filters.holiday)?3:0,left:0,right:0,height:3,background:"#e6ac00",borderRadius:"8px 8px 0 0"}}),
           d&&h("div",null,
             h("div",{style:{fontSize:11,color:tod?C.acc:(isHv&&filters.holiday)?"#e07070":(isFn&&filters.finn)?"#e6ac00":(isDv&&filters.divination)?"#d87098":(isNn&&filters.nana)?"#8b6bbf":C.txt2,fontWeight:tod||(isHv&&filters.holiday)||(isFn&&filters.finn)||(isDv&&filters.divination)||(isNn&&filters.nana)?800:400,marginBottom:3,display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2}},
               d,
-              (isHv&&filters.holiday)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setHvMenu(hvSpans[0]);},style:{fontSize:8,background:"#e07070",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🏝️【休假】"+(hvSpans[0].label?" "+hvSpans[0].label:"")),
-              (isFn&&filters.finn)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setFnMenu(fnSpans[0]);},style:{fontSize:8,background:"#e6ac00",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"💛【小玩】"+(fnSpans[0].label?" "+fnSpans[0].label:"")),
-              (isDv&&filters.divination)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setDvMenu(dvSpans[0]);},style:{fontSize:8,background:"#d87098",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🔮【占卜】"+(dvSpans[0].label?" "+dvSpans[0].label:"")),
-              (isNn&&filters.nana)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setNnMenu(nnSpans[0]);},style:{fontSize:8,background:"#8b6bbf",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🐈‍⬛【暖暖】"+(nnSpans[0].label?" "+nnSpans[0].label:""))
+              (isHv&&filters.holiday)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setHvMenu(hvSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e07070",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🏝️【休假】"+(hvSpans[0].label?" "+hvSpans[0].label:"")),
+              (isFn&&filters.finn)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setFnMenu(fnSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e6ac00",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"💛【小玩】"+(fnSpans[0].label?" "+fnSpans[0].label:"")),
+              (isDv&&filters.divination)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setDvMenu(dvSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:8,background:"#d87098",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🔮【占卜】"+(dvSpans[0].label?" "+dvSpans[0].label:"")),
+              (isNn&&filters.nana)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setNnMenu(nnSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#8b6bbf",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🐈‍⬛【暖暖】"+(nnSpans[0].label?" "+nnSpans[0].label:""))
             ),
             h("div",{style:{display:"flex",flexDirection:"column",gap:1}},
-              evDs.map(function(e,j){var done=e.color==="#c0bab0";return h("div",{key:"d"+j,onClick:function(ev2){ev2.stopPropagation();onEdit(e.p);},title:e.p.client+" "+e.p.name,style:{fontSize:8,color:e.color,fontWeight:700,cursor:"pointer",lineHeight:1.8,display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap",overflow:"hidden",textDecoration:done?"line-through":"none",opacity:done?0.7:1}},h("span",{style:{width:5,height:5,borderRadius:"50%",background:e.color,display:"inline-block",flexShrink:0}}),e.label+" \u3010"+e.p.client+"\u3011 "+e.p.name);}),
-              rs.slice(0,3).map(function(e,j){var done=e.color==="#c0bab0";return h("div",{key:j,onClick:function(ev2){ev2.stopPropagation();onEdit(e.p);},title:e.p.client+" "+e.p.name,style:{fontSize:8,background:e.bg,borderLeft:"2px solid "+e.color,paddingLeft:3,color:e.color,fontWeight:700,cursor:"pointer",lineHeight:1.8,borderRadius:"0 3px 3px 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:done?"line-through":"none",opacity:done?0.7:1}},e.label+(e.iS?" \u25b8":e.iE?" \u25c2":"")+" \u3010"+e.p.client+"\u3011 "+e.p.name);})
+              evDs.map(function(e,j){var done=e.color==="#c0bab0";return h("div",{key:"d"+j,onClick:function(ev2){ev2.stopPropagation();if(window.innerWidth>=600)onEdit(e.p);if(d){var ds3=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds3?null:ds3;});}},title:e.p.client+" "+e.p.name,style:{fontSize:8,color:e.color,fontWeight:700,cursor:"pointer",lineHeight:1.8,display:"flex",alignItems:"center",gap:2,whiteSpace:"nowrap",overflow:"hidden",textDecoration:done?"line-through":"none",opacity:done?0.7:1}},h("span",{style:{width:5,height:5,borderRadius:"50%",background:e.color,display:"inline-block",flexShrink:0}}),e.label+" \u3010"+e.p.client+"\u3011 "+e.p.name);}),
+              rs.slice(0,3).map(function(e,j){var done=e.color==="#c0bab0";return h("div",{key:j,onClick:function(ev2){ev2.stopPropagation();if(window.innerWidth>=600)onEdit(e.p);if(d){var ds3=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds3?null:ds3;});}},title:e.p.client+" "+e.p.name,style:{fontSize:8,background:e.bg,borderLeft:"2px solid "+e.color,paddingLeft:3,color:e.color,fontWeight:700,cursor:"pointer",lineHeight:1.8,borderRadius:"0 3px 3px 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:done?"line-through":"none",opacity:done?0.7:1}},e.label+(e.iS?" \u25b8":e.iE?" \u25c2":"")+" \u3010"+e.p.client+"\u3011 "+e.p.name);})
             )
           )
         );
       })
+    ),
+    selectedDay&&h("div",{style:{marginTop:8,padding:"10px 12px",background:C.card,borderRadius:8,border:"0.5px solid "+C.brd}},
+      h("div",{style:{fontSize:12,fontWeight:500,color:C.txt,marginBottom:8}},
+        selectedDay.slice(5,7)+"/"+selectedDay.slice(8,10)+" 的行程"
+      ),
+      (function(){
+        var d2=parseInt(selectedDay.slice(8,10));
+        var ev=getEv(d2);
+        var hvs=getHolidaySpans(d2);
+        var fns=getFinnSpans(d2);
+        var dvs=getDivinSpans(d2);
+        var nns=getNanaSpans(d2);
+        var items=[];
+        hvs.forEach(function(h2){items.push({label:h2.label||"休假",color:"#e07070",icon:"🏝️"});});
+        fns.forEach(function(f){items.push({label:f.label||"小玩",color:"#e6ac00",icon:"💛"});});
+        dvs.forEach(function(d3){items.push({label:d3.label||"占卜",color:"#d87098",icon:"🔮"});});
+        nns.forEach(function(n2){items.push({label:n2.label||"暖暖",color:"#8b6bbf",icon:"🐈‍⬛"});});
+        ev.filter(function(e){return e.k==="d"||e.k==="r";}).forEach(function(e){
+          items.push({label:e.label+" "+e.p.client+" "+e.p.name,color:e.color,icon:""});
+        });
+        if(items.length===0)return h("div",{style:{fontSize:11,color:C.txt3,padding:"4px 0"}},"這天沒有行程");
+        return h("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+          items.map(function(item,idx2){
+            return h("div",{key:idx2,style:{display:"flex",alignItems:"center",gap:8,
+              padding:"6px 8px",borderRadius:6,
+              background:item.color+"18",borderLeft:"2px solid "+item.color}},
+              h("span",{style:{fontSize:13}},item.icon),
+              h("span",{style:{fontSize:12,color:C.txt}},item.label)
+            );
+          })
+        );
+      })()
     )
-  )
+  ),
+  dvMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setDvMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fdeef4",borderBottom:"1px solid #e8e4de"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#efba2c"}},dvMenu.label||"🔮 占卜"),h("div",{style:{fontSize:11,color:"#a89a78",marginTop:2}},dvMenu.s===dvMenu.e?dvMenu.s:dvMenu.s+" – "+dvMenu.e)),h("button",{onClick:function(){setHvModal({s:dvMenu.s,e:dvMenu.e,label:dvMenu.label||"",type:"divination",editId:dvMenu.id});setDvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e8e4de",background:"transparent",fontSize:13,cursor:"pointer"}},"✏️ 修改行程"),h("button",{onClick:function(){if(onDelDivin)onDelDivin(dvMenu.id);setDvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
+      h("button",{onClick:function(){setHvModal({s:dvMenu.s,e:dvMenu.e,label:dvMenu.label||"",type:"divination",editId:dvMenu.id});setDvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#2c2820",cursor:"pointer"}},"＋ 新增其他行程"))),
+  dvEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setDvEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#efba2c",marginBottom:3}},"🔮 編輯說明"),h("div",{style:{fontSize:11,color:"#a89a78",marginBottom:14}},dvEdit.holiday.s===dvEdit.holiday.e?dvEdit.holiday.s:dvEdit.holiday.s+" – "+dvEdit.holiday.e),h("input",{type:"text",value:dvEdit.label,onChange:function(e){setDvEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditDivin)onEditDivin(dvEdit.holiday.id,{label:dvEdit.label});setDvEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #e0dcd6",borderRadius:7,marginBottom:14}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setDvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #e0dcd6",background:"transparent",color:"#a89a78",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditDivin)onEditDivin(dvEdit.holiday.id,{label:dvEdit.label});setDvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#efba2c",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存")))),
+  nnMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setNnMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#f0eaf8",borderBottom:"1px solid #e8e4de"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#8b6bbf"}},nnMenu.label||"🐈‍⬛ 暖暖"),h("div",{style:{fontSize:11,color:"#a89a78",marginTop:2}},nnMenu.s===nnMenu.e?nnMenu.s:nnMenu.s+" – "+nnMenu.e)),h("button",{onClick:function(){setHvModal({s:nnMenu.s,e:nnMenu.e,label:nnMenu.label||"",type:"nana",editId:nnMenu.id});setNnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e8e4de",background:"transparent",fontSize:13,cursor:"pointer"}},"✏️ 修改行程"),h("button",{onClick:function(){if(onDelNana)onDelNana(nnMenu.id);setNnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
+      h("button",{onClick:function(){setHvModal({s:nnMenu.s,e:nnMenu.e,label:nnMenu.label||"",type:"nana",editId:nnMenu.id});setNnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#2c2820",cursor:"pointer"}},"＋ 新增其他行程"))),
+  nnEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setNnEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#8b6bbf",marginBottom:3}},"🐈‍⬛ 編輯說明"),h("div",{style:{fontSize:11,color:"#a89a78",marginBottom:14}},nnEdit.holiday.s===nnEdit.holiday.e?nnEdit.holiday.s:nnEdit.holiday.s+" – "+nnEdit.holiday.e),h("input",{type:"text",value:nnEdit.label,onChange:function(e){setNnEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditNana)onEditNana(nnEdit.holiday.id,{label:nnEdit.label});setNnEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #e0dcd6",borderRadius:7,marginBottom:14}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setNnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #e0dcd6",background:"transparent",color:"#a89a78",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditNana)onEditNana(nnEdit.holiday.id,{label:nnEdit.label});setNnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#8b6bbf",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存"))))
 ,
-  dvMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setDvMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fdeef4",borderBottom:"1px solid #e0d8cc"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#d87098"}},dvMenu.label||"🔮 占卜"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginTop:2}},dvMenu.s===dvMenu.e?dvMenu.s:dvMenu.s+" – "+dvMenu.e)),h("button",{onClick:function(){setDvEdit({holiday:dvMenu,label:dvMenu.label||""});setDvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e0d8cc",background:"transparent",fontSize:13,cursor:"pointer"}},dvMenu.label?"\u270f\ufe0f 編輯說明":"\u270f\ufe0f 新增說明"),h("button",{onClick:function(){if(onDelDivin)onDelDivin(dvMenu.id);setDvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
-      h("button",{onClick:function(){setHvModal({s:dvMenu.s,e:dvMenu.e,label:"",type:"hv"});setDvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#3a3028",cursor:"pointer"}},"＋ 新增其他行程"))),
-  dvEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setDvEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#d87098",marginBottom:3}},"🔮 編輯說明"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginBottom:14}},dvEdit.holiday.s===dvEdit.holiday.e?dvEdit.holiday.s:dvEdit.holiday.s+" – "+dvEdit.holiday.e),h("input",{type:"text",value:dvEdit.label,onChange:function(e){setDvEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditDivin)onEditDivin(dvEdit.holiday.id,{label:dvEdit.label});setDvEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #d0c8bc",borderRadius:7,marginBottom:14}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setDvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #d0c8bc",background:"transparent",color:"#8a7a6a",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditDivin)onEditDivin(dvEdit.holiday.id,{label:dvEdit.label});setDvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#d87098",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存")))),
-  nnMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setNnMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#f0eaf8",borderBottom:"1px solid #e0d8cc"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#8b6bbf"}},nnMenu.label||"🐈‍⬛ 暖暖"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginTop:2}},nnMenu.s===nnMenu.e?nnMenu.s:nnMenu.s+" – "+nnMenu.e)),h("button",{onClick:function(){setNnEdit({holiday:nnMenu,label:nnMenu.label||""});setNnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e0d8cc",background:"transparent",fontSize:13,cursor:"pointer"}},nnMenu.label?"\u270f\ufe0f 編輯說明":"\u270f\ufe0f 新增說明"),h("button",{onClick:function(){if(onDelNana)onDelNana(nnMenu.id);setNnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
-      h("button",{onClick:function(){setHvModal({s:nnMenu.s,e:nnMenu.e,label:"",type:"hv"});setNnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#3a3028",cursor:"pointer"}},"＋ 新增其他行程"))),
-  nnEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setNnEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#8b6bbf",marginBottom:3}},"🐈‍⬛ 編輯說明"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginBottom:14}},nnEdit.holiday.s===nnEdit.holiday.e?nnEdit.holiday.s:nnEdit.holiday.s+" – "+nnEdit.holiday.e),h("input",{type:"text",value:nnEdit.label,onChange:function(e){setNnEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditNana)onEditNana(nnEdit.holiday.id,{label:nnEdit.label});setNnEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #d0c8bc",borderRadius:7,marginBottom:14}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setNnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #d0c8bc",background:"transparent",color:"#8a7a6a",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditNana)onEditNana(nnEdit.holiday.id,{label:nnEdit.label});setNnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#8b6bbf",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存"))))
-,
-  hvModal&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setHvModal(null);}},h("div",{style:{background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},
+  hvModal&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setHvModal(null);}},h("div",{style:{background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},
     h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}},
-        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"finn"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="finn"?"#e6ac00":"#e0d8cc"),background:hvModal.type==="finn"?"#fffbe6":"transparent",color:hvModal.type==="finn"?"#e6ac00":"#8a7a6a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"💛 \u5c0f\u73a9"),
-        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"divination"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="divination"?"#d87098":"#e0d8cc"),background:hvModal.type==="divination"?"#fdeef4":"transparent",color:hvModal.type==="divination"?"#d87098":"#8a7a6a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"🔮 占卜"),
-        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"nana"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="nana"?"#8b6bbf":"#e0d8cc"),background:hvModal.type==="nana"?"#f0eaf8":"transparent",color:hvModal.type==="nana"?"#8b6bbf":"#8a7a6a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"🐈‍⬛ 暖暖"),
-        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"hv"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="hv"?"#e07070":"#e0d8cc"),background:hvModal.type==="hv"?"#fdf0f0":"transparent",color:hvModal.type==="hv"?"#e07070":"#8a7a6a",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"🏝️ \u4f11\u5047")
+        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"finn"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="finn"?"#efba2c":"#e8e4d8"),background:hvModal.type==="finn"?"#fdf8e8":"transparent",color:hvModal.type==="finn"?"#efba2c":"#a89a78",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"💛 \u5c0f\u73a9"),
+        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"divination"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="divination"?"#efba2c":"#e8e4d8"),background:hvModal.type==="divination"?"#fdf8e8":"transparent",color:hvModal.type==="divination"?"#efba2c":"#a89a78",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"🔮 占卜"),
+        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"nana"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="nana"?"#efba2c":"#e8e4d8"),background:hvModal.type==="nana"?"#fdf8e8":"transparent",color:hvModal.type==="nana"?"#efba2c":"#a89a78",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"🐈‍⬛ 暖暖"),
+        h("button",{onClick:function(){setHvModal(function(m){return Object.assign({},m,{type:"hv"});});},style:{padding:"7px",borderRadius:8,border:"2px solid "+(hvModal.type==="hv"?"#efba2c":"#e8e4d8"),background:hvModal.type==="hv"?"#fdf8e8":"transparent",color:hvModal.type==="hv"?"#efba2c":"#a89a78",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}},"🏝️ \u4f11\u5047")
     ),
     h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}},
-      h("div",null,h("label",{style:{fontSize:11,color:"#8a7a6a",display:"block",marginBottom:4}},"\u958b\u59cb"),h("input",{type:"date",value:hvModal.s,onChange:function(e){setHvModal(function(m){return Object.assign({},m,{s:e.target.value});});},style:{width:"100%",boxSizing:"border-box",fontSize:12,padding:"6px 8px",border:"1px solid #d0c8bc",borderRadius:7}})),
-      h("div",null,h("label",{style:{fontSize:11,color:"#8a7a6a",display:"block",marginBottom:4}},"\u7d50\u675f"),h("input",{type:"date",value:hvModal.e,onChange:function(e){setHvModal(function(m){return Object.assign({},m,{e:e.target.value});});},style:{width:"100%",boxSizing:"border-box",fontSize:12,padding:"6px 8px",border:"1px solid #d0c8bc",borderRadius:7}}))
+      h("div",null,h("label",{style:{fontSize:11,color:"#a89a78",display:"block",marginBottom:4}},"\u958b\u59cb"),h("input",{type:"date",value:hvModal.s,onChange:function(e){setHvModal(function(m){return Object.assign({},m,{s:e.target.value});});},style:{width:"100%",boxSizing:"border-box",fontSize:12,padding:"6px 8px",border:"1px solid #e0dcd6",borderRadius:7}})),
+      h("div",null,h("label",{style:{fontSize:11,color:"#a89a78",display:"block",marginBottom:4}},"\u7d50\u675f"),h("input",{type:"date",value:hvModal.e,onChange:function(e){setHvModal(function(m){return Object.assign({},m,{e:e.target.value});});},style:{width:"100%",boxSizing:"border-box",fontSize:12,padding:"6px 8px",border:"1px solid #e0dcd6",borderRadius:7}}))
     ),
-    h("input",{type:"text",placeholder:"\u8aaa\u660e\uff08\u9078\u586b\uff09",value:hvModal.label,onChange:function(e){setHvModal(function(m){return Object.assign({},m,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(hvModal.type==="finn"&&onAddFinn)onAddFinn(hvModal.s,hvModal.e,hvModal.label);else if(hvModal.type==="divination"&&onAddDivin)onAddDivin(hvModal.s,hvModal.e,hvModal.label);else if(hvModal.type==="nana"&&onAddNana)onAddNana(hvModal.s,hvModal.e,hvModal.label);else if(onAddHoliday)onAddHoliday(hvModal.s,hvModal.e,hvModal.label);setHvModal(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #d0c8bc",borderRadius:7,marginBottom:12}}),
+    h("input",{type:"text",placeholder:"\u8aaa\u660e\uff08\u9078\u586b\uff09",value:hvModal.label,onChange:function(e){setHvModal(function(m){return Object.assign({},m,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){var _id=hvModal.editId;if(hvModal.type==="finn"){if(_id){if(onEditFinn)onEditFinn(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddFinn)onAddFinn(hvModal.s,hvModal.e,hvModal.label);}else if(hvModal.type==="divination"){if(_id){if(onEditDivin)onEditDivin(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddDivin)onAddDivin(hvModal.s,hvModal.e,hvModal.label);}else if(hvModal.type==="nana"){if(_id){if(onEditNana)onEditNana(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddNana)onAddNana(hvModal.s,hvModal.e,hvModal.label);}else{if(_id){if(onEditHoliday)onEditHoliday(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddHoliday)onAddHoliday(hvModal.s,hvModal.e,hvModal.label);}setHvModal(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #e0dcd6",borderRadius:7,marginBottom:12}}),
     h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},
-      h("button",{onClick:function(){setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #d0c8bc",background:"transparent",color:"#8a7a6a",cursor:"pointer"}},"取消"),
-      h("button",{onClick:function(){if(hvModal.type==="finn"&&onAddFinn)onAddFinn(hvModal.s,hvModal.e,hvModal.label);else if(hvModal.type==="divination"&&onAddDivin)onAddDivin(hvModal.s,hvModal.e,hvModal.label);else if(hvModal.type==="nana"&&onAddNana)onAddNana(hvModal.s,hvModal.e,hvModal.label);else if(onAddHoliday)onAddHoliday(hvModal.s,hvModal.e,hvModal.label);setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:hvModal.type==="finn"?"#e6ac00":hvModal.type==="divination"?"#d87098":hvModal.type==="nana"?"#8b6bbf":"#e07070",color:"#fff",fontWeight:700,cursor:"pointer"}},"\u78ba\u8a8d")
+      h("button",{onClick:function(){setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #e0dcd6",background:"transparent",color:"#a89a78",cursor:"pointer"}},"取消"),
+      h("button",{onClick:function(){var _id=hvModal.editId;if(hvModal.type==="finn"){if(_id){if(onEditFinn)onEditFinn(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddFinn)onAddFinn(hvModal.s,hvModal.e,hvModal.label);}else if(hvModal.type==="divination"){if(_id){if(onEditDivin)onEditDivin(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddDivin)onAddDivin(hvModal.s,hvModal.e,hvModal.label);}else if(hvModal.type==="nana"){if(_id){if(onEditNana)onEditNana(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddNana)onAddNana(hvModal.s,hvModal.e,hvModal.label);}else{if(_id){if(onEditHoliday)onEditHoliday(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddHoliday)onAddHoliday(hvModal.s,hvModal.e,hvModal.label);}setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#efba2c",color:"#fff",fontWeight:700,cursor:"pointer"}},"\u78ba\u8a8d")
     )
   )),
-  hvMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setHvMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fdf0f0",borderBottom:"1px solid #e0d8cc"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#e07070"}},hvMenu.label||"\xf0\x9f\x8f\x9d\xef\xb8\x8f \u4f11\u5047"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginTop:2}},hvMenu.s===hvMenu.e?hvMenu.s:hvMenu.s+" – "+hvMenu.e)),h("button",{onClick:function(){setHvEdit({holiday:hvMenu,label:hvMenu.label||""});setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e0d8cc",background:"transparent",fontSize:13,cursor:"pointer"}},hvMenu.label?"\u270f\ufe0f 編輯說明":"\u270f\ufe0f 新增說明"),h("button",{onClick:function(){if(onDelHoliday)onDelHoliday(hvMenu.id);setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
-      h("button",{onClick:function(){setHvModal({s:hvMenu.s,e:hvMenu.e,label:"",type:"hv"});setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#3a3028",cursor:"pointer"}},"＋ 新增其他行程"))),
-  hvEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setHvEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#e07070",marginBottom:3}},"\u7de8\u8f2f\u4f11\u5047\u8aaa\u660e"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginBottom:10}},hvEdit.holiday.s===hvEdit.holiday.e?hvEdit.holiday.s:hvEdit.holiday.s+" – "+hvEdit.holiday.e),h("input",{type:"text",value:hvEdit.label,onChange:function(e){setHvEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditHoliday)onEditHoliday(hvEdit.holiday.id,{label:hvEdit.label});setHvEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #d0c8bc",borderRadius:7,marginBottom:12}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setHvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #d0c8bc",background:"transparent",color:"#8a7a6a",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditHoliday)onEditHoliday(hvEdit.holiday.id,{label:hvEdit.label});setHvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#e07070",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存")))),
-  fnMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setFnMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fffbe6",borderBottom:"1px solid #e0d8cc"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#e6ac00"}},fnMenu.label||"\xf0\x9f\x92\x9b \u5c0f\u73a9"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginTop:2}},fnMenu.s===fnMenu.e?fnMenu.s:fnMenu.s+" – "+fnMenu.e)),h("button",{onClick:function(){setFnEdit({holiday:fnMenu,label:fnMenu.label||""});setFnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e0d8cc",background:"transparent",fontSize:13,cursor:"pointer"}},fnMenu.label?"\u270f\ufe0f 編輯說明":"\u270f\ufe0f 新增說明"),h("button",{onClick:function(){if(onDelFinn)onDelFinn(fnMenu.id);setFnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
-      h("button",{onClick:function(){setHvModal({s:fnMenu.s,e:fnMenu.e,label:"",type:"hv"});setFnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e0d8cc",background:"transparent",fontSize:13,color:"#3a3028",cursor:"pointer"}},"＋ 新增其他行程"))),
-  fnEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setFnEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#fffdf7)",border:"1px solid #e0d8cc",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#e6ac00",marginBottom:3}},"\u7de8\u8f2f\u5c0f\u73a9\u8aaa\u660e"),h("div",{style:{fontSize:11,color:"#8a7a6a",marginBottom:10}},fnEdit.holiday.s===fnEdit.holiday.e?fnEdit.holiday.s:fnEdit.holiday.s+" – "+fnEdit.holiday.e),h("input",{type:"text",value:fnEdit.label,onChange:function(e){setFnEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditFinn)onEditFinn(fnEdit.holiday.id,{label:fnEdit.label});setFnEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #d0c8bc",borderRadius:7,marginBottom:12}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setFnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #d0c8bc",background:"transparent",color:"#8a7a6a",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditFinn)onEditFinn(fnEdit.holiday.id,{label:fnEdit.label});setFnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#e6ac00",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存")))),
+  hvMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setHvMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fdf0f0",borderBottom:"1px solid #e8e4de"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#e07070"}},hvMenu.label||"🏝️ 休假"),h("div",{style:{fontSize:11,color:"#a89a78",marginTop:2}},hvMenu.s===hvMenu.e?hvMenu.s:hvMenu.s+" – "+hvMenu.e)),h("button",{onClick:function(){setHvModal({s:hvMenu.s,e:hvMenu.e,label:hvMenu.label||"",type:"hv",editId:hvMenu.id});setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e8e4de",background:"transparent",fontSize:13,cursor:"pointer"}},"✏️ 修改行程"),h("button",{onClick:function(){if(onDelHoliday)onDelHoliday(hvMenu.id);setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
+      h("button",{onClick:function(){setHvModal({s:hvMenu.s,e:hvMenu.e,label:hvMenu.label||"",type:"hv",editId:hvMenu.id});setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#2c2820",cursor:"pointer"}},"＋ 新增其他行程"))),
+  hvEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setHvEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#e07070",marginBottom:3}},"\u7de8\u8f2f\u4f11\u5047\u8aaa\u660e"),h("div",{style:{fontSize:11,color:"#a89a78",marginBottom:10}},hvEdit.holiday.s===hvEdit.holiday.e?hvEdit.holiday.s:hvEdit.holiday.s+" – "+hvEdit.holiday.e),h("input",{type:"text",value:hvEdit.label,onChange:function(e){setHvEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditHoliday)onEditHoliday(hvEdit.holiday.id,{label:hvEdit.label});setHvEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #e0dcd6",borderRadius:7,marginBottom:12}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setHvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #e0dcd6",background:"transparent",color:"#a89a78",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditHoliday)onEditHoliday(hvEdit.holiday.id,{label:hvEdit.label});setHvEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#e07070",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存")))),
+  fnMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setFnMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fffbe6",borderBottom:"1px solid #e8e4de"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#e6ac00"}},fnMenu.label||"💛 小玩"),h("div",{style:{fontSize:11,color:"#a89a78",marginTop:2}},fnMenu.s===fnMenu.e?fnMenu.s:fnMenu.s+" – "+fnMenu.e)),h("button",{onClick:function(){setHvModal({s:fnMenu.s,e:fnMenu.e,label:fnMenu.label||"",type:"finn",editId:fnMenu.id});setFnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e8e4de",background:"transparent",fontSize:13,cursor:"pointer"}},"✏️ 修改行程"),h("button",{onClick:function(){if(onDelFinn)onDelFinn(fnMenu.id);setFnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
+      h("button",{onClick:function(){setHvModal({s:fnMenu.s,e:fnMenu.e,label:fnMenu.label||"",type:"finn",editId:fnMenu.id});setFnMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#2c2820",cursor:"pointer"}},"＋ 新增其他行程"))),
+  fnEdit&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000},onClick:function(){setFnEdit(null);}},h("div",{style:{background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:12,padding:"20px 22px",width:300},onClick:function(e){e.stopPropagation();}},h("div",{style:{fontSize:14,fontWeight:700,color:"#e6ac00",marginBottom:3}},"\u7de8\u8f2f\u5c0f\u73a9\u8aaa\u660e"),h("div",{style:{fontSize:11,color:"#a89a78",marginBottom:10}},fnEdit.holiday.s===fnEdit.holiday.e?fnEdit.holiday.s:fnEdit.holiday.s+" – "+fnEdit.holiday.e),h("input",{type:"text",value:fnEdit.label,onChange:function(e){setFnEdit(function(v){return Object.assign({},v,{label:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter"){if(onEditFinn)onEditFinn(fnEdit.holiday.id,{label:fnEdit.label});setFnEdit(null);}},autoFocus:true,style:{width:"100%",boxSizing:"border-box",fontSize:13,padding:"8px 10px",border:"1px solid #e0dcd6",borderRadius:7,marginBottom:12}}),h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},h("button",{onClick:function(){setFnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #e0dcd6",background:"transparent",color:"#a89a78",cursor:"pointer"}},"取消"),h("button",{onClick:function(){if(onEditFinn)onEditFinn(fnEdit.holiday.id,{label:fnEdit.label});setFnEdit(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#e6ac00",color:"#fff",fontWeight:700,cursor:"pointer"}},"儲存"))))
   );
+
 }
 
 // ── TODO VIEW ─────────────────────────────────────────────────────────────────
@@ -1375,7 +1440,7 @@ function ClientMgr(props){
     setEditingClient(null);
   }
   var PALETTE=["#f9cbd5","#e491b4","#d26c99","#eaa9a6","#db7f7b","#c75e5b","#f8be73","#f0a14e","#e28735","#fee087","#fbcc54","#edb02d","#cbd6b2","#99ba89","#6e9962","#b2d0d0","#83afb0","#619394","#b0c2d2","#87a4b9","#66889f","#c7b8d4","#a091b9","#82729d","#e6d0bf","#cead94","#ad8970","#ccccce","#9c9da1","#76787d"];
-  return h("div",{style:{background:C.accBg,borderBottom:"2px solid "+C.acc,padding:"12px 20px"},onClick:function(){setPickerFor(null);}},
+  return h("div",{style:{background:C.hdr,borderBottom:"2px solid #efba2c",padding:"12px 20px"},onClick:function(){setPickerFor(null);}},
     h("div",{style:{maxWidth:1100,margin:"0 auto"}},
       h("div",{style:{fontSize:12,fontWeight:700,color:C.txt2,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between"}},
         h("span",null,"\ud83d\udc65 \u5ba2\u6236\u7ba1\u7406  ",h("span",{style:{fontSize:10,color:C.txt3,fontWeight:400}},"\u62d6\u62c9\u8abf\u5e8f \u00b7 \u9ede\u8272\u584a\u9078\u984f\u8272 \u00b7 \u96d9\u64ca\u6539\u540d")),
@@ -1552,7 +1617,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){
         if(p.id!==id)return p;
-        var n=Object.assign({},p);n[field]=val;return n;
+        var n=Object.assign({},p);n[field]=val;if(field==="cut1Done"&&val){n.status="發包字幕";}if(field==="finalDone"&&val){n.status="Final完成";}return n;
       });
       var p=updated.find(function(x){return x.id===id;});
       setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
@@ -1633,10 +1698,10 @@ function App(){
   var BSEC={background:C.card,border:"1px solid "+C.brd2,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,color:C.txt2};
 
   return h("div",{style:{minHeight:"100vh",background:C.bg}},
-    h("div",{style:{background:C.hdr,padding:"12px 20px",boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}},
+    h("div",{style:{background:C.hdr,padding:"12px 20px",borderBottom:"0.5px solid "+C.brd}},
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}},
         h("div",null,
-          h("div",{style:{fontSize:18,fontWeight:800,color:"#f5a800",letterSpacing:"-0.5px"}},"💛 小玩工作進度"),
+          h("div",{style:{fontSize:18,fontWeight:800,color:"#efba2c",letterSpacing:"-0.5px"}},"💛 小玩工作進度"),
         ),
         h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}},
           h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap"}},"\uff0b \u65b0\u589e\u6848\u5b50"),
