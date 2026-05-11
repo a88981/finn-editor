@@ -72,6 +72,7 @@ function loadClients(){
 function loadCalendarExtras(){
   return fetch(API+"?action=get-calendar-extras")
     .then(function(r){return r.json();})
+    .then(function(d){if(d&&(d.finnDays||d.holidays)){try{localStorage.setItem("edit-tracker-cal",JSON.stringify(d));}catch(e){}}return d;})
     .catch(function(){try{var v=localStorage.getItem("edit-tracker-cal");if(v)return JSON.parse(v);}catch(e){}return{holidays:[],finnDays:[],divinDays:[],nanaDays:[]};});
 }
 function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
