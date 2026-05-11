@@ -71,7 +71,7 @@ function loadClients(){
 function loadCalendarExtras(){
   return fetch(API+"?action=get-calendar-extras")
     .then(function(r){return r.json();})
-    .catch(function(){return{holidays:[],finnDays:[]};});
+    .catch(function(){return{holidays:[],finnDays:[],divinDays:[],nanaDays:[]};});
 }
 function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
   fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({holidays:holidays,finnDays:finnDays,divinDays:divinDays||[],nanaDays:nanaDays||[]})}).catch(function(e){console.warn(e);});
@@ -1030,7 +1030,7 @@ function CalView(props){
       h("span",{style:{fontWeight:800,fontSize:16,color:C.txt}},year+" "+MN[month]),
       h("button",{onClick:function(){if(month===11){setMonth(0);setYear(function(y){return y+1;});}else setMonth(function(m){return m+1;});},style:{background:C.card,border:"1px solid "+C.brd,color:C.txt2,borderRadius:8,padding:"5px 14px",cursor:"pointer",fontSize:16}},"\u203a")
     ),
-    h("div",{style:{display:"flex",flexDirection:isMob?"column":"row",gap:isMob?4:5,marginBottom:6,flexWrap:"wrap",alignItems:"center"}},
+    h("div",{style:{display:"flex",flexDirection:isMob?"column":"row",gap:isMob?4:5,marginBottom:6,flexWrap:"wrap",alignItems:isMob?"flex-start":"center"}},
       h("div",{style:{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap",width:"100%"}},
         h("button",{onClick:function(){togGroup(EDIT_KEYS);},style:{padding:"4px 12px",borderRadius:16,border:"1px solid "+(EDIT_KEYS.some(function(k){return filters[k];})?"#e08080":C.brd),background:EDIT_KEYS.some(function(k){return filters[k];})?"#e0808018":"transparent",color:EDIT_KEYS.some(function(k){return filters[k];})?"#e08080":C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"剪輯"),
         h("button",{onClick:function(){togGroup(SCHED_KEYS);},style:{padding:"4px 12px",borderRadius:16,border:"1px solid "+(SCHED_KEYS.some(function(k){return filters[k];})?"#d8903a":C.brd),background:SCHED_KEYS.some(function(k){return filters[k];})?"#d8903a18":"transparent",color:SCHED_KEYS.some(function(k){return filters[k];})?"#d8903a":C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"行程"),
