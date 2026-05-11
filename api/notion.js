@@ -184,13 +184,21 @@ export default async function handler(req, res) {
       const page = (data.results || [])[0];
       if (!page) return res.status(200).json({ holidays: [], finnDays: [], divinDays: [], nanaDays: [] });
       try {
-        return res.status(200).json(JSON.parse(page.properties["顏色"]?.rich_text?.[0]?.plain_text || "{}"));
+        // 合併所有 rich_text block（處理超過 2000 字的情況）
+        const fullText = (page.properties["顏色"]?.rich_text || [])
+          .map(b => b.plain_text || "").join("");
+        return res.status(200).json(JSON.parse(fullText || "{}"));
       } catch(e) { return res.status(200).json({ holidays: [], finnDays: [], divinDays: [], nanaDays: [] }); }
     }
 
     // ── 儲存行事曆額外資料 ────────────────────────────────────────
     if (req.method === "POST" && action === "save-calendar-extras") {
-      const json = JSON.stringify(body).slice(0, 1990);
+      const json = JSON.stringify(body);
+      // Notion rich_text 每個 block 最多 2000 字，切成多段
+      const chunks = [];
+      for (let i = 0; i < json.length; i += 1990) {
+        chunks.push({ text: { content: json.slice(i, i + 1990) } });
+      }
       const listRes = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
         method: "POST", headers: notionHeaders,
         body: JSON.stringify({ filter: { property: "客戶名稱", title: { equals: "__cal_extras__" } } }),
@@ -200,7 +208,7 @@ export default async function handler(req, res) {
       if (existing) {
         await fetch(`${NOTION_API}/pages/${existing.id}`, {
           method: "PATCH", headers: notionHeaders,
-          body: JSON.stringify({ properties: { "顏色": { rich_text: [{ text: { content: json } }] } } }),
+          body: JSON.stringify({ properties: { "顏色": { rich_text: chunks } } }),
         });
       } else {
         await fetch(`${NOTION_API}/pages`, {
@@ -209,7 +217,7 @@ export default async function handler(req, res) {
             parent: { database_id: CLIENTS_DB_ID },
             properties: {
               "客戶名稱": { title: [{ text: { content: "__cal_extras__" } }] },
-              "顏色": { rich_text: [{ text: { content: json } }] },
+              "顏色": { rich_text: chunks },
               "排序": { number: 9999 },
             },
           }),
