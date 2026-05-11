@@ -141,7 +141,15 @@ function nextDue(p){
 function calcP(p){
   var g=Number(p.fee)||0;
   var rc=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  var tr=g+rc,tax=p.taxCut?Math.round(tr*0.1):0;
+  // 超時費：跟 Modal 的 parseMinutes 一樣
+  var overRate=Number(p.overRate)||0;
+  var lenStr=String(p.length||"");
+  var lenParts=lenStr.split(":");
+  var lenMins=0;
+  if(lenParts.length>=2){var m=parseInt(lenParts[0])||0;var s=parseInt(lenParts[1])||0;lenMins=s>=30?m+1:m+(s>0?0.5:0);}else{lenMins=parseInt(lenStr)||0;}
+  var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
+  var overFee=overMins*overRate;
+  var tr=g+rc+overFee,tax=p.taxCut?Math.round(tr*0.1):0;
   var ec=(p.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
   return{total:tr,tax:tax,totalCost:tax+ec,net:tr-tax-ec};
 }
