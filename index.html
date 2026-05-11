@@ -1406,7 +1406,7 @@ function MonthReport(props){
         )
       );})
     ),
-    h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:11,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}},
+    h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:11,overflowX:"auto",WebkitOverflowScrolling:"touch",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}},
       h("table",{style:{width:"100%",borderCollapse:"collapse",minWidth:460}},
         h("thead",null,h("tr",null,h("th",{style:thL},"\u6708\u4efd"),h("th",{style:th},"\u9577\u5f71"),h("th",{style:th},"\u77ed\u5f71"),h("th",{style:th},"\u6536\u8cbb"),h("th",{style:th},"\u652f\u51fa"),h("th",{style:th},"\u6536\u5165"),h("th",{style:th},"\u5229\u6f64\u7387"))),
         h("tbody",null,rows.reduce(function(acc,r){
