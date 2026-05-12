@@ -1195,14 +1195,17 @@ var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1
         dvs.forEach(function(d3){items.push({label:"🔮 【占卜】"+(d3.label?"  "+d3.label:""),color:"#d87098",note:d3.note||"",editId:d3.id,s:d3.s,e:d3.e,rawLabel:d3.label||"",type:"divination"});});
         nns.forEach(function(n2){items.push({label:"🐈‍⬛ 【暖暖】"+(n2.label?"  "+n2.label:""),color:"#8b6bbf",note:n2.note||"",editId:n2.id,s:n2.s,e:n2.e,rawLabel:n2.label||"",type:"nana"});});
         ev.filter(function(e){return (e.k==="d"||e.k==="r")&&e.p;}).forEach(function(e){
-          items.push({label:e.label+(e.desc?" "+e.desc:"")+"\u3000"+e.p.client+" "+e.p.name,color:e.color,noBg:!!e.noBg});
+          items.push({label:e.label+(e.desc?" "+e.desc:"")+"\u3000"+e.p.client+" "+e.p.name,color:e.color,noBg:!!e.noBg,project:e.p});
         });
         if(items.length===0)return h("div",{style:{fontSize:11,color:C.txt3,padding:"4px 0"}},"這天沒有行程");
         return h("div",{style:{display:"flex",flexDirection:"column",gap:6}},
           items.map(function(item,idx2){
-            return h("div",{key:idx2,onClick:function(){if(item.editId){var m={id:item.editId,s:item.s,e:item.e,label:item.rawLabel||"",note:item.note||""};if(item.type==="finn")setFnMenu(m);else if(item.type==="divination")setDvMenu(m);else if(item.type==="nana")setNnMenu(m);else setHvMenu(m);}},style:{display:"flex",alignItems:"center",gap:8,
+            return h("div",{key:idx2,onClick:function(){
+              if(item.project&&onEdit){onEdit(item.project);return;}
+              if(item.editId){var m={id:item.editId,s:item.s,e:item.e,label:item.rawLabel||"",note:item.note||""};if(item.type==="finn")setFnMenu(m);else if(item.type==="divination")setDvMenu(m);else if(item.type==="nana")setNnMenu(m);else setHvMenu(m);}
+            },style:{display:"flex",alignItems:"center",gap:8,
               padding:"6px 8px",borderRadius:4,
-              background:item.noBg?"transparent":item.color+"18",borderLeft:"2px solid "+item.color,cursor:item.editId?"pointer":"default"}},
+              background:item.noBg?"transparent":item.color+"18",borderLeft:"2px solid "+item.color,cursor:(item.editId||item.project)?"pointer":"default"}},
               item.icon&&h("span",{style:{fontSize:13,marginRight:4}},item.icon),
               h("div",{style:{flex:1}},
                 h("span",{style:{fontSize:12,color:item.color,fontWeight:item.noBg?700:500}},item.label),
@@ -1533,7 +1536,7 @@ function GanttView(props){
           var p=row.p;
           return h('div',{key:p.id,style:{marginBottom:1}},
             h('div',{style:{display:'flex',alignItems:'center',minHeight:rowH}},
-              h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,padding:'0 6px',lineHeight:1.2,whiteSpace:'normal',wordBreak:'break-word',background:row.cc+'14',marginRight:4,boxSizing:'border-box',alignSelf:'stretch',display:'flex',flexDirection:'column',justifyContent:'center'},title:'\u3010'+p.client+'\u3011 '+p.name},
+              h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,padding:'0 6px',lineHeight:1.2,whiteSpace:'normal',wordBreak:'break-word',background:row.cc+'14',marginRight:4,boxSizing:'border-box',alignSelf:'stretch',display:'flex',flexDirection:'column',justifyContent:'center',position:'sticky',left:0,zIndex:2},title:'\u3010'+p.client+'\u3011 '+p.name},
                 h('div',{style:{fontSize:9,opacity:0.75}},'\u3010'+p.client+'\u3011'),
                 h('div',{style:{fontSize:11,fontWeight:700,marginTop:1}},p.name)
               ),
@@ -1955,7 +1958,7 @@ function App(){
     ),
     showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(){saveClients({clients:clients,colors:cColors});},onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 12px 32px"}},
-      (view==="kanban"||view==="list")&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
+      view==="kanban"&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
       view==="kanban"&&h("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:6}},
         h("button",{onClick:function(){setShowTodo(function(v){return !v;});},style:{fontSize:11,padding:"3px 10px",borderRadius:12,border:"0.5px solid "+(showTodo?"#a89a78":C.brd),background:showTodo?"#a89a7820":"transparent",color:showTodo?C.txt2:C.txt3,cursor:"pointer",fontFamily:"inherit"}},(showTodo?"◉":"○")+" 待執行")),
       view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,cColors:activeColors,onReorder:reorderP,showTodo:showTodo}),
