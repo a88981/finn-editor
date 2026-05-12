@@ -961,7 +961,7 @@ function CalView(props){
   var dves=useState(null);var dvEdit=dves[0],setDvEdit=dves[1];
   var nnms=useState(null);var nnMenu=nnms[0],setNnMenu=nnms[1];
   var nnes=useState(null);var nnEdit=nnes[0],setNnEdit=nnes[1];
-  function handleDayClick2(ds){setHvModal({s:ds,e:ds,label:"",type:"hv"});}
+  function handleDayClick2(ds){setHvModal({s:ds,e:ds,label:"",note:"",type:"hv"});}
   function handleDayClick(d){
     if(!d)return;
     var ds=toISO(year,month,d);
@@ -980,7 +980,7 @@ function CalView(props){
     if(nnhit&&filters.nana){setNnMenu(nnhit);return;}
     var hit=holidays.find(function(h){return ds>=h.s&&ds<=h.e;});
     if(hit&&filters.holiday){setHvMenu(hit);return;}
-    setHvModal({s:ds,e:ds,label:"",type:"hv"});
+    setHvModal({s:ds,e:ds,label:"",note:"",type:"hv"});
   }
   function togF(k){setFilters(function(f){var n=Object.assign({},f);n[k]=!f[k];return n;});}
   var EDIT_KEYS=["cut1","v1","biz"];
@@ -1051,7 +1051,7 @@ function CalView(props){
         h("button",{onClick:function(){togGroup(SCHED_KEYS);},style:{padding:"4px 12px",borderRadius:16,border:"1px solid "+(SCHED_KEYS.some(function(k){return filters[k];})?"#d8903a":C.brd),background:SCHED_KEYS.some(function(k){return filters[k];})?"#d8903a18":"transparent",color:SCHED_KEYS.some(function(k){return filters[k];})?"#d8903a":C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700}},"行程"),
         (function(){var ft=FTABS.find(function(f){return f.key==="edit";});var on=filters.edit;return h("button",{onClick:function(){togF("edit");},style:{padding:"4px 10px",borderRadius:14,border:"0.5px solid "+(on?ft.color:C.brd),background:on?ft.color+"20":"transparent",color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?500:400,whiteSpace:"nowrap"}},ft.label);})(),
         !isMob&&FTABS.filter(function(ft){return ft.key!=="edit";}).map(function(ft){var on=filters[ft.key];return h("button",{key:ft.key,onClick:function(){togF(ft.key);},style:{padding:"4px 10px",borderRadius:14,border:"0.5px solid "+(on?ft.color:C.brd),background:on?ft.color+"20":"transparent",color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?500:400,whiteSpace:"nowrap"}},ft.label);}),
-        h("button",{onClick:function(){var ds=selectedDay||toISO(year,month,new Date().getDate());setHvModal({s:ds,e:ds,label:"",type:"hv"});},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap",marginLeft:"auto"}},"\uff0b 新增行程")
+        h("button",{onClick:function(){var ds=selectedDay||toISO(year,month,new Date().getDate());setHvModal({s:ds,e:ds,label:"",note:"",type:"hv"});},style:{background:C.acc,border:"none",color:"#fff",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:11,whiteSpace:"nowrap",marginLeft:"auto"}},"\uff0b 新增行程")
       ),
       isMob&&h("div",{style:{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-start"}},
         ["cut1","v1","biz","due"].map(function(k){var ft=FTABS.find(function(f){return f.key===k;});if(!ft)return null;var on=filters[k];return h("button",{key:k,onClick:function(){togF(k);},style:{padding:"4px 10px",borderRadius:14,border:"0.5px solid "+(on?ft.color:C.brd),background:on?ft.color+"20":"transparent",color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?500:400,whiteSpace:"nowrap"}},ft.label);})
@@ -1114,19 +1114,19 @@ var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1
         var dvs=getDivinSpans(d2);
         var nns=getNanaSpans(d2);
         var items=[];
-        hvs.forEach(function(h2){items.push({label:"🏝️ 【休假】"+(h2.label?"  "+h2.label:""),color:"#e07070",note:h2.note||""});});
-        fns.forEach(function(f){items.push({label:"💛 【小玩】"+(f.label?"  "+f.label:""),color:"#e6ac00",note:f.note||""});});
-        dvs.forEach(function(d3){items.push({label:"🔮 【占卜】"+(d3.label?"  "+d3.label:""),color:"#d87098",note:d3.note||""});});
-        nns.forEach(function(n2){items.push({label:"🐈‍⬛ 【暖暖】"+(n2.label?"  "+n2.label:""),color:"#8b6bbf",note:n2.note||""});});
+        hvs.forEach(function(h2){items.push({label:"🏝️ 【休假】"+(h2.label?"  "+h2.label:""),color:"#e07070",note:h2.note||"",editId:h2.id,s:h2.s,e:h2.e,rawLabel:h2.label||"",type:"hv"});});
+        fns.forEach(function(f){items.push({label:"💛 【小玩】"+(f.label?"  "+f.label:""),color:"#e6ac00",note:f.note||"",editId:f.id,s:f.s,e:f.e,rawLabel:f.label||"",type:"finn"});});
+        dvs.forEach(function(d3){items.push({label:"🔮 【占卜】"+(d3.label?"  "+d3.label:""),color:"#d87098",note:d3.note||"",editId:d3.id,s:d3.s,e:d3.e,rawLabel:d3.label||"",type:"divination"});});
+        nns.forEach(function(n2){items.push({label:"🐈‍⬛ 【暖暖】"+(n2.label?"  "+n2.label:""),color:"#8b6bbf",note:n2.note||"",editId:n2.id,s:n2.s,e:n2.e,rawLabel:n2.label||"",type:"nana"});});
         ev.filter(function(e){return (e.k==="d"||e.k==="r")&&e.p;}).forEach(function(e){
           items.push({label:e.label+(e.desc?" "+e.desc:"")+"\u3000"+e.p.client+" "+e.p.name,color:e.color,noBg:!!e.noBg});
         });
         if(items.length===0)return h("div",{style:{fontSize:11,color:C.txt3,padding:"4px 0"}},"這天沒有行程");
         return h("div",{style:{display:"flex",flexDirection:"column",gap:6}},
           items.map(function(item,idx2){
-            return h("div",{key:idx2,style:{display:"flex",alignItems:"center",gap:8,
+            return h("div",{key:idx2,onClick:function(){if(item.editId){var m={id:item.editId,s:item.s,e:item.e,label:item.rawLabel||"",note:item.note||""};if(item.type==="finn")setFnMenu(m);else if(item.type==="divination")setDvMenu(m);else if(item.type==="nana")setNnMenu(m);else setHvMenu(m);}},style:{display:"flex",alignItems:"center",gap:8,
               padding:"6px 8px",borderRadius:6,
-              background:item.noBg?"transparent":item.color+"18",borderLeft:"2px solid "+item.color}},
+              background:item.noBg?"transparent":item.color+"18",borderLeft:"2px solid "+item.color,cursor:item.editId?"pointer":"default"}},
               item.icon&&h("span",{style:{fontSize:13,marginRight:4}},item.icon),
               h("div",{style:{flex:1}},
                 h("span",{style:{fontSize:12,color:item.color,fontWeight:item.noBg?700:500}},item.label),
@@ -1160,7 +1160,7 @@ var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1
     h("textarea",{placeholder:"備註（地點、說明等）",rows:2,value:hvModal.note||"",onChange:function(e){setHvModal(function(m){return Object.assign({},m,{note:e.target.value});});},style:Object.assign({},INP,{width:"100%",boxSizing:"border-box",resize:"vertical",fontSize:11,marginBottom:8})}),
     h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},
       h("button",{onClick:function(){setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"1px solid #e0dcd6",background:"transparent",color:"#a89a78",cursor:"pointer"}},"取消"),
-      h("button",{onClick:function(){var _id=hvModal.editId;if(hvModal.type==="finn"){if(_id){if(onEditFinn)onEditFinn(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddFinn)onAddFinn(hvModal.s,hvModal.e,hvModal.label);}else if(hvModal.type==="divination"){if(_id){if(onEditDivin)onEditDivin(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddDivin)onAddDivin(hvModal.s,hvModal.e,hvModal.label);}else if(hvModal.type==="nana"){if(_id){if(onEditNana)onEditNana(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddNana)onAddNana(hvModal.s,hvModal.e,hvModal.label);}else{if(_id){if(onEditHoliday)onEditHoliday(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label});}else if(onAddHoliday)onAddHoliday(hvModal.s,hvModal.e,hvModal.label);}setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#efba2c",color:"#fff",fontWeight:700,cursor:"pointer"}},"\u78ba\u8a8d")
+      h("button",{onClick:function(){var _id=hvModal.editId;var _n=hvModal.note||"";if(hvModal.type==="finn"){if(_id){if(onEditFinn)onEditFinn(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label,note:_n});}else if(onAddFinn)onAddFinn(hvModal.s,hvModal.e,hvModal.label,_n);}else if(hvModal.type==="divination"){if(_id){if(onEditDivin)onEditDivin(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label,note:_n});}else if(onAddDivin)onAddDivin(hvModal.s,hvModal.e,hvModal.label,_n);}else if(hvModal.type==="nana"){if(_id){if(onEditNana)onEditNana(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label,note:_n});}else if(onAddNana)onAddNana(hvModal.s,hvModal.e,hvModal.label,_n);}else{if(_id){if(onEditHoliday)onEditHoliday(_id,{s:hvModal.s,e:hvModal.e,label:hvModal.label,note:_n});}else if(onAddHoliday)onAddHoliday(hvModal.s,hvModal.e,hvModal.label,_n);}setHvModal(null);},style:{fontSize:12,padding:"6px 14px",borderRadius:7,border:"none",background:"#efba2c",color:"#fff",fontWeight:700,cursor:"pointer"}},"\u78ba\u8a8d")
     )
   )),
   hvMenu&&h("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"transparent",zIndex:3000},onClick:function(){setHvMenu(null);}},h("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"var(--color-background-primary,#faf9f7)",border:"1px solid #e8e4de",borderRadius:10,overflow:"hidden",width:210},onClick:function(e){e.stopPropagation();}},h("div",{style:{padding:"10px 14px",background:"#fdf0f0",borderBottom:"1px solid #e8e4de"}},h("div",{style:{fontSize:13,fontWeight:700,color:"#e07070"}},hvMenu.label||"🏝️ 休假"),h("div",{style:{fontSize:11,color:"#a89a78",marginTop:2}},hvMenu.s===hvMenu.e?hvMenu.s:hvMenu.s+" – "+hvMenu.e),hvMenu.note&&h("div",{style:{fontSize:11,color:"#6a5e40",marginTop:4,padding:"4px 0",borderTop:"0.5px solid #e8e4de",lineHeight:1.5}},hvMenu.note)),h("button",{onClick:function(){setHvModal({s:hvMenu.s,e:hvMenu.e,label:hvMenu.label||"",note:hvMenu.note||"",type:"hv",editId:hvMenu.id});setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderBottom:"1px solid #e8e4de",background:"transparent",fontSize:13,cursor:"pointer"}},"✏️ 修改行程"),h("button",{onClick:function(){if(onDelHoliday)onDelHoliday(hvMenu.id);setHvMenu(null);},style:{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",border:"none",borderTop:"1px solid #e8e4de",background:"transparent",fontSize:13,color:"#c75e5b",cursor:"pointer"}},"✕ 刪除"),
