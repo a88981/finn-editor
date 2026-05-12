@@ -1480,9 +1480,9 @@ function GanttView(props){
           var p=row.p;
           return h('div',{key:p.id,style:{marginBottom:4}},
             h('div',{style:{display:'flex',alignItems:'center',minHeight:rowH}},
-              h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,paddingRight:6,lineHeight:1.3,whiteSpace:'normal',wordBreak:'break-word'},title:'\u3010'+p.client+'\u3011 '+p.name},
+              h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,paddingRight:6,paddingLeft:6,paddingTop:3,paddingBottom:3,lineHeight:1.3,whiteSpace:'normal',wordBreak:'break-word',background:row.cc+'14',borderRadius:3,marginRight:4,boxSizing:'border-box'},title:'\u3010'+p.client+'\u3011 '+p.name},
                 h('div',{style:{fontWeight:600}},'\u3010'+p.client+'\u3011'),
-                h('div',{style:{fontSize:9.5,color:C.txt2}},p.name)
+                h('div',{style:{fontSize:9.5,opacity:0.8}},p.name)
               ),
               h('div',{style:{flex:1,position:'relative',height:rowH}},
                 Array.from({length:dim},function(_,i){var d=i+1;return h('div',{key:d,style:{position:'absolute',top:0,bottom:0,left:((d-1)*pct)+'%',width:pct+'%',borderRight:'0.5px solid '+C.brd,background:d===todayCol?'rgba(239,186,44,0.08)':'transparent'}});}),
