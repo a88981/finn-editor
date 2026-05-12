@@ -1468,7 +1468,7 @@ function GanttView(props){
       h('button',{onClick:function(){var nn=new Date();setYm([nn.getFullYear(),nn.getMonth()+1]);},style:Object.assign({},GINP,{marginLeft:4,fontSize:10,color:C.txt3})},'\u4eca\u6708')
     ),
     (function(){
-      var lblW=isMob?120:180;
+      var lblW=isMob?110:150;
       var minW=isMob?760:900;
       var rowH=40;
       return h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch'}},
@@ -1478,11 +1478,11 @@ function GanttView(props){
         ),
         rows.map(function(row,ri){
           var p=row.p;
-          return h('div',{key:p.id,style:{marginBottom:4}},
+          return h('div',{key:p.id,style:{marginBottom:1}},
             h('div',{style:{display:'flex',alignItems:'center',minHeight:rowH}},
-              h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,paddingRight:6,paddingLeft:6,paddingTop:3,paddingBottom:3,lineHeight:1.3,whiteSpace:'normal',wordBreak:'break-word',background:row.cc+'14',borderRadius:3,marginRight:4,boxSizing:'border-box'},title:'\u3010'+p.client+'\u3011 '+p.name},
-                h('div',{style:{fontWeight:600}},'\u3010'+p.client+'\u3011'),
-                h('div',{style:{fontSize:9.5,opacity:0.8}},p.name)
+              h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,padding:'0 6px',lineHeight:1.2,whiteSpace:'normal',wordBreak:'break-word',background:row.cc+'14',marginRight:4,boxSizing:'border-box',alignSelf:'stretch',display:'flex',flexDirection:'column',justifyContent:'center'},title:'\u3010'+p.client+'\u3011 '+p.name},
+                h('div',{style:{fontSize:9,opacity:0.75}},'\u3010'+p.client+'\u3011'),
+                h('div',{style:{fontSize:11,fontWeight:700,marginTop:1}},p.name)
               ),
               h('div',{style:{flex:1,position:'relative',height:rowH}},
                 Array.from({length:dim},function(_,i){var d=i+1;return h('div',{key:d,style:{position:'absolute',top:0,bottom:0,left:((d-1)*pct)+'%',width:pct+'%',borderRight:'0.5px solid '+C.brd,background:d===todayCol?'rgba(239,186,44,0.08)':'transparent'}});}),
@@ -1490,7 +1490,7 @@ function GanttView(props){
                 row.dots.map(function(d,di){return h('div',{key:'d'+di,title:d.label,style:{position:'absolute',left:(d.d*pct-pct/2)+'%',width:8,height:8,borderRadius:'50%',background:d.done?'#c0bab0':d.c,top:16,transform:'translateX(-50%)',zIndex:3,opacity:d.done?0.5:1}});})
               )
             ),
-            ri<rows.length-1&&h('div',{style:{height:'0.5px',background:C.brd2,marginLeft:lblW,opacity:0.7,marginTop:3,marginBottom:3}})
+            ri<rows.length-1&&h('div',{style:{height:'0.5px',background:C.brd2,marginLeft:lblW,opacity:0.5}})
           );
         }),
         rows.length===0&&h('div',{style:{textAlign:'center',padding:'24px 0',color:C.txt3,fontSize:12}},'\u672c\u6708\u6c92\u6709\u8a2d\u5b9a\u6642\u7a0b\u7684\u6848\u5b50')
