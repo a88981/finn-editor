@@ -2,16 +2,21 @@
 <html lang="zh-TW"><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>小玩x阿滴剪輯進度表</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+<title>小玩 × 阿滴｜剪輯進度表</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#faf9f7;font-family:"Noto Sans TC","Noto Sans KR",system-ui,sans-serif;color:#2c3a45;min-height:100vh;}
+body{background:#FAFAF7;font-family:"Noto Sans TC","Inter",system-ui,sans-serif;color:#1A1F2E;min-height:100vh;-webkit-font-smoothing:antialiased;}
 ::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
+::-webkit-scrollbar-thumb{background:#E5E7ED;border-radius:2px;}
+.italic-en{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;}
+.serif{font-family:"Noto Serif TC",serif;}
+.label-en{font-family:"Inter",sans-serif;letter-spacing:0.25em;text-transform:uppercase;font-weight:500;}
 </style>
 </head><body>
 <div id="root"></div>
@@ -21,38 +26,51 @@ var _R=React,useState=_R.useState,useEffect=_R.useEffect,h=_R.createElement;
 
 // ── 設定 ──────────────────────────────────────────────────────────
 var API="/api/notion";
-var CLIENT_NAME="\ud83d\udca7\u963f\u6ef4"; // 客戶名稱，可改
+var CLIENT_NAME="\ud83d\udca7\u963f\u6ef4";
 
-// ── 顏色 ──────────────────────────────────────────────────────────
+// ── 顏色（沿用報價表色系）─────────────────────────────────────────
 var C={
-  bg:"#faf9f7",card:"#ffffff",brd:"#C0D3D9",brd2:"#a8c0c8",
-  txt:"#2c3a45",txt2:"#4a6070",txt3:"#7a9aaa",
-  acc:"#FFD686",ok:"#6a9080",okBg:"#edf4f2",
-  err:"#b06070",wrn:"#C0D3D9",wrnBg:"#f5f0e8"
+  blue:"#1E3A6F",
+  blueMid:"#4A6FA8",
+  blueSoft:"#C9D7EC",
+  bluePale:"#EEF3FA",
+  yellow:"#F5C518",
+  yellowSoft:"#FCE99A",
+  yellowPale:"#FFF8DC",
+  ink:"#1A1F2E",
+  inkSoft:"#5A6275",
+  inkLight:"#9BA1B0",
+  paper:"#FAFAF7",
+  card:"#FFFFFF",
+  line:"#E5E7ED",
+  lineSoft:"#F0F2F6"
 };
 
-// ── 進度顏色 ──────────────────────────────────────────────────────
+// ── 進度顏色（重新對應到藍黃色系）──────────────────────────────────
+// 等待類 → 灰藍中性
+// 進行類 → 主藍
+// 完成類 → 黃金
 var STATUS_COLOR={
-  "\u7b49\u5f85\u7d20\u6750":"#77879c",
-  "\u5f85\u78ba\u8a8d":"#77879c",
-  "\u66ab\u7de9":"#77879c",
-  "\u521d\u526a\u5f85\u57f7\u884c":"#bc858c",
-  "\u521d\u526a\u4e2d":"#bc858c",
-  "\u521d\u526a\u4fee\u6539\u4e2d":"#bc858c",
-  "\u521d\u526a\u5be9\u6838\u4e2d":"#bc858c",
-  "ES\u88fd\u4f5c\u4e2d":"#bc858c",
-  "ES\u4fee\u6539\u4e2d":"#bc858c",
-  "V1\u88fd\u4f5c\u4e2d":"#bc858c",
-  "V1\u4fee\u6539\u4e2d":"#bc858c",
-  "\u767c\u5305\u5b57\u5e55":"#bc858c",
-  "ES\u5be9\u6838\u4e2d":"#bc858c",
-  "V1\u5be9\u6838\u4e2d":"#bc858c",
-  "\u5ee0\u5546\u5be9\u6838\u4e2d":"#bc858c",
-  "Final\u5be9\u6838\u4e2d":"#bc858c",
-  "Final\u5b8c\u6210":"#83779c",
+  "\u7b49\u5f85\u7d20\u6750":C.inkLight,
+  "\u5f85\u78ba\u8a8d":C.inkLight,
+  "\u66ab\u7de9":C.inkLight,
+  "\u521d\u526a\u5f85\u57f7\u884c":C.blueMid,
+  "\u521d\u526a\u4e2d":C.blueMid,
+  "\u521d\u526a\u4fee\u6539\u4e2d":C.blueMid,
+  "\u521d\u526a\u5be9\u6838\u4e2d":C.blueMid,
+  "ES\u88fd\u4f5c\u4e2d":C.blue,
+  "ES\u4fee\u6539\u4e2d":C.blue,
+  "V1\u88fd\u4f5c\u4e2d":C.blue,
+  "V1\u4fee\u6539\u4e2d":C.blue,
+  "\u767c\u5305\u5b57\u5e55":C.blue,
+  "ES\u5be9\u6838\u4e2d":C.blue,
+  "V1\u5be9\u6838\u4e2d":C.blue,
+  "\u5ee0\u5546\u5be9\u6838\u4e2d":C.blue,
+  "Final\u5be9\u6838\u4e2d":C.blue,
+  "Final\u5b8c\u6210":"#B8941F"
 };
 
-function statusColor(s){return STATUS_COLOR[s]||"#aaa";}
+function statusColor(s){return STATUS_COLOR[s]||C.inkLight;}
 
 function daysUntil(dateStr){
   if(!dateStr)return null;
@@ -72,15 +90,17 @@ function DueTag(props){
   var date=props.date,done=props.done,icon=props.icon,label=props.label;
   if(!date)return null;
   var days=daysUntil(date);
-  if(done)return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:13,color:"#bbb",textDecoration:"line-through"}},
-    h("span",null,icon),h("span",null,label+" "+fmtDate(date)),h("span",{style:{fontSize:10}},"\u2713")
+  if(done)return h("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:C.inkLight,textDecoration:"line-through"}},
+    h("span",{style:{fontSize:11}},icon),h("span",null,label+" "+fmtDate(date)),h("span",{style:{fontSize:10,color:C.yellow}},"\u2713")
   );
-  var color=days<0?C.err:days===0?"#e07010":days===1?"#d07010":days<=3?C.wrn:C.txt3;
-  var dStr=days<0?"\u903e\u671f"+Math.abs(days)+"\u5929":days===0?"\u4eca\u5929":days===1?"\u660e\u5929":"\u5269"+days+"\u5929";
-  return h("div",{style:{display:"flex",alignItems:"center",gap:4,fontSize:13,color:color,fontWeight:days<=1?500:400}},
-    h("span",null,icon),
+  // 緊急度：逾期=深藍底加重、今天/明天=黃色標記、3天內=blueMid、其他=ink-light
+  var color=days<0?C.blue:days<=1?"#B8941F":days<=3?C.blueMid:C.inkSoft;
+  var weight=days<=1?500:400;
+  var dStr=days<0?"\u903e\u671f "+Math.abs(days)+"\u5929":days===0?"\u4eca\u5929":days===1?"\u660e\u5929":"\u5269 "+days+" \u5929";
+  return h("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:color,fontWeight:weight}},
+    h("span",{style:{fontSize:11,opacity:0.7}},icon),
     h("span",null,label+" "+fmtDate(date)),
-    h("span",{style:{fontSize:10,fontWeight:500}},dStr)
+    h("span",{className:"italic-en",style:{fontSize:11.5,marginLeft:2,opacity:0.85}},dStr)
   );
 }
 
@@ -89,38 +109,54 @@ function ProjectCard(props){
   var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   var isWaiting=waitingSt.indexOf(p.status)>=0;
   var isDone=p.status==="Final\u5b8c\u6210";
-  var sc=p.closed?"#c0bab0":isWaiting?"#77879c":isDone?"#83779c":statusColor(p.status);
-  var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e\ufe0f";
-  return h("div",{style:{background:p.closed?"#f5f5f5":C.card,borderRadius:12,padding:"16px",border:"0.5px solid #C0D3D9",borderLeft:"2.5px solid "+sc,opacity:p.closed?0.7:1}},
-    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
-      h("div",null,
-        p.airDate&&h("div",{style:{fontSize:11,color:C.txt3,marginBottom:2}},"\ud83d\udcc5 \u4e0a\u7247 "+p.airDate),
-        h("div",{style:{fontSize:15,fontWeight:500,color:sc,lineHeight:1.3}},p.name)
+  var sc=p.closed?C.inkLight:statusColor(p.status);
+  var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e";
+  // 完成時：黃色淡底；進行/等待：白底配左邊線
+  var cardBg=p.closed?"#F5F5F2":isDone?C.yellowPale:C.card;
+  var borderLeft="2px solid "+sc;
+  return h("div",{style:{background:cardBg,borderRadius:4,padding:"16px 18px",border:"1px solid "+C.line,borderLeft:borderLeft,opacity:p.closed?0.65:1,transition:"all 0.2s"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,gap:12}},
+      h("div",{style:{minWidth:0,flex:1}},
+        p.airDate&&h("div",{className:"label-en",style:{fontSize:9.5,color:C.inkLight,marginBottom:4}},"AIR \u00b7 "+p.airDate),
+        h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.ink,lineHeight:1.35,letterSpacing:"0.01em"}},p.name)
       ),
-      h("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}},
-        h("span",{style:{fontSize:12,background:sc+"18",color:sc,borderRadius:20,padding:"3px 10px",fontWeight:500,whiteSpace:"nowrap"}},p.status),
-        h("span",{style:{fontSize:11,color:C.txt3}},typeIcon+" "+p.type+(p.length?" · "+p.length:""))
+      h("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}},
+        h("span",{style:{fontSize:11,background:sc+"15",color:sc,borderRadius:2,padding:"3px 10px",fontWeight:500,whiteSpace:"nowrap",letterSpacing:"0.05em",border:"1px solid "+sc+"30"}},p.status),
+        h("span",{style:{fontSize:10.5,color:C.inkLight,letterSpacing:"0.02em"}},typeIcon+" "+p.type+(p.length?" \u00b7 "+p.length:""))
       )
     ),
-    h("div",{style:{display:"flex",flexDirection:"column",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid "+C.brd}},
-      h(DueTag,{date:!p.noCut1?p.cut1Due:null,done:p.cut1Done,icon:"\u2702\ufe0f",label:"\u521d\u526a"}),
-      h(DueTag,{date:p.v1Due,done:p.v1Done,icon:"\u2728",label:"ES"}),
-      h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\ud83d\udcb0",label:"\u696d\u914d"}),
-      h(DueTag,{date:p.finalDue,done:p.finalDone,icon:"\ud83c\udfac",label:"Final"})
+    h("div",{style:{display:"flex",flexDirection:"column",gap:7,marginTop:10,paddingTop:10,borderTop:"1px dashed "+C.line}},
+      h(DueTag,{date:!p.noCut1?p.cut1Due:null,done:p.cut1Done,icon:"\u2702",label:"\u521d\u526a"}),
+      h(DueTag,{date:p.v1Due,done:p.v1Done,icon:"\u2726",label:"ES"}),
+      h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\u25c6",label:"\u696d\u914d"}),
+      h(DueTag,{date:p.finalDue,done:p.finalDone,icon:"\u25cf",label:"Final"})
     ),
-    p.note&&h("div",{style:{marginTop:8,fontSize:11,color:C.txt3,paddingTop:8,borderTop:"1px solid "+C.brd}},"\ud83d\udcdd "+p.note)
+    p.note&&h("div",{style:{marginTop:10,fontSize:11.5,color:C.inkSoft,paddingTop:10,borderTop:"1px dashed "+C.line,lineHeight:1.55,letterSpacing:"0.02em"}},
+      h("span",{className:"italic-en",style:{color:C.blueMid,marginRight:4}},"note —"),p.note
+    )
   );
 }
 
 function ClosedCard(props){
   var p=props.p;
-  return h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#faf9f7",border:"0.5px solid #C0D3D9",opacity:0.7}},
-    h("span",{style:{fontSize:11}},"\ud83c\udfac"),
+  return h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:3,background:"#F5F5F2",border:"1px solid "+C.line,opacity:0.7}},
+    h("span",{className:"italic-en",style:{fontSize:12,color:C.blueMid,flexShrink:0}},"\u2014"),
     h("div",{style:{flex:1,minWidth:0}},
-      h("span",{style:{fontSize:12,fontWeight:500,color:"#888",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}},
+      h("span",{className:"serif",style:{fontSize:12.5,fontWeight:400,color:C.inkSoft,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}},
         (p.airDate?(p.month?p.month.slice(0,4):"")+"/"+p.airDate+" ":"")+p.name
       )
     )
+  );
+}
+
+function SectionHeader(props){
+  var num=props.num,label=props.label,en=props.en,count=props.count,color=props.color,onClick=props.onClick,collapsed=props.collapsed;
+  return h("div",{onClick:onClick,style:{display:"flex",alignItems:"center",gap:10,marginBottom:onClick&&collapsed?0:12,cursor:onClick?"pointer":"default",userSelect:"none",paddingBottom:onClick&&collapsed?0:0}},
+    h("span",{className:"italic-en",style:{fontSize:14,color:color,fontWeight:400}},num),
+    h("span",{className:"label-en",style:{fontSize:10.5,color:C.inkSoft}},label),
+    h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,fontWeight:300}},"/ "+en),
+    h("span",{className:"italic-en",style:{fontSize:13,color:color,marginLeft:"auto",fontWeight:500}},"("+count+")"),
+    onClick&&h("span",{style:{fontSize:10,color:C.inkLight,marginLeft:4}},collapsed?"\u25be":"\u25b4")
   );
 }
 
@@ -134,7 +170,6 @@ function App(){
       .then(function(r){return r.json();})
       .then(function(data){
         var filtered=(data||[]).filter(function(p){return p.client===CLIENT_NAME;});
-        // 按進度排序
         var order={"Final\u5b8c\u6210":98,"":99};
         filtered.sort(function(a,b){
           if(a.closed&&!b.closed)return 1;
@@ -170,53 +205,58 @@ function App(){
     return nd(a).localeCompare(nd(b));
   });
 
-  return h("div",{style:{maxWidth:600,margin:"0 auto",padding:"20px 16px"}},
-    h("div",{style:{marginBottom:24,paddingBottom:16,borderBottom:"1.5px solid "+C.acc}},
-      h("div",{style:{fontSize:22,fontWeight:500,color:"#77879c"}},"\ud83c\udfac \u5c0f\u73a9x\u963f\u6ef4\u526a\u8f2f\u9032\u5ea6\u8868"),
+  return h("div",{style:{maxWidth:640,margin:"0 auto",padding:"32px 20px 60px"}},
+    // Header
+    h("div",{style:{marginBottom:28,paddingBottom:18,borderBottom:"1px solid "+C.line}},
+      h("div",{className:"label-en",style:{fontSize:10,color:C.blue,marginBottom:10}},"Editing Schedule \u00b7 2026"),
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:16,flexWrap:"wrap"}},
+        h("div",{className:"serif",style:{fontSize:24,fontWeight:500,color:C.ink,lineHeight:1.25,letterSpacing:"-0.01em"}},
+          "\u5c0f\u73a9",
+          h("span",{className:"italic-en",style:{color:C.blueMid,fontWeight:300,margin:"0 6px"}},"\u00d7"),
+          "\u963f\u6ef4\u3000\u526a\u8f2f\u9032\u5ea6\u8868"
+        ),
+        h("span",{className:"italic-en",style:{fontSize:14,color:C.inkLight,fontWeight:300}},"Progress Tracker")
+      )
     ),
-    loading&&h("div",{style:{textAlign:"center",padding:"40px",color:C.txt3}},"\u8f09\u5165\u4e2d\u2026"),
-    error&&h("div",{style:{textAlign:"center",padding:"40px",color:C.err}},error),
-    !loading&&!error&&h("div",{style:{display:"flex",flexDirection:"column",gap:20}},
+    loading&&h("div",{className:"italic-en",style:{textAlign:"center",padding:"60px 0",color:C.inkLight,fontSize:15}},"loading\u2026"),
+    error&&h("div",{style:{textAlign:"center",padding:"40px 20px",color:C.blue,background:C.yellowPale,borderLeft:"3px solid "+C.yellow,fontSize:13}},error),
+    !loading&&!error&&h("div",{style:{display:"flex",flexDirection:"column",gap:28}},
+
       // 進行中
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:500,color:"#bc858c",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
-          h("span",null,"\u2702\ufe0f \u9032\u884c\u4e2d"),
-          h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},active.length)
-        ),
+        h(SectionHeader,{num:"01",label:"\u9032\u884c\u4e2d",en:"In Progress",count:active.length,color:C.blue}),
         active.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},active.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
-          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u76ee\u524d\u6c92\u6709\u9032\u884c\u4e2d\u7684\u5c08\u6848")
+          :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",background:C.bluePale,borderRadius:3,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no active projects")
       ),
+
       // 等待執行
       h("div",null,
-        h("div",{style:{fontSize:13,fontWeight:500,color:"#77879c",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
-          h("span",null,"\u23f3 \u5f85\u57f7\u884c"),
-          h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},waiting.length)
-        ),
+        h(SectionHeader,{num:"02",label:"\u5f85\u57f7\u884c",en:"Pending",count:waiting.length,color:C.blueMid}),
         waiting.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},waiting.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
-          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7b49\u5f85\u57f7\u884c\u7684\u5c08\u6848")
+          :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",background:C.bluePale,borderRadius:3,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no pending projects")
       ),
+
       // 已完成（可收起）
       h("div",null,
-        h("div",{onClick:function(){setShowDone(function(v){return!v;});},style:{fontSize:13,fontWeight:500,color:"#83779c",marginBottom:showDone?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none"}},
-          h("span",null,"\ud83c\udfac \u5df2\u5b8c\u6210"),
-          h("span",{style:{fontSize:11,background:"#f0ebff",color:"#FFD686",borderRadius:12,padding:"1px 8px",fontWeight:500}},done.length),
-          h("span",{style:{fontSize:11,color:"#FFD686",marginLeft:"auto"}},showDone?"\u25b4":"\u25be")
-        ),
+        h(SectionHeader,{num:"03",label:"\u5df2\u5b8c\u6210",en:"Completed",count:done.length,color:"#B8941F",onClick:function(){setShowDone(function(v){return!v;});},collapsed:!showDone}),
         showDone&&(done.length>0
-          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
-          :h("div",{style:{fontSize:12,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u5df2\u5b8c\u6210\u7684\u5c08\u6848"))
+          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10,marginTop:12}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+          :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",marginTop:12,background:C.yellowPale,borderLeft:"3px solid "+C.yellow,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no completed projects"))
       ),
+
       // 已結案（可收起）
       closed.length>0&&h("div",null,
-        h("div",{onClick:function(){setShowClosed(function(v){return!v;});},style:{fontSize:13,fontWeight:500,color:C.txt3,marginBottom:showClosed?10:0,display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",padding:"8px 12px",background:"#f5f5f5",borderRadius:8,border:"1px solid #eee"}},
-          h("span",null,"\ud83d\udcc2 \u5df2\u7d50\u6848"),
-          h("span",{style:{fontSize:11,background:"#C0D3D9",color:"#4a6070",borderRadius:12,padding:"1px 8px",fontWeight:500}},closed.length),
-          h("span",{style:{fontSize:11,color:C.txt3,marginLeft:"auto"}},showClosed?"\u25b4 \u6536\u8d77":"\u25be \u9ede\u64ca\u5c55\u958b")
-        ),
-        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginTop:10}},closed.map(function(p){return h(ClosedCard,{key:p.id,p:p});}))
+        h(SectionHeader,{num:"04",label:"\u5df2\u7d50\u6848",en:"Archived",count:closed.length,color:C.inkLight,onClick:function(){setShowClosed(function(v){return!v;});},collapsed:!showClosed}),
+        showClosed&&h("div",{style:{display:"flex",flexDirection:"column",gap:5,marginTop:12}},closed.map(function(p){return h(ClosedCard,{key:p.id,p:p});}))
       )
+    ),
+
+    // Footer
+    !loading&&!error&&h("div",{style:{marginTop:48,paddingTop:20,borderTop:"1px solid "+C.line,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      h("span",{className:"label-en",style:{fontSize:9,color:C.inkLight}},"Editing Schedule"),
+      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight}},"\u5c0f\u73a9 studio")
     )
   );
 }
