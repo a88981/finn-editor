@@ -12,6 +12,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#FAFAF7;font-family:"Noto Sans TC","Inter",system-ui,sans-serif;color:#1A1F2E;min-height:100vh;-webkit-font-smoothing:antialiased;}
+body.quote-active{overflow:hidden !important;height:100vh !important;min-height:0 !important;}
+body.quote-active::-webkit-scrollbar{display:none !important;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:#E5E7ED;border-radius:2px;}
 .italic-en{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;}
@@ -315,7 +317,7 @@ function QuoteIframe(){
       var doc=iframeRef.current.contentDocument;
       if(!doc)return;
       var style=doc.createElement("style");
-      style.textContent=".viewport{padding:0 !important;}.a4{box-shadow:none !important;animation:none !important;}body{background:transparent !important;}";
+      style.textContent="html,body{overflow:hidden !important;scrollbar-width:none !important;}html::-webkit-scrollbar,body::-webkit-scrollbar{display:none !important;width:0 !important;height:0 !important;}.viewport{padding:0 !important;overflow:hidden !important;}.a4{box-shadow:none !important;animation:none !important;}body{background:transparent !important;}";
       doc.head.appendChild(style);
       // 等樣式注入後量真實高度
       setTimeout(function(){
@@ -417,6 +419,16 @@ function App(){
     function nd(p){var dates=[];if(!p.noCut1&&!p.cut1Done&&p.cut1Due)dates.push(p.cut1Due);if(!p.v1Done&&p.v1Due)dates.push(p.v1Due);if(!p.noBiz&&!p.bizDone&&p.bizDue)dates.push(p.bizDue);if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);dates.sort();return dates[0]||"9999";}
     return nd(a).localeCompare(nd(b));
   });
+
+  // view 切換時管理 body class
+  _R.useEffect(function(){
+    if(view==="quote"){
+      document.body.classList.add("quote-active");
+    } else {
+      document.body.classList.remove("quote-active");
+    }
+    return function(){document.body.classList.remove("quote-active");};
+  },[view]);
 
   // 報價單 view（iframe 隔離樣式）
   if(view==="quote"){
