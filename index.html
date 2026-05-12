@@ -1253,8 +1253,8 @@ function TodoView(props){
       h("span",{style:{fontSize:12,color:C.txt3,fontWeight:700,minWidth:16,flexShrink:0}},rp.n+"."),
       h("span",{style:{fontSize:14,flexShrink:0}},icon),
       h("div",{style:{flex:1,minWidth:0}},
-        h("div",{style:{fontSize:12,fontWeight:800,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.client),
-        h("div",{style:{fontSize:13,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},x.p.airDate?x.p.airDate+" "+x.p.name:x.p.name)
+        h("div",{style:{fontSize:10,fontWeight:600,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.02em"}},x.p.client),
+        h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"-0.005em"}},x.p.airDate?x.p.airDate+" "+x.p.name:x.p.name)
       ),
       h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
         h("div",{style:{fontSize:12,fontWeight:700,color:dColor}},dStr),
@@ -1274,8 +1274,8 @@ function TodoView(props){
       h("span",{style:{fontSize:12,color:C.txt3,fontWeight:700,minWidth:16,flexShrink:0}},wp.n+"."),
       h("span",{style:{fontSize:14,flexShrink:0}},"\ud83d\udce6"),
       h("div",{style:{flex:1,minWidth:0}},
-        h("div",{style:{fontSize:12,fontWeight:800,color:cc}},p.client),
-        h("div",{style:{fontSize:13,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},p.airDate?p.airDate+" "+p.name:p.name)
+        h("div",{style:{fontSize:10,fontWeight:600,color:cc,letterSpacing:"0.02em"}},p.client),
+        h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"-0.005em"}},p.airDate?p.airDate+" "+p.name:p.name)
       ),
       h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
         startStr&&h("div",{style:{fontSize:11,fontWeight:700,color:startColor}},startStr),
