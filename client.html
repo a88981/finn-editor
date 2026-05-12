@@ -3,7 +3,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>小玩 × 阿滴｜剪輯進度表</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -440,9 +440,9 @@ function App(){
     );
   }
 
-  return h("div",{style:{maxWidth:640,margin:"0 auto",padding:"32px 20px 60px"}},
-    // Header
-    h("div",{style:{marginBottom:28,paddingBottom:18,borderBottom:"1px solid "+C.line}},
+  return h("div",{style:{maxWidth:640,margin:"0 auto",padding:"0 20px 60px"}},
+    // Header - sticky 固定在頂端
+    h("div",{style:{position:"sticky",top:0,zIndex:10,background:C.paper,paddingTop:24,paddingBottom:14,marginBottom:24,borderBottom:"1px solid "+C.line}},
       // Editing Schedule + 合作詳情 同一排
       h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,gap:12}},
         h("div",{className:"label-en",style:{fontSize:10,color:C.blue}},"Editing Schedule \u00b7 2026"),
