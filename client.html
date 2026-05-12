@@ -100,7 +100,7 @@ function DueTag(props){
   return h("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:color,fontWeight:weight}},
     h("span",{style:{fontSize:11,opacity:0.7}},icon),
     h("span",null,label+" "+fmtDate(date)),
-    h("span",{className:"italic-en",style:{fontSize:11.5,marginLeft:2,opacity:0.85}},dStr)
+    h("span",{className:"italic-en",style:{fontSize:15,marginLeft:4,opacity:0.95,fontWeight:days<=1?500:400}},dStr)
   );
 }
 
@@ -112,7 +112,7 @@ function ProjectCard(props){
   var sc=p.closed?C.inkLight:statusColor(p.status);
   var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e";
   // 完成時：黃色淡底；進行/等待：白底配左邊線
-  var cardBg=p.closed?"#F5F5F2":isDone?C.yellowPale:C.card;
+  var cardBg=p.closed?"#F5F5F2":isDone?"#EFEFEC":C.card;
   var borderLeft="2px solid "+sc;
   return h("div",{style:{background:cardBg,borderRadius:4,padding:"16px 18px",border:"1px solid "+C.line,borderLeft:borderLeft,opacity:p.closed?0.65:1,transition:"all 0.2s"}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,gap:12}},
