@@ -1885,7 +1885,16 @@ function App(){
   function doExport(yearFilter){
     try{
       var ps=yearFilter?projects.filter(function(p){return p.month&&p.month.startsWith(yearFilter);}):projects;
-      var payload={projects:ps,clients:activeClients,colors:activeColors};
+      var payload={
+        projects:ps,
+        clients:activeClients,
+        colors:activeColors,
+        holidays:holidays||[],
+        finnDays:finnDays||[],
+        divinDays:divinDays||[],
+        nanaDays:nanaDays||[],
+        exportedAt:new Date().toISOString()
+      };
       var json=JSON.stringify(payload,null,2);
       var blob=new Blob([json],{type:"application/json"});
       var url=URL.createObjectURL(blob);
@@ -1895,7 +1904,7 @@ function App(){
       a.style.display="none";document.body.appendChild(a);a.click();document.body.removeChild(a);
       setTimeout(function(){URL.revokeObjectURL(url);},500);
       setShowExport(false);
-      showT("\u2705 \u5df2\u532f\u51fa"+(yearFilter?" ("+yearFilter+"\u5e74)":"(\u5168\u90e8)")+"，\u5305\u542b\u5ba2\u6236\u8cc7\u6599");
+      showT("\u2705 \u5df2\u532f\u51fa"+(yearFilter?" ("+yearFilter+"\u5e74)":"(\u5168\u90e8)")+"\uff0c\u5305\u542b\u5ba2\u6236\u3001\u884c\u4e8b\u66c6\u8cc7\u6599");
     }catch(e){showT("\u274c \u532f\u51fa\u5931\u6557: "+e.message);}
   }
   function importFn(e){
@@ -1911,6 +1920,20 @@ function App(){
           ps=data.projects.map(function(p){return Object.assign({},DEFS,p);});
           if(data.clients)setClients(data.clients);
           if(data.colors)setCColors(data.colors);
+          // 還原行事曆資料(若 JSON 內含)
+          var hasCalExtras=false;
+          if(Array.isArray(data.holidays)){setHolidays(data.holidays);hasCalExtras=true;}
+          if(Array.isArray(data.finnDays)){setFinnDays(data.finnDays);hasCalExtras=true;}
+          if(Array.isArray(data.divinDays)){setDivinDays(data.divinDays);hasCalExtras=true;}
+          if(Array.isArray(data.nanaDays)){setNanaDays(data.nanaDays);hasCalExtras=true;}
+          if(hasCalExtras){
+            saveCalendarExtras(
+              data.holidays||holidays||[],
+              data.finnDays||finnDays||[],
+              data.divinDays||divinDays||[],
+              data.nanaDays||nanaDays||[]
+            );
+          }
         } else {throw new Error();}
         // 逐筆寫入 Notion
         showT("\u23f3 \u6b63\u5728\u532f\u5165 "+ps.length+" \u7b46\u5230 Notion\u2026");
