@@ -254,9 +254,46 @@ function ClosedCard(props){
 function WaitingRow(props){
   var p=props.p;
   var sc=statusColor(p.status);
-  return h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto",alignItems:"center",gap:14,padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
+  // 找最近一個未完成的 due date
+  function nearestDue(){
+    var dates=[];
+    if(!p.noCut1&&!p.cut1Done&&p.cut1Due)dates.push(p.cut1Due);
+    if(!p.v1Done&&p.v1Due)dates.push(p.v1Due);
+    if(!p.noBiz&&!p.bizDone&&p.bizDue)dates.push(p.bizDue);
+    if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);
+    dates.sort();
+    return dates[0]||null;
+  }
+  var nd=nearestDue();
+  var d=nd?daysUntil(nd):null;
+
+  // 倒數樣式
+  var countdownNode=null;
+  if(d!==null){
+    var urgent=d<=1;
+    if(d<0){
+      countdownNode=h("span",{style:{background:C.yellow,color:C.ink,padding:"2px 7px",borderRadius:2,fontWeight:600,display:"inline-flex",alignItems:"baseline",gap:2}},
+        h("span",{style:{fontSize:11}},"\u903e\u671f"),
+        h("span",{className:"italic-en",style:{fontSize:14,fontWeight:700,lineHeight:1}},Math.abs(d)),
+        h("span",{style:{fontSize:11}},"\u5929")
+      );
+    } else if(d===0){
+      countdownNode=h("span",{style:{background:C.yellow,color:C.ink,padding:"2px 7px",borderRadius:2,fontWeight:600,fontSize:12}},"\u4eca\u5929\u958b\u59cb");
+    } else if(d===1){
+      countdownNode=h("span",{style:{background:C.yellow,color:C.ink,padding:"2px 7px",borderRadius:2,fontWeight:600,fontSize:12}},"\u660e\u5929\u958b\u59cb");
+    } else {
+      countdownNode=h("span",{style:{display:"inline-flex",alignItems:"baseline",gap:2,color:C.inkSoft}},
+        h("span",{style:{fontSize:11}},"\u5269"),
+        h("span",{className:"italic-en",style:{fontSize:14,fontWeight:600,lineHeight:1,color:C.ink}},d),
+        h("span",{style:{fontSize:11}},"\u5929\u958b\u59cb")
+      );
+    }
+  }
+
+  return h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:12,padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
     h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
     h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
+    countdownNode||h("span",null),
     h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
   );
 }
