@@ -270,7 +270,6 @@ function WaitingRow(props){
   // 倒數樣式
   var countdownNode=null;
   if(d!==null){
-    var urgent=d<=1;
     if(d<0){
       countdownNode=h("span",{style:{background:C.yellow,color:C.ink,padding:"2px 7px",borderRadius:2,fontWeight:600,display:"inline-flex",alignItems:"baseline",gap:2}},
         h("span",{style:{fontSize:11}},"\u903e\u671f"),
@@ -278,13 +277,13 @@ function WaitingRow(props){
         h("span",{style:{fontSize:11}},"\u5929")
       );
     } else if(d===0){
-      countdownNode=h("span",{style:{background:C.yellow,color:C.ink,padding:"2px 7px",borderRadius:2,fontWeight:600,fontSize:12}},"\u4eca\u5929\u958b\u59cb");
+      countdownNode=h("span",{style:{background:C.bluePale,color:C.blue,padding:"2px 7px",borderRadius:2,fontWeight:600,fontSize:12,border:"1px solid "+C.blueSoft}},"\u4eca\u5929\u958b\u59cb");
     } else if(d===1){
-      countdownNode=h("span",{style:{background:C.yellow,color:C.ink,padding:"2px 7px",borderRadius:2,fontWeight:600,fontSize:12}},"\u660e\u5929\u958b\u59cb");
+      countdownNode=h("span",{style:{background:C.bluePale,color:C.blue,padding:"2px 7px",borderRadius:2,fontWeight:600,fontSize:12,border:"1px solid "+C.blueSoft}},"\u660e\u5929\u958b\u59cb");
     } else {
-      countdownNode=h("span",{style:{display:"inline-flex",alignItems:"baseline",gap:2,color:C.inkSoft}},
+      countdownNode=h("span",{style:{display:"inline-flex",alignItems:"baseline",gap:2,color:C.blueMid}},
         h("span",{style:{fontSize:11}},"\u5269"),
-        h("span",{className:"italic-en",style:{fontSize:14,fontWeight:600,lineHeight:1,color:C.ink}},d),
+        h("span",{className:"italic-en",style:{fontSize:14,fontWeight:600,lineHeight:1,color:C.blue}},d),
         h("span",{style:{fontSize:11}},"\u5929\u958b\u59cb")
       );
     }
