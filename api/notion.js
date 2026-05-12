@@ -140,22 +140,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // ── 儲存全部客戶設定（先刪再建）──────────────────────────────
+    // ── 儲存全部客戶設定（先刪再建,排除 __cal_extras__、加延遲避 rate limit）─
     if (req.method === "POST" && action === "save-clients") {
       const { clients, colors } = body;
-      // 先查所有現有客戶
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+      // 1. 撈現有客戶
       const listRes = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
         method: "POST", headers: notionHeaders, body: JSON.stringify({}),
       });
       const listData = await listRes.json();
-      // 逐一封存舊的（sequential 避免 rate limit）
-      for (const page of (listData.results || [])) {
+
+      // 2. 過濾掉 __cal_extras__,只封存真正的客戶頁面
+      const existingClients = (listData.results || []).filter(function(page) {
+        const name = (page.properties && page.properties["客戶名稱"]
+          && page.properties["客戶名稱"].title
+          && page.properties["客戶名稱"].title[0]
+          && page.properties["客戶名稱"].title[0].plain_text) || "";
+        return name !== "__cal_extras__";
+      });
+
+      // 3. 序列封存舊客戶,每筆間隔 350ms (Notion API rate limit 約 3 req/sec)
+      for (const page of existingClients) {
         await fetch(`${NOTION_API}/pages/${page.id}`, {
           method: "PATCH", headers: notionHeaders,
           body: JSON.stringify({ archived: true }),
         });
+        await sleep(350);
       }
-      // 新增新的
+
+      // 4. 序列新增新客戶,每筆間隔 350ms
       for (let i = 0; i < (clients || []).length; i++) {
         const name = clients[i];
         await fetch(`${NOTION_API}/pages`, {
@@ -169,6 +183,7 @@ export default async function handler(req, res) {
             },
           }),
         });
+        await sleep(350);
       }
       return res.status(200).json({ ok: true });
     }
