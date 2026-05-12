@@ -17,6 +17,7 @@ body{background:#FAFAF7;font-family:"Noto Sans TC","Inter",system-ui,sans-serif;
 .italic-en{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:400;}
 .serif{font-family:"Noto Serif TC",serif;}
 .label-en{font-family:"Inter",sans-serif;letter-spacing:0.25em;text-transform:uppercase;font-weight:500;}
+.waiting-list > div:last-child{border-bottom:none !important;}
 </style>
 </head><body>
 <div id="root"></div>
@@ -34,7 +35,7 @@ var C={
   blueMid:"#4A6FA8",
   blueSoft:"#C9D7EC",
   bluePale:"#EEF3FA",
-  yellow:"#F5C518",
+  yellow:"#FFF4D1",
   yellowSoft:"#FCE99A",
   yellowPale:"#FFF8DC",
   ink:"#1A1F2E",
@@ -67,7 +68,7 @@ var STATUS_COLOR={
   "V1\u5be9\u6838\u4e2d":C.blue,
   "\u5ee0\u5546\u5be9\u6838\u4e2d":C.blue,
   "Final\u5be9\u6838\u4e2d":C.blue,
-  "Final\u5b8c\u6210":"#B8941F"
+  "Final\u5b8c\u6210":"#7A8090"
 };
 
 function statusColor(s){return STATUS_COLOR[s]||C.inkLight;}
@@ -91,16 +92,38 @@ function DueTag(props){
   if(!date)return null;
   var days=daysUntil(date);
   if(done)return h("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:C.inkLight,textDecoration:"line-through"}},
-    h("span",{style:{fontSize:11}},icon),h("span",null,label+" "+fmtDate(date)),h("span",{style:{fontSize:10,color:C.yellow}},"\u2713")
+    h("span",{style:{fontSize:11}},icon),h("span",null,label+" "+fmtDate(date)),h("span",{style:{fontSize:10,color:"#7A8090"}},"\u2713")
   );
-  // 緊急度：逾期=深藍底加重、今天/明天=黃色標記、3天內=blueMid、其他=ink-light
-  var color=days<0?C.blue:days<=1?"#B8941F":days<=3?C.blueMid:C.inkSoft;
+  // 緊急度
+  var isUrgent=days<=1;
+  var color=days<0?C.blue:days<=1?C.blue:days<=3?C.blueMid:C.inkSoft;
   var weight=days<=1?500:400;
-  var dStr=days<0?"\u903e\u671f "+Math.abs(days)+"\u5929":days===0?"\u4eca\u5929":days===1?"\u660e\u5929":"\u5269 "+days+" \u5929";
-  return h("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:color,fontWeight:weight}},
+  var bigNum,smallTxt;
+  if(days<0){bigNum=Math.abs(days);smallTxt="\u903e\u671f\u3000\u5929";}
+  else if(days===0){bigNum=null;smallTxt="\u4eca\u5929";}
+  else if(days===1){bigNum=null;smallTxt="\u660e\u5929";}
+  else {bigNum=days;smallTxt="\u5269  \u5929";}
+  var urgentStyle=isUrgent?{background:C.yellow,color:C.ink,padding:"2px 8px",borderRadius:2,marginLeft:4,display:"inline-flex",alignItems:"baseline",gap:3,fontWeight:600}:{marginLeft:4,display:"inline-flex",alignItems:"baseline",gap:3};
+  var dStrNodes;
+  if(bigNum===null){
+    dStrNodes=h("span",{className:isUrgent?"":"italic-en",style:Object.assign({},urgentStyle,{fontSize:isUrgent?12:13,fontWeight:isUrgent?600:weight,opacity:isUrgent?1:0.95})},smallTxt);
+  } else if(days<0){
+    dStrNodes=h("span",{style:urgentStyle},
+      h("span",{style:{fontSize:11.5,opacity:isUrgent?0.95:0.85}},"\u903e\u671f"),
+      h("span",{className:"italic-en",style:{fontSize:isUrgent?16:18,fontWeight:isUrgent?700:600,lineHeight:1}},bigNum),
+      h("span",{style:{fontSize:11.5,opacity:isUrgent?0.95:0.85}},"\u5929")
+    );
+  } else {
+    dStrNodes=h("span",{style:urgentStyle},
+      h("span",{style:{fontSize:11.5,opacity:isUrgent?0.95:0.85}},"\u5269"),
+      h("span",{className:"italic-en",style:{fontSize:isUrgent?16:18,fontWeight:isUrgent?700:600,lineHeight:1}},bigNum),
+      h("span",{style:{fontSize:11.5,opacity:isUrgent?0.95:0.85}},"\u5929")
+    );
+  }
+  return h("div",{style:{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:isUrgent?C.ink:color,fontWeight:weight}},
     h("span",{style:{fontSize:11,opacity:0.7}},icon),
     h("span",null,label+" "+fmtDate(date)),
-    h("span",{className:"italic-en",style:{fontSize:15,marginLeft:4,opacity:0.95,fontWeight:days<=1?500:400}},dStr)
+    dStrNodes
   );
 }
 
@@ -111,9 +134,41 @@ function ProjectCard(props){
   var isDone=p.status==="Final\u5b8c\u6210";
   var sc=p.closed?C.inkLight:statusColor(p.status);
   var typeIcon=p.type==="\u77ed\u5f71"?"\ud83d\udcf1":"\ud83c\udf9e";
-  // 完成時：黃色淡底；進行/等待：白底配左邊線
   var cardBg=p.closed?"#F5F5F2":isDone?"#EFEFEC":C.card;
   var borderLeft="2px solid "+sc;
+
+  // 進度條：四個里程碑（帶日期 + 各自顏色）
+  // 顏色由淺到深：每個階段越往後越深，視覺上是「越接近完成 = 越濃」
+  var STAGE_COLORS={
+    "\u521d\u526a":"#7BA3D9",      // 淺藍
+    "ES":"#4A6FA8",                  // 中藍（同 C.blueMid）
+    "\u696d\u914d":"#B89642",      // 暖金
+    "Final":"#1E3A6F"                // 深藍（同 C.blue）
+  };
+  function calcProgress(){
+    var stages=[];
+    if(!p.noCut1)stages.push({done:!!p.cut1Done,label:"\u521d\u526a",due:p.cut1Due,color:STAGE_COLORS["\u521d\u526a"]});
+    stages.push({done:!!p.v1Done,label:"ES",due:p.v1Due,color:STAGE_COLORS["ES"]});
+    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u696d\u914d",due:p.bizDue,color:STAGE_COLORS["\u696d\u914d"]});
+    stages.push({done:!!p.finalDone,label:"Final",due:p.finalDue,color:STAGE_COLORS["Final"]});
+    return stages;
+  }
+  var stages=calcProgress();
+  var doneCount=stages.filter(function(s){return s.done;}).length;
+  var showProgress=!p.closed&&!isWaiting;
+
+  // 每個 stage 的倒數資訊
+  function stageCountdown(s){
+    if(!s.due)return null;
+    if(s.done)return{text:"\u2713",done:true};
+    var d=daysUntil(s.due);
+    if(d===null)return null;
+    if(d<0)return{n:Math.abs(d),pre:"\u903e\u671f",urgent:true};
+    if(d===0)return{text:"\u4eca\u5929",urgent:true,solo:true};
+    if(d===1)return{text:"\u660e\u5929",urgent:true,solo:true};
+    return{n:d,pre:"\u5269",urgent:d<=3};
+  }
+
   return h("div",{style:{background:cardBg,borderRadius:4,padding:"16px 18px",border:"1px solid "+C.line,borderLeft:borderLeft,opacity:p.closed?0.65:1,transition:"all 0.2s"}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,gap:12}},
       h("div",{style:{minWidth:0,flex:1}},
@@ -125,14 +180,55 @@ function ProjectCard(props){
         h("span",{style:{fontSize:10.5,color:C.inkLight,letterSpacing:"0.02em"}},typeIcon+" "+p.type+(p.length?" \u00b7 "+p.length:""))
       )
     ),
-    h("div",{style:{display:"flex",flexDirection:"column",gap:7,marginTop:10,paddingTop:10,borderTop:"1px dashed "+C.line}},
+    // 進度條 + 整合資訊
+    showProgress&&h("div",{style:{marginTop:12,paddingTop:12,borderTop:"1px dashed "+C.line}},
+      // header
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+        h("span",{className:"label-en",style:{fontSize:9,color:C.inkLight}},"Progress"),
+        doneCount===stages.length
+          ?h("span",{className:"italic-en",style:{fontSize:12,color:C.ink,fontWeight:500,background:C.yellow,padding:"1px 8px",borderRadius:2}},doneCount+" / "+stages.length)
+          :h("span",{className:"italic-en",style:{fontSize:12,color:sc,fontWeight:500}},doneCount+" / "+stages.length)
+      ),
+      // 進度條 bar
+      h("div",{style:{display:"flex",gap:3,marginBottom:8}},stages.map(function(s,i){
+        return h("div",{key:i,style:{flex:1,height:5,borderRadius:2,background:s.done?s.color:C.lineSoft,transition:"all 0.3s"}});
+      })),
+      // 整合的文字資訊：label + (日期 + 倒數同行)
+      h("div",{style:{display:"flex",gap:3}},stages.map(function(s,i){
+        var cd=stageCountdown(s);
+        return h("div",{key:i,style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,textAlign:"center",minWidth:0}},
+          // label - 用各自階段色
+          h("div",{style:{fontSize:13,color:s.done?C.inkLight:s.color,fontWeight:s.done?400:500,letterSpacing:"0.02em",textDecoration:s.done?"line-through":"none"}},s.label),
+          // 日期 + 倒數同一行
+          s.due&&h("div",{style:{display:"inline-flex",alignItems:"baseline",gap:6,flexWrap:"nowrap",justifyContent:"center"}},
+            h("span",{className:"serif",style:{fontSize:14,fontWeight:500,color:s.done?C.inkLight:C.ink,lineHeight:1,letterSpacing:"0.02em",textDecoration:s.done?"line-through":"none"}},fmtDate(s.due)),
+            cd&&(cd.done
+              ?h("span",{style:{fontSize:12,color:C.inkLight}},"\u2713")
+              :cd.urgent
+                ?h("span",{style:{background:C.yellow,color:C.ink,padding:"1px 6px",borderRadius:2,fontWeight:600,display:"inline-flex",alignItems:"baseline",gap:2}},
+                    cd.solo
+                      ?h("span",{style:{fontSize:12}},cd.text)
+                      :[h("span",{key:"p",style:{fontSize:11}},cd.pre),h("span",{key:"n",className:"italic-en",style:{fontSize:15,fontWeight:700,lineHeight:1}},cd.n),h("span",{key:"d",style:{fontSize:11}},"\u5929")]
+                  )
+                :h("span",{style:{display:"inline-flex",alignItems:"baseline",gap:2,color:s.color}},
+                    h("span",{style:{fontSize:11}},cd.pre),
+                    h("span",{className:"italic-en",style:{fontSize:15,fontWeight:600,lineHeight:1}},cd.n),
+                    h("span",{style:{fontSize:11}},"\u5929")
+                  )
+            )
+          )
+        );
+      }))
+    ),
+    // 非進行中（已完成）的卡片：保留原本 DueTag 列表
+    !showProgress&&!p.closed&&h("div",{style:{display:"flex",flexDirection:"column",gap:7,marginTop:10,paddingTop:10,borderTop:"1px dashed "+C.line}},
       h(DueTag,{date:!p.noCut1?p.cut1Due:null,done:p.cut1Done,icon:"\u2702",label:"\u521d\u526a"}),
       h(DueTag,{date:p.v1Due,done:p.v1Done,icon:"\u2726",label:"ES"}),
       h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\u25c6",label:"\u696d\u914d"}),
       h(DueTag,{date:p.finalDue,done:p.finalDone,icon:"\u25cf",label:"Final"})
     ),
     p.note&&h("div",{style:{marginTop:10,fontSize:11.5,color:C.inkSoft,paddingTop:10,borderTop:"1px dashed "+C.line,lineHeight:1.55,letterSpacing:"0.02em"}},
-      h("span",{className:"italic-en",style:{color:C.blueMid,marginRight:4}},"note —"),p.note
+      h("span",{className:"italic-en",style:{color:C.blueMid,marginRight:4}},"note \u2014"),p.note
     )
   );
 }
@@ -146,6 +242,17 @@ function ClosedCard(props){
         (p.airDate?(p.month?p.month.slice(0,4):"")+"/"+p.airDate+" ":"")+p.name
       )
     )
+  );
+}
+
+// 待執行用：簡化單行列表
+function WaitingRow(props){
+  var p=props.p;
+  var sc=statusColor(p.status);
+  return h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto",alignItems:"center",gap:14,padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
+    h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
+    h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
+    h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
   );
 }
 
@@ -166,10 +273,32 @@ function App(){
   var es=useState(null);var error=es[0],setError=es[1];
 
   useEffect(function(){
-    fetch(API+"?action=list")
-      .then(function(r){return r.json();})
-      .then(function(data){
-        var filtered=(data||[]).filter(function(p){return p.client===CLIENT_NAME;});
+    // === MOCK DATA (preview only) ===
+    var MOCK_DATA=[
+  // 進行中
+  {id:"1",client:"\ud83d\udca7\u963f\u6ef4",name:"AI \u5de5\u5177\u4eba\u985e\u7684\u672a\u4f86 EP.12",type:"\u9577\u7247",length:"15m",status:"\u521d\u526a\u4e2d",airDate:"05-15",cut1Due:"2026-05-14",v1Due:"2026-05-19",bizDue:"2026-05-22",finalDue:"2026-05-23"},
+  {id:"2",client:"\ud83d\udca7\u963f\u6ef4",name:"\u300c\u9019\u500b\u55ae\u5b57\u90fd\u4e0d\u80fd\u8aaa\uff1f\u300d \u53f0\u7063\u4eba\u6700\u5e38\u8aa4\u6703\u7684\u82f1\u6587",type:"\u9577\u7247",length:"12m",status:"ES\u88fd\u4f5c\u4e2d",airDate:"05-18",cut1Due:"2026-05-10",cut1Done:true,v1Due:"2026-05-13",bizDue:"2026-05-16",finalDue:"2026-05-17"},
+  {id:"3",client:"\ud83d\udca7\u963f\u6ef4",name:"\u8207 Joeman \u5408\u4f5c\u300c\u9b6f\u86c7\u4e09\u983b\u9053\u300d\u53cd\u61c9\u5f71\u7247",type:"\u77ed\u5f71",length:"3m",status:"V1\u5be9\u6838\u4e2d",airDate:"05-13",cut1Done:true,v1Due:"2026-05-12",noBiz:true,finalDue:"2026-05-13",note:"\u91cd\u9ede\u653e\u5728\u968a\u53cb\u53cd\u61c9\u811a\u672c\u63ef\u63ef"},
+  {id:"4",client:"\ud83d\udca7\u963f\u6ef4",name:"\u5ee0\u5546 \u00d7 \u4e9e\u99ac\u905c\u96fb\u5b50\u66f8 Kindle Colorsoft",type:"\u9577\u7247",length:"10m",status:"\u521d\u526a\u4fee\u6539\u4e2d",airDate:"05-25",cut1Due:"2026-05-16",v1Due:"2026-05-20",bizDue:"2026-05-23",finalDue:"2026-05-24"},
+
+  // 待執行
+  {id:"5",client:"\ud83d\udca7\u963f\u6ef4",name:"\u300c\u770b\u96fb\u5f71\u5b78\u82f1\u6587\u300d\u300aWicked\u300b\u5169\u96c6\u7279\u8f2f",type:"\u9577\u7247",length:"18m",status:"\u7b49\u5f85\u7d20\u6750",airDate:"05-29",cut1Due:"2026-05-20",v1Due:"2026-05-26",bizDue:"2026-05-28",finalDue:"2026-05-29"},
+  {id:"6",client:"\ud83d\udca7\u963f\u6ef4",name:"\u8207\u5973\u53cb\u300c\u4ea4\u63db\u5fc3\u5f97\u300d\u51fa\u570b\u4f86\u56de\u5fc3\u5f97",type:"\u9577\u7247",length:"10m",status:"\u5f85\u78ba\u8a8d",airDate:"06-05",cut1Due:"2026-05-28",v1Due:"2026-06-02",bizDue:"2026-06-04",finalDue:"2026-06-05"},
+  {id:"7",client:"\ud83d\udca7\u963f\u6ef4",name:"\u4e94\u6708\u6708\u672b\u96e3\u624d\u96d8\u8c70\u3002Roast Battle",type:"\u9577\u7247",length:"20m",status:"\u66ab\u7de9",airDate:"06-10",note:"\u7b49\u4f86\u8cd3\u7d20\u6750\u78ba\u8a8d"},
+
+  // 已完成
+  {id:"8",client:"\ud83d\udca7\u963f\u6ef4",name:"\u5ee0\u5546\u00d7 Google Pixel 10 \u5f71\u7247",type:"\u9577\u7247",length:"8m",status:"Final\u5b8c\u6210",airDate:"05-08",cut1Done:true,v1Done:true,bizDone:true,finalDone:true,cut1Due:"2026-04-28",v1Due:"2026-05-02",bizDue:"2026-05-05",finalDue:"2026-05-07"},
+  {id:"9",client:"\ud83d\udca7\u963f\u6ef4",name:"100 \u500b\u53f0\u7063\u4eba\u6703\u7684\u300c\u8001\u6d3e\u300d\u82f1\u6587 \u4f60\u6703\u5e7e\u500b\uff1f",type:"\u9577\u7247",length:"14m",status:"Final\u5b8c\u6210",airDate:"05-01",cut1Done:true,v1Done:true,bizDone:true,finalDone:true,finalDue:"2026-04-30"},
+
+  // 已結案
+  {id:"10",client:"\ud83d\udca7\u963f\u6ef4",name:"\u670d\u52d9\u540a\u9322\u53e3\u8a93\u8a00\u96c6\u9326",type:"\u77ed\u5f71",status:"Final\u5b8c\u6210",closed:true,airDate:"04-22",month:"2026"},
+  {id:"11",client:"\ud83d\udca7\u963f\u6ef4",name:"2025 \u5e74\u7d42\u56de\u9867",type:"\u9577\u7247",status:"Final\u5b8c\u6210",closed:true,airDate:"12-30",month:"2025"},
+  {id:"12",client:"\ud83d\udca7\u963f\u6ef4",name:"\u8207 \u9ad8\u5b50\u542c\u898f\u8a55 KFC \u65b0\u54c1",type:"\u9577\u7247",status:"Final\u5b8c\u6210",closed:true,airDate:"04-15",month:"2026"}
+];
+
+    setTimeout(function(){
+      var data=MOCK_DATA;
+      var filtered=(data||[]).filter(function(p){return p.client===CLIENT_NAME;});
         var order={"Final\u5b8c\u6210":98,"":99};
         filtered.sort(function(a,b){
           if(a.closed&&!b.closed)return 1;
@@ -179,13 +308,9 @@ function App(){
           function nd(p){var dates=[];if(!p.noCut1&&!p.cut1Done&&p.cut1Due)dates.push(p.cut1Due);if(!p.v1Done&&p.v1Due)dates.push(p.v1Due);if(!p.noBiz&&!p.bizDone&&p.bizDue)dates.push(p.bizDue);if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);dates.sort();return dates[0]||"9999";}
           return nd(a).localeCompare(nd(b));
         });
-        setProjects(filtered);
-        setLoading(false);
-      })
-      .catch(function(e){
-        setError("\u8f09\u5165\u5931\u6557\uff0c\u8acb\u7a0d\u5f8c\u518d\u8a66");
-        setLoading(false);
-      });
+      setProjects(filtered);
+      setLoading(false);
+    },200);
   },[]);
 
   var waitingSt=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
@@ -213,7 +338,11 @@ function App(){
         h("div",{className:"serif",style:{fontSize:24,fontWeight:500,color:C.ink,lineHeight:1.25,letterSpacing:"-0.01em"}},
           "\u5c0f\u73a9",
           h("span",{className:"italic-en",style:{color:C.blueMid,fontWeight:300,margin:"0 6px"}},"\u00d7"),
-          "\u963f\u6ef4\u3000\u526a\u8f2f\u9032\u5ea6\u8868"
+          "\u963f\u6ef4\u3000",
+          h("span",{style:{position:"relative",display:"inline-block"}},
+            h("span",{style:{position:"absolute",left:-2,right:-2,bottom:3,height:10,background:C.yellow,opacity:0.85,zIndex:0,transform:"rotate(-0.8deg)"}}),
+            h("span",{style:{position:"relative",zIndex:1}},"\u526a\u8f2f\u9032\u5ea6\u8868")
+          )
         ),
         h("span",{className:"italic-en",style:{fontSize:14,color:C.inkLight,fontWeight:300}},"Progress Tracker")
       )
@@ -230,20 +359,20 @@ function App(){
           :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",background:C.bluePale,borderRadius:3,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no active projects")
       ),
 
-      // 等待執行
+      // 等待執行 - 簡化列表
       h("div",null,
         h(SectionHeader,{num:"02",label:"\u5f85\u57f7\u884c",en:"Pending",count:waiting.length,color:C.blueMid}),
         waiting.length>0
-          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10}},waiting.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+          ?h("div",{className:"waiting-list",style:{display:"flex",flexDirection:"column",background:"#FAFAF7",border:"1px solid "+C.line,borderRadius:4,overflow:"hidden"}},waiting.map(function(p){return h(WaitingRow,{key:p.id,p:p});}))
           :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",background:C.bluePale,borderRadius:3,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no pending projects")
       ),
 
       // 已完成（可收起）
       h("div",null,
-        h(SectionHeader,{num:"03",label:"\u5df2\u5b8c\u6210",en:"Completed",count:done.length,color:"#B8941F",onClick:function(){setShowDone(function(v){return!v;});},collapsed:!showDone}),
+        h(SectionHeader,{num:"03",label:"\u5df2\u5b8c\u6210",en:"Completed",count:done.length,color:"#7A8090",onClick:function(){setShowDone(function(v){return!v;});},collapsed:!showDone}),
         showDone&&(done.length>0
           ?h("div",{style:{display:"flex",flexDirection:"column",gap:10,marginTop:12}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
-          :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",marginTop:12,background:C.yellowPale,borderLeft:"3px solid "+C.yellow,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no completed projects"))
+          :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",marginTop:12,background:"#F0F0EC",borderLeft:"3px solid #C8C8C2",fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no completed projects"))
       ),
 
       // 已結案（可收起）
