@@ -89,24 +89,38 @@ function deleteProject(notionId){
 
 // 客戶設定從 Notion 讀取/儲存（不使用 localStorage）
 function loadClients(){
+  function stripCalExtras(clients,colors){
+    var filtered=(clients||[]).filter(function(c){return c!=="__cal_extras__";});
+    var cleanColors={};
+    Object.keys(colors||{}).forEach(function(k){if(k!=="__cal_extras__")cleanColors[k]=colors[k];});
+    return {clients:filtered,colors:cleanColors};
+  }
   var isPreview=typeof location!=='undefined'&&(location.protocol==='file:'||location.hostname===''||location.hostname.indexOf('claude')>=0||location.hostname.indexOf('anthropic')>=0);
   if(isPreview&&BUILTIN_DATA&&BUILTIN_DATA.clients){
-    return Promise.resolve({clients:BUILTIN_DATA.clients,colors:BUILTIN_DATA.colors||{}});
+    return Promise.resolve(stripCalExtras(BUILTIN_DATA.clients,BUILTIN_DATA.colors));
   }
   return fetch(API+"?action=clients")
     .then(function(r){return r.json();})
     .then(function(data){
       if(!Array.isArray(data))return {clients:[],colors:{}};
-      var clients=data.map(function(c){return c.name;});
-      var colors={};data.forEach(function(c){if(c.color)colors[c.name]=c.color;});
+      var clients=[],colors={};
+      data.forEach(function(c){
+        if(c.name==="__cal_extras__")return;
+        clients.push(c.name);
+        if(c.color)colors[c.name]=c.color;
+      });
       return {clients:clients,colors:colors};
     })
     .catch(function(){
-      if(BUILTIN_DATA&&BUILTIN_DATA.clients)return {clients:BUILTIN_DATA.clients,colors:BUILTIN_DATA.colors||{}};
+      if(BUILTIN_DATA&&BUILTIN_DATA.clients)return stripCalExtras(BUILTIN_DATA.clients,BUILTIN_DATA.colors);
       return {clients:[],colors:{}};
     });
 }
 function loadCalendarExtras(){
+  var isPreview=typeof location!=='undefined'&&(location.protocol==='file:'||location.hostname===''||location.hostname.indexOf('claude')>=0||location.hostname.indexOf('anthropic')>=0);
+  if(isPreview&&BUILTIN_DATA&&BUILTIN_DATA.colors&&BUILTIN_DATA.colors.__cal_extras__){
+    try{return Promise.resolve(JSON.parse(BUILTIN_DATA.colors.__cal_extras__));}catch(e){}
+  }
   return fetch(API+"?action=get-calendar-extras")
     .then(function(r){return r.json();})
     .then(function(d){if(d&&(d.finnDays||d.holidays)){try{localStorage.setItem("edit-tracker-cal",JSON.stringify(d));}catch(e){}}return d;})
