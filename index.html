@@ -1617,7 +1617,7 @@ function GanttView(props){
                 var p=row.p;
                 return h('div',{key:p.id,style:{marginBottom:1}},
                   h('div',{style:{display:'flex',alignItems:'center',minHeight:rowH}},
-                    h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,padding:'0 6px',lineHeight:1.2,whiteSpace:'normal',wordBreak:'break-word',backgroundColor:C.bg,backgroundImage:'linear-gradient('+row.cc+'14, '+row.cc+'14)',marginRight:4,boxSizing:'border-box',alignSelf:'stretch',display:'flex',flexDirection:'column',justifyContent:'center',position:'sticky',left:0,zIndex:2,borderRight:'0.5px solid '+C.brd},title:'\u3010'+p.client+'\u3011 '+p.name},
+                    h('div',{style:{width:lblW,fontSize:10,color:row.cc,flexShrink:0,padding:'0 6px',lineHeight:1.2,whiteSpace:'normal',wordBreak:'break-word',backgroundColor:C.bg,backgroundImage:'linear-gradient('+row.cc+'14, '+row.cc+'14)',marginRight:4,boxSizing:'border-box',alignSelf:'stretch',display:'flex',flexDirection:'column',justifyContent:'center',position:'sticky',left:0,zIndex:5,borderRight:'0.5px solid '+C.brd},title:'\u3010'+p.client+'\u3011 '+p.name},
                       h('div',{style:{fontSize:9,opacity:0.75}},'\u3010'+p.client+'\u3011'),
                       h('div',{style:{fontSize:11,fontWeight:700,marginTop:1}},p.name)
                     ),
