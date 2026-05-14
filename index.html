@@ -1124,9 +1124,9 @@ function CalView(props){
       // 業配時程 (完成→灰 / 未完成→客戶色) + 交件點 (藍/灰)
       if(filters.biz){
         if(!p.noBiz&&p.bizS&&inR(ds,p.bizS,p.bizE||p.bizS))
-          ev.push({p:p,k:"r",label:"\ud83d\udcb0",desc:"業配中",fixedColor:p.bizDone?GR:"#B8860B",color:p.bizDone?GR:cc,bg:p.bizDone?GRbg:cf,iS:ds===p.bizS,iE:ds===(p.bizE||p.bizS)});
+          ev.push({p:p,k:"r",label:"\ud83d\udcb0",desc:"業配中",fixedColor:p.bizDone?GR:"#4a90c8",color:p.bizDone?GR:cc,bg:p.bizDone?GRbg:cf,iS:ds===p.bizS,iE:ds===(p.bizE||p.bizS)});
         if(!filters.due&&!p.noBiz&&p.bizDue&&p.bizDue===ds)
-          ev.push({p:p,k:"d",label:"\ud83d\udcb0",desc:"交業配",color:p.bizDone?GR:"#B8860B",noBg:true});
+          ev.push({p:p,k:"d",label:"\ud83d\udcb0",desc:"交業配",color:p.bizDone?GR:"#4a90c8",noBg:true});
       }
       // 交件日模式：顯示全部交件點，已打勾灰色
       if(filters.due){
@@ -1135,9 +1135,9 @@ function CalView(props){
         if(p.v1Due&&p.v1Due===ds)
           ev.push({p:p,k:"d",label:"\u2728",desc:"交ES",color:p.v1Done?GR:"#d8903a",noBg:true});
         if(!p.noBiz&&p.bizDue&&p.bizDue===ds)
-          ev.push({p:p,k:"d",label:"\ud83d\udcb0",desc:"交業配",color:p.bizDone?GR:"#B8860B",noBg:true});
+          ev.push({p:p,k:"d",label:"\ud83d\udcb0",desc:"交業配",color:p.bizDone?GR:"#4a90c8",noBg:true});
         if(p.finalDue&&p.finalDue===ds)
-          ev.push({p:p,k:"d",label:"\ud83c\udfac",desc:"交Final",color:p.finalDone?GR:"#7A6432",noBg:true});
+          ev.push({p:p,k:"d",label:"\ud83c\udfac",desc:"交Final",color:p.finalDone?GR:"#9070c0",noBg:true});
       }
     });
     return ev;
@@ -1179,11 +1179,24 @@ function CalView(props){
         var nnSpans=getNanaSpans(d);var isNn=nnSpans.length>0;
         var dsStr=d?toISO(year,month,d):"";
         var isPick1=hClick&&hClick.ds===dsStr;
-        var cellBg=d?C.card:C.card2;
+        var cellBg=d?((isHv&&filters.holiday)?"#fdf0f0":C.card):C.card2;
         var dsStr2=d?toISO(year,month,d):"";var isSelected=selectedDay===dsStr2&&d;
 var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1px solid "+C.acc:"0.5px solid "+C.brd;
         return h("div",{key:i,onClick:function(){if(d){var ds2=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2?null:ds2;});}},style:{minHeight:"clamp(60px,12vw,100px)",background:cellBg,borderRadius:4,padding:"clamp(3px,1vw,6px)",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
-          (!isMob&&isHv&&filters.holiday)&&h("div",{style:{position:"absolute",top:0,left:0,right:0,height:3,background:"#e07070",borderRadius:"3px 3px 0 0"}}),
+          (function(){
+            if(!d)return null;
+            // 找出所有未完成的交件日色(優先級高的在左)
+            var priority=[{desc:"\u4ea4\u521d\u526a",color:"#e08080"},{desc:"\u4ea4ES",color:"#d8903a"},{desc:"\u4ea4\u696d\u914d",color:"#4a90c8"},{desc:"\u4ea4Final",color:"#9070c0"}];
+            var colors=[];
+            priority.forEach(function(pr){
+              var hit=evDs.find(function(e){return e.desc===pr.desc&&e.color!=="#c0bab0";});
+              if(hit)colors.push(pr.color);
+            });
+            if(colors.length===0)return null;
+            return h("div",{style:{position:"absolute",top:0,left:0,right:0,height:3,display:"flex",borderRadius:"3px 3px 0 0",overflow:"hidden"}},
+              colors.map(function(c,ci){return h("div",{key:ci,style:{flex:1,background:c}});})
+            );
+          })(),
           d&&h("div",null,
 
             !isMob&&h("div",{style:{fontSize:11,color:tod?C.acc:(isHv&&filters.holiday)?"#e07070":(isFn&&filters.finn)?"#e6ac00":(isDv&&filters.divination)?"#d87098":(isNn&&filters.nana)?"#8b6bbf":C.txt2,fontWeight:tod||(isHv&&filters.holiday)||(isFn&&filters.finn)||(isDv&&filters.divination)||(isNn&&filters.nana)?800:400,marginBottom:3,display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2}},
