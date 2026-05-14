@@ -649,7 +649,7 @@ function Modal(props){
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u985e\u578b"),
               h("div",{style:{display:"flex",borderRadius:4,overflow:"hidden",border:"1px solid "+C.brd}},
-                ["\u9577\u7247","\u77ed\u5f71"].map(function(t){var s=form.type===t;return h("button",{key:t,onClick:function(){set("type",t);},style:{flex:1,padding:"7px 6px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:s?700:400,background:s?C.accBg:C.card,color:s?C.acc:C.txt2}},t==="\u9577\u7247"?"\ud83c\udf9e\ufe0f \u9577":"\ud83d\udcf1 \u77ed");})
+                ["\u9577\u7247","\u77ed\u5f71"].map(function(t){var s=form.type===t;return h("button",{key:t,onClick:function(){set("type",t);},style:{flex:1,padding:"7px 6px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:s?700:400,background:s?C.accBg:C.card,color:s?C.acc:C.txt2,lineHeight:1.4}},t==="\u9577\u7247"?"\ud83c\udf9e\ufe0f \u9577":"\ud83d\udcf1 \u77ed");})
               )
             )
           ),
