@@ -1966,7 +1966,14 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){
         if(p.id!==id)return p;
-        var n=Object.assign({},p);n[field]=val;if(field==="cut1Done"&&val){n.status="發包字幕";}if(field==="finalDone"&&val){n.status="Final完成";}return n;
+        var n=Object.assign({},p);n[field]=val;
+        if(val){
+          if(field==="cut1Done")n.status="\u521d\u526a\u5be9\u6838\u4e2d";
+          else if(field==="v1Done")n.status="V1\u5be9\u6838\u4e2d";
+          else if(field==="bizDone")n.status="\u5ee0\u5546\u5be9\u6838\u4e2d";
+          else if(field==="finalDone")n.status="Final\u5b8c\u6210";
+        }
+        return n;
       });
       var p=updated.find(function(x){return x.id===id;});
       setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
