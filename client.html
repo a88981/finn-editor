@@ -296,11 +296,17 @@ function WaitingRow(props){
     }
   }
 
-  return h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:12,padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
-    h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
-    h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
-    countdownNode||h("span",null),
-    h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
+  return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line,background:"white"}},
+    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:12,marginBottom:8}},
+      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
+      h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
+      countdownNode||h("span",null),
+      h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
+    ),
+    // 空白進度條（未開始）
+    h("div",{style:{display:"flex",gap:3}},[0,1,2,3].map(function(i){
+      return h("div",{key:i,style:{flex:1,height:3,borderRadius:2,background:C.lineSoft}});
+    }))
   );
 }
 
@@ -494,7 +500,7 @@ function App(){
       h("div",null,
         h(SectionHeader,{num:"02",label:"\u5f85\u57f7\u884c",en:"Pending",count:waiting.length,color:C.blueMid}),
         waiting.length>0
-          ?h("div",{className:"waiting-list",style:{display:"flex",flexDirection:"column",background:"#FAFAF7",border:"1px solid "+C.line,borderRadius:4,overflow:"hidden"}},waiting.map(function(p){return h(WaitingRow,{key:p.id,p:p});}))
+          ?h("div",{className:"waiting-list",style:{display:"flex",flexDirection:"column",background:"white",border:"1px solid "+C.line,borderRadius:4,overflow:"hidden"}},waiting.map(function(p){return h(WaitingRow,{key:p.id,p:p});}))
           :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",background:C.bluePale,borderRadius:3,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no pending projects")
       ),
 
