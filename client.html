@@ -261,6 +261,12 @@ function ClosedCard(props){
 function WaitingRow(props){
   var p=props.p;
   var sc=statusColor(p.status);
+  // 4 個里程碑（含日期）
+  var stages=[];
+  if(!p.noCut1)stages.push({label:"\u521d\u526a",due:p.cut1Due});
+  stages.push({label:"ES",due:p.v1Due});
+  if(!p.noBiz)stages.push({label:"\u696d\u914d",due:p.bizDue});
+  stages.push({label:"Final",due:p.finalDue});
   // 找最近一個未完成的 due date
   function nearestDue(){
     var dates=[];
@@ -303,9 +309,16 @@ function WaitingRow(props){
       countdownNode||h("span",null),
       h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
     ),
-    // 空白進度條（未開始）
-    h("div",{style:{display:"flex",gap:3}},[0,1,2,3].map(function(i){
+    // 空白進度條
+    h("div",{style:{display:"flex",gap:3}},stages.map(function(s,i){
       return h("div",{key:i,style:{flex:1,height:3,borderRadius:2,background:C.lineSoft}});
+    })),
+    // 階段名 + 日期（同一行）
+    h("div",{style:{display:"flex",gap:3,marginTop:4}},stages.map(function(s,i){
+      return h("div",{key:i,style:{flex:1,display:"flex",alignItems:"baseline",justifyContent:"center",gap:3}},
+        h("span",{style:{fontSize:10,color:C.inkLight,letterSpacing:"0.02em"}},s.label),
+        s.due&&h("span",{className:"italic-en",style:{fontSize:12,color:C.inkSoft,lineHeight:1}},fmtDate(s.due))
+      );
     }))
   );
 }
