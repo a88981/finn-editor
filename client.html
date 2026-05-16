@@ -363,6 +363,23 @@ function QuoteIframe(){
   );
 }
 
+// 已完成用：中間版 + 進度條
+function DoneRowPlus(props){
+  var p=props.p;
+  var STAGE_COLORS=["#7BA3D9","#4A6FA8","#B89642","#1E3A6F"];
+  return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
+    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:14,marginBottom:8}},
+      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
+      h("span",{className:"serif",style:{fontSize:13.5,color:C.inkSoft,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
+      h("span",{className:"serif",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap"}},p.finalDue?"Final "+fmtDate(p.finalDue):""),
+      h("span",{style:{fontSize:14,color:"#7A8090"}},"\u2713")
+    ),
+    h("div",{style:{display:"flex",gap:3,opacity:0.55}},STAGE_COLORS.map(function(c,i){
+      return h("div",{key:i,style:{flex:1,height:3,borderRadius:2,background:c}});
+    }))
+  );
+}
+
 function SectionHeader(props){
   var num=props.num,label=props.label,en=props.en,count=props.count,color=props.color,onClick=props.onClick,collapsed=props.collapsed;
   return h("div",{onClick:onClick,style:{display:"flex",alignItems:"center",gap:10,marginBottom:onClick&&collapsed?0:12,cursor:onClick?"pointer":"default",userSelect:"none",paddingBottom:onClick&&collapsed?0:0}},
@@ -481,11 +498,11 @@ function App(){
           :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",background:C.bluePale,borderRadius:3,fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no pending projects")
       ),
 
-      // 已完成（可收起）
+      // 已完成（中間版 + 進度條）
       h("div",null,
         h(SectionHeader,{num:"03",label:"\u5df2\u5b8c\u6210",en:"Completed",count:done.length,color:"#7A8090",onClick:function(){setShowDone(function(v){return!v;});},collapsed:!showDone}),
         showDone&&(done.length>0
-          ?h("div",{style:{display:"flex",flexDirection:"column",gap:10,marginTop:12}},done.map(function(p){return h(ProjectCard,{key:p.id,p:p});}))
+          ?h("div",{className:"waiting-list",style:{display:"flex",flexDirection:"column",background:"#FAFAF7",border:"1px solid "+C.line,borderRadius:4,overflow:"hidden",marginTop:12}},done.map(function(p){return h(DoneRowPlus,{key:p.id,p:p});}))
           :h("div",{style:{fontSize:12,color:C.inkLight,padding:"12px 16px",marginTop:12,background:"#F0F0EC",borderLeft:"3px solid #C8C8C2",fontStyle:"italic",fontFamily:"Cormorant Garamond, serif"}},"\u2014 no completed projects"))
       ),
 
