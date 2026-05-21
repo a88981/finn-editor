@@ -169,7 +169,7 @@ var KCOLS=[
   {key:"rev",label:"\u5be9\u6838\u4e2d",icon:"\ud83d\udc40",acc:"#B8860B",headerColor:"#B8860B",st:["\u521d\u526a\u5be9\u6838\u4e2d","V1\u5be9\u6838\u4e2d","V2\u5be9\u6838\u4e2d","Final\u5be9\u6838\u4e2d","\u5ee0\u5546\u5be9\u6838\u4e2d"]},
   {key:"fin",label:"Final",icon:"\ud83c\udfac",acc:"#7A6432",headerColor:"#7A6432",st:["Final\u5b8c\u6210"]}
 ];
-var PRI=["-","\u6025\u6848","1","2","3","4","5","6","7"];
+var PRI=["-","\u6025\u6848","1","2","3"];
 var PRC={"-":"#aaa","\u6025\u6848":"#b85c5c","1":"#b87040","2":"#a09030","3":"#70a040","4":"#40a060","5":"#40a090","6":"#4080b0","7":"#7060a0"};
 var MN=["1\u6708","2\u6708","3\u6708","4\u6708","5\u6708","6\u6708","7\u6708","8\u6708","9\u6708","10\u6708","11\u6708","12\u6708"];
 var C={bg:"#faf9f5",card:"#ffffff",card2:"#faf8f0",brd:"#e8e4d8",brd2:"#d0ccc6",txt:"#2c2820",txt2:"#6a5e40",txt3:"#a89a78",acc:"#efba2c",acc2:"#efba2c",accBg:"#faf8f0",hdr:"#ffffff",ok:"#4a8855",okBg:"#eef5ec",err:"#a04848",errBg:"#f9efef",wrn:"#d07010",wrnBg:"#fff8e0"};
@@ -840,7 +840,7 @@ function FinalTag(props){
 
 // ── KANBAN ────────────────────────────────────────────────────────────────────
 function Kanban(props){
-  var projects=props.projects,onEdit=props.onEdit,onSC=props.onSC,onToggle=props.onToggle,cColors=props.cColors,onReorder=props.onReorder,onStatus=props.onStatus;
+  var projects=props.projects,onEdit=props.onEdit,onSC=props.onSC,onToggle=props.onToggle,cColors=props.cColors,onReorder=props.onReorder,onStatus=props.onStatus,onOrder=props.onOrder;
   var showTodo=props.showTodo!==false;
   var TODO_ST=["等待素材","待確認","暫緩"];
   var active=projects.filter(function(p){return!p.closed&&(showTodo||TODO_ST.indexOf(p.status)<0);});
@@ -848,11 +848,12 @@ function Kanban(props){
   var os=useState(null);var overCol=os[0],setOverCol=os[1];
   var oc=useState(null);var overCardId=oc[0],setOverCardId=oc[1];
   var sm=useState(null);var statusMenu=sm[0],setStatusMenu=sm[1];
+  var pm=useState(null);var priMenu=pm[0],setPriMenu=pm[1];
   useEffect(function(){
-    function onDoc(){if(statusMenu)setStatusMenu(null);}
+    function onDoc(){if(statusMenu)setStatusMenu(null);if(priMenu)setPriMenu(null);}
     document.addEventListener("click",onDoc);
     return function(){document.removeEventListener("click",onDoc);};
-  },[statusMenu]);
+  },[statusMenu,priMenu]);
 
   function sortCol(cards,colKey){
     if(colKey==="fin"){
@@ -957,8 +958,11 @@ function Kanban(props){
                 style:{background:C.card,borderRadius:4,padding:"12px 14px",cursor:"grab",opacity:dragId===p.id?0.3:1,border:"0.5px solid "+(isOver?cc:C.brd),borderLeft:"2px solid "+cc,marginTop:isOver?12:0,transition:"margin 0.12s"}},
                 h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}},
                   h("span",{style:{fontSize:10,fontWeight:500,color:cc,letterSpacing:"0.04em"}},p.client),
-                  h("div",{style:{display:"flex",gap:3}},
-                    pc&&p.order&&p.order!=="-"&&h("span",{style:{fontSize:9,background:pc+"22",color:pc,borderRadius:3,padding:"1px 5px",fontWeight:800}},p.order),
+                  h("div",{style:{display:"flex",gap:3,position:"relative"}},
+                    (p.order&&p.order!=="-")&&h("span",{onClick:function(e){e.stopPropagation();setPriMenu(priMenu===p.id?null:p.id);},style:{fontSize:9,background:(pc||C.brd)+"22",color:pc||C.txt3,borderRadius:3,padding:"1px 5px",fontWeight:800,cursor:"pointer"},title:"\u9ede\u9ede\u6539\u512a\u5148\u9806\u5e8f"},p.order),
+                    priMenu===p.id&&h("div",{onClick:function(e){e.stopPropagation();},style:{position:"absolute",top:"calc(100% + 4px)",left:0,background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:4,boxShadow:"0 4px 16px rgba(0,0,0,0.15)",zIndex:50,minWidth:90}},
+                      PRI.map(function(o){var sel=o===(p.order||"-");var oc=PRC[o]||C.txt3;return h("div",{key:o,onClick:function(){onOrder&&onOrder(p.id,o);setPriMenu(null);},style:{fontSize:11,padding:"5px 10px",color:oc,background:sel?oc+"22":"transparent",cursor:"pointer",borderRadius:3,fontWeight:sel?700:500}},o);})
+                    ),
                     p.month&&h("span",{style:{fontSize:9,color:C.txt3}},p.month.slice(5)+"\u6708")
                   )
                 ),
@@ -2008,6 +2012,15 @@ function App(){
     });
   },[]);
 
+  var setOrderP=useCallback(function(id,newOrder){
+    setProjects(function(ps){
+      var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{order:newOrder}):p;});
+      var p=updated.find(function(x){return x.id===id;});
+      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      return updated;
+    });
+  },[]);
+
   // 排序 → Notion
   var reorderP=useCallback(function(updates){
     setProjects(function(ps){
@@ -2146,7 +2159,7 @@ function App(){
     showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(c,cc){return saveClients({clients:c||activeClients,colors:cc||activeColors});},onClose:function(){setShowCM(false);},onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 12px 32px"}},
       view==="kanban"&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
-      view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,onStatus:setStatusP,cColors:activeColors,onReorder:reorderP,showTodo:showTodo}),
+      view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,onStatus:setStatusP,onOrder:setOrderP,cColors:activeColors,onReorder:reorderP,showTodo:showTodo}),
       view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:activeColors}),
       view==="todo2"&&h(TodoView,{projects:projects,onEdit:setModal,cColors:activeColors}),
       view==="list"&&h(ListView,{projects:projects,onEdit:setModal,onToggle:togP,clients:activeClients,cColors:activeColors}),
