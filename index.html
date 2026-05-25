@@ -1604,13 +1604,18 @@ function ListView(props){
     return true;
   });
 
+  var TODO_ST_LIST=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   var tabs=[
     {key:"active",label:"\u5c08\u6848",color:"#4a80b0",count:preFiltered.filter(function(p){return!p.closed&&p.status!=="Final\u5b8c\u6210";}).length},
+    {key:"doing",label:"\u9032\u884c\u4e2d",color:"#D89A3A",count:preFiltered.filter(function(p){return!p.closed&&p.status!=="Final\u5b8c\u6210"&&TODO_ST_LIST.indexOf(p.status)<0;}).length},
+    {key:"todo",label:"\u5f85\u57f7\u884c",color:"#9BA1B0",count:preFiltered.filter(function(p){return!p.closed&&TODO_ST_LIST.indexOf(p.status)>=0;}).length},
     {key:"unpaid",label:"\u672a\u7d50\u6848",color:C.wrn,count:preFiltered.filter(function(p){return!p.closed&&p.status==="Final\u5b8c\u6210";}).length},
     {key:"done",label:"\u5df2\u7d50\u6848",color:C.ok,count:preFiltered.filter(function(p){return p.closed;}).length}
   ];
   var filtered=preFiltered.filter(function(p){
     if(filter==="active"&&(p.closed||p.status==="Final\u5b8c\u6210"))return false;
+    if(filter==="doing"&&(p.closed||p.status==="Final\u5b8c\u6210"||TODO_ST_LIST.indexOf(p.status)>=0))return false;
+    if(filter==="todo"&&(p.closed||TODO_ST_LIST.indexOf(p.status)<0))return false;
     if(filter==="unpaid"&&(!(!p.closed&&p.status==="Final\u5b8c\u6210")))return false;
     if(filter==="done"&&!p.closed)return false;
     return true;
