@@ -1356,8 +1356,8 @@ function ProgressView(props){
     var stages=[
       {key:"cut1",label:"\u521d\u526a",color:"#D89A3A",due:p.cut1Due,done:p.cut1Done,skip:p.noCut1},
       {key:"v1",label:"ES",color:"#C9A227",due:p.v1Due,done:p.v1Done,skip:false},
-      {key:"biz",label:"\u696d\u914d",color:"#B8860B",due:p.bizDue,done:p.bizDone,skip:p.noBiz},
-      {key:"fin",label:"Final",color:"#7A6432",due:p.finalDue,done:p.finalDone,skip:false}
+      {key:"fin",label:"Final",color:"#7A6432",due:p.finalDue,done:p.finalDone,skip:false},
+      {key:"biz",label:"\u696d\u914d",color:"#B8860B",due:p.bizDue,done:p.bizDone,skip:p.noBiz}
     ];
     // 判斷下一個未完成階段
     var nextStageIdx=-1;
@@ -1491,8 +1491,8 @@ function TodoView(props){
     var stages=[
       {color:"#D89A3A",done:p.cut1Done,skip:p.noCut1,label:"\u521d\u526a",due:p.cut1Due},
       {color:"#C9A227",done:p.v1Done,skip:false,label:"ES",due:p.v1Due},
-      {color:"#B8860B",done:p.bizDone,skip:p.noBiz,label:"\u696d\u914d",due:p.bizDue},
-      {color:"#7A6432",done:p.finalDone,skip:false,label:"Final",due:p.finalDue}
+      {color:"#7A6432",done:p.finalDone,skip:false,label:"Final",due:p.finalDue},
+      {color:"#B8860B",done:p.bizDone,skip:p.noBiz,label:"\u696d\u914d",due:p.bizDue}
     ];
     var nextIdx=-1;
     for(var i=0;i<stages.length;i++){if(!stages[i].skip&&!stages[i].done){nextIdx=i;break;}}
@@ -2104,6 +2104,7 @@ function App(){
   var cls=useState(null);var clients=cls[0],setClients=cls[1];  // null = not loaded yet
   var ccs=useState(null);var cColors=ccs[0],setCColors=ccs[1]; // null = not loaded yet
   var scms=useState(false);var showCM=scms[0],setShowCM=scms[1];
+  var ghs=useState(false);var ghost=ghs[0],setGhost=ghs[1];
   var hds=useState([]);var holidays=hds[0],setHolidays=hds[1];
   var fds=useState([]);var finnDays=fds[0],setFinnDays=fds[1];
   var dvs=useState([]);var divinDays=dvs[0],setDivinDays=dvs[1];
@@ -2145,6 +2146,31 @@ function App(){
   var clientsReady=clients!==null;
   var activeClients=clientsReady?clients:DEF_CLIENTS;
   var activeColors=cColors||DEF_COLORS;
+
+  // ── Ghost mode:模糊化資料(預覽展示用)
+  var displayProjects=projects;
+  var displayClients=activeClients;
+  var displayColors=activeColors;
+  if(ghost){
+    // 客戶 → 客戶 A、B、C
+    var clientMap={};
+    activeClients.forEach(function(c,i){clientMap[c]="\u5ba2\u6236 "+String.fromCharCode(65+i);});
+    displayClients=activeClients.map(function(c){return clientMap[c];});
+    displayColors={};Object.keys(clientMap).forEach(function(k){displayColors[clientMap[k]]=activeColors[k]||"#a89a78";});
+    // 專案 → 案子 1, 2, 3
+    displayProjects=projects.map(function(p,i){
+      var clone=Object.assign({},p);
+      if(p.client&&clientMap[p.client])clone.client=clientMap[p.client];
+      clone.name="\u6848\u5b50 "+(i+1);
+      // 金額相關清空,calcP 算出 0(NT 顯示自動變 NT$ 0)
+      clone.fee=0;
+      clone.feeItems=[];
+      clone.costItems=[];
+      clone.overRate=0;
+      clone.note="";
+      return clone;
+    });
+  }
 
   function saveHolidays(list){setHolidays(list);saveCalendarExtras(list,finnDays,divinDays,nanaDays);}
   function addHoliday(s,e2,label,note){saveHolidays(holidays.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]));}
@@ -2327,8 +2353,8 @@ function App(){
     reader.readAsText(file);e.target.value="";
   }
 
-  var active=projects.filter(function(p){return!p.closed;});
-  var done=projects.filter(function(p){return p.closed;});
+  var active=displayProjects.filter(function(p){return!p.closed;});
+  var done=displayProjects.filter(function(p){return p.closed;});
   var totalNet=active.reduce(function(s,p){return s+calcP(p).net;},0);
 
   var BSEC={background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:"6px 12px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,color:C.txt2};
@@ -2348,8 +2374,9 @@ function App(){
           (function(){var isMobNow=typeof window!=='undefined'&&window.innerWidth<768;return h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"1px solid "+C.acc,color:"#fff",borderRadius:3,padding:isMobNow?"6px 7px":"6px 10px",cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:isMobNow?14:11,lineHeight:1,whiteSpace:"nowrap",letterSpacing:"0.04em",boxSizing:"border-box"}},isMobNow?"\uff0b":"\uff0b \u65b0\u589e\u6848\u5b50");})(),
           h("div",{style:{position:"relative"}},
             (function(){var isMobNow=typeof window!=='undefined'&&window.innerWidth<768;return h("button",{onClick:function(e){e.stopPropagation();setShowSettings(function(v){return!v;});setShowExport(false);},style:{background:showSettings?C.acc:C.card2,border:"1px solid "+(showSettings?C.acc:C.brd),color:showSettings?"#fff":C.txt2,borderRadius:3,padding:isMobNow?"6px 7px":"6px 8px",cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:isMobNow?14:11,whiteSpace:"nowrap",lineHeight:1,boxSizing:"border-box"},title:"\u8a2d\u5b9a"},"\u2699\ufe0f");})(),
-            showSettings&&h("div",{onClick:function(e){e.stopPropagation();},style:{position:"absolute",top:"calc(100% + 6px)",right:0,background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:6,boxShadow:"0 4px 16px rgba(0,0,0,0.15)",zIndex:300,minWidth:160}},
+            showSettings&&h("div",{onClick:function(e){e.stopPropagation();},style:{position:"absolute",top:"calc(100% + 6px)",right:0,background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:6,boxShadow:"0 4px 16px rgba(0,0,0,0.15)",zIndex:300,minWidth:170}},
               h("button",{onClick:function(){setShowCM(true);setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",border:"none",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},"\ud83d\udc65 \u5ba2\u6236\u7ba1\u7406"),
+              h("button",{onClick:function(){setGhost(function(g){return!g;});setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:ghost?C.accBg:"transparent",border:"none",borderRadius:3,color:ghost?C.acc:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:ghost?700:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},(ghost?"\ud83d\udc7b ":"\u26ab ")+"\u9b3c\u5f71\u6a21\u5f0f"+(ghost?" \u00b7 ON":"")),
               h("button",{onClick:function(){setShowExport(true);setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",border:"none",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},"\u2b07 \u532f\u51fa\u8cc7\u6599"),
               h("label",{style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap",boxSizing:"border-box"}},"\u2b06 \u532f\u5165\u8cc7\u6599",h("input",{type:"file",accept:".json",onChange:function(e){setShowSettings(false);importFn(e);},style:{display:"none"}}))
             ),
@@ -2373,17 +2400,18 @@ function App(){
       )
     ),
     showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(c,cc){return saveClients({clients:c||activeClients,colors:cc||activeColors});},onClose:function(){setShowCM(false);},onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
+    ghost&&h("div",{onClick:function(){setGhost(false);},style:{background:"#2c2820",color:"#f0d978",padding:"6px 14px",fontSize:11,fontWeight:600,textAlign:"center",letterSpacing:"0.05em",cursor:"pointer"}},"\ud83d\udc7b \u9b3c\u5f71\u6a21\u5f0f\u555f\u7528\u4e2d \u00b7 \u5ba2\u6236/\u5c08\u6848\u540d/\u91d1\u984d\u5747\u5df2\u96b1\u85cf \u00b7 \u9ede\u9019\u908a\u95dc\u9589"),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 12px 32px"}},
-      view==="kanban"&&h(UrgentBanner,{projects:projects,onEdit:setModal}),
-      view==="kanban"&&h(Kanban,{projects:projects,onEdit:setModal,onSC:scP,onToggle:togP,onStatus:setStatusP,onOrder:setOrderP,cColors:activeColors,onReorder:reorderP,showTodo:showTodo}),
-      view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:activeColors}),
-      view==="todo2"&&h(TodoView,{projects:projects,onEdit:setModal,cColors:activeColors}),
-      view==="list"&&h(ListView,{projects:projects,onEdit:setModal,onToggle:togP,clients:activeClients,cColors:activeColors}),
-      view==="calendar"&&h(CalView,{projects:projects,onEdit:setModal,cColors:activeColors,holidays:holidays,onAddHoliday:addHoliday,onDelHoliday:delHoliday,onEditHoliday:editHoliday,finnDays:finnDays,onAddFinn:addFinn,onDelFinn:delFinn,onEditFinn:editFinn,divinDays:divinDays,onAddDivin:addDivin,onDelDivin:delDivin,onEditDivin:editDivin,nanaDays:nanaDays,onAddNana:addNana,onDelNana:delNana,onEditNana:editNana}),
-      view==="gantt"&&h(GanttView,{projects:projects,cColors:activeColors}),
-      view==="report"&&h(MonthReport,{projects:projects})
+      view==="kanban"&&h(UrgentBanner,{projects:displayProjects,onEdit:setModal}),
+      view==="kanban"&&h(Kanban,{projects:displayProjects,onEdit:setModal,onSC:scP,onToggle:togP,onStatus:setStatusP,onOrder:setOrderP,cColors:displayColors,onReorder:reorderP,showTodo:showTodo}),
+      view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:displayColors}),
+      view==="todo2"&&h(TodoView,{projects:displayProjects,onEdit:setModal,cColors:displayColors}),
+      view==="list"&&h(ListView,{projects:displayProjects,onEdit:setModal,onToggle:togP,clients:displayClients,cColors:displayColors}),
+      view==="calendar"&&h(CalView,{projects:displayProjects,onEdit:setModal,cColors:displayColors,holidays:holidays,onAddHoliday:addHoliday,onDelHoliday:delHoliday,onEditHoliday:editHoliday,finnDays:finnDays,onAddFinn:addFinn,onDelFinn:delFinn,onEditFinn:editFinn,divinDays:divinDays,onAddDivin:addDivin,onDelDivin:delDivin,onEditDivin:editDivin,nanaDays:nanaDays,onAddNana:addNana,onDelNana:delNana,onEditNana:editNana}),
+      view==="gantt"&&h(GanttView,{projects:displayProjects,cColors:displayColors}),
+      view==="report"&&h(MonthReport,{projects:displayProjects})
     ),
-    modal&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
+    modal&&!ghost&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:4,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
   );
 }
