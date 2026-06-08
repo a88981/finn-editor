@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⏱ 工作時間追蹤</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --yellow:#E8B340;
+  --yellow-mid:#B8862A;
+  --yellow-soft:#F5E6B8;
+  --yellow-pale:#FFF8DC;
+  --yellow-lightest:#FFFBEC;
+  --ink:#1A1F2E;
+  --ink-soft:#5A6275;
+  --ink-light:#9BA1B0;
+  --paper:#FAFAF7;
+  --line:#E5E7ED;
+  --line-soft:#F0F2F6;
+  --green:#5a8a3a;
+  --red:#A32D2D;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  background:#E8E8E2;
+  color:var(--ink);
+  font-family:'Noto Sans TC','Inter',sans-serif;
+  font-weight:400;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+.viewport{padding:32px 16px 60px;display:flex;justify-content:center}
+.a4{
+  width:100%;max-width:560px;background:var(--paper);
+  padding:32px 36px 28px;position:relative;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04),0 20px 60px rgba(180,140,40,0.10),0 8px 20px rgba(180,140,40,0.05);
+  display:flex;flex-direction:column;animation:fadeIn 0.5s ease-out both;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* Corner */
+.corner-l{
+  position:absolute;top:22px;left:36px;
+  font-family:'Inter',sans-serif;font-size:10px;
+  color:var(--ink-light);letter-spacing:0.3em;
+  text-transform:uppercase;font-weight:500;
+}
+.corner-r{
+  position:absolute;top:22px;right:36px;
+  font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;
+  color:var(--ink-light);letter-spacing:0.05em;
+}
+
+/* Header */
+.header{margin:24px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.35em;
+  color:var(--yellow-mid);text-transform:uppercase;font-weight:500;margin-bottom:8px;
+}
+.title-row{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.title{
+  font-family:'Noto Serif TC',serif;font-size:22px;font-weight:500;
+  color:var(--ink);line-height:1.22;letter-spacing:-0.01em;
+}
+.title-sub{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:16px;color:var(--ink-light);font-weight:300;letter-spacing:0.02em;padding-bottom:3px;
+}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.tab{
+  flex:1;padding:9px 12px;background:transparent;border:none;
+  color:var(--ink-light);font-family:'Inter',sans-serif;font-size:10px;font-weight:500;
+  letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;position:relative;
+}
+.tab:hover{color:var(--ink-soft)}
+.tab.active{color:var(--yellow-mid)}
+.tab.active::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--yellow);
+}
+
+/* Timer card */
+.timer-card{
+  border:1px solid var(--line);border-radius:4px;
+  background:#fff;margin-bottom:14px;overflow:hidden;
+}
+.tc-top{padding:18px 24px 14px;display:grid;grid-template-columns:1fr;gap:10px}
+.label{
+  display:flex;align-items:center;gap:9px;
+  font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.25em;
+  color:var(--ink-soft);text-transform:uppercase;font-weight:500;margin-bottom:6px;
+}
+.label-num{
+  font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;
+  color:var(--yellow-mid);font-weight:400;letter-spacing:0;
+}
+.field-label{
+  font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.15em;
+  color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:5px;
+}
+.fcontrol{
+  width:100%;padding:8px 10px;font-size:14px;
+  border:0.5px solid var(--line);border-radius:3px;background:#fff;
+  font-family:inherit;color:var(--ink);
+}
+.fcontrol:focus{outline:none;border-color:var(--yellow)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Timer display */
+.timer-display{
+  text-align:center;padding:18px 0 8px;
+  background:var(--yellow-lightest);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.timer-clock{
+  font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:400;
+  letter-spacing:0.04em;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums;
+}
+.timer-status{
+  margin-top:6px;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;
+  letter-spacing:0.25em;text-transform:uppercase;color:var(--ink-light);
+}
+.timer-status.live{color:var(--green)}
+.timer-status.paused{color:var(--yellow-mid)}
+
+.timer-info{padding:12px 24px;font-size:13px;color:var(--ink-soft);text-align:center;line-height:1.6}
+.timer-info-proj{font-family:'Noto Serif TC',serif;font-size:15px;color:var(--ink);font-weight:500;margin-bottom:3px}
+.timer-info-meta{font-size:11.5px;color:var(--ink-light);letter-spacing:0.05em}
+.timer-info-meta .stage{color:var(--yellow-mid);font-weight:500}
+
+.btns{padding:10px 24px 16px;display:flex;gap:8px;justify-content:center}
+.btn{
+  padding:10px 22px;font-size:11px;font-weight:500;border-radius:3px;
+  border:0.5px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;
+  font-family:'Inter',sans-serif;letter-spacing:0.2em;text-transform:uppercase;
+  transition:all 0.15s;
+}
+.btn:hover{background:var(--yellow-lightest);color:var(--ink)}
+.btn.start,.btn.resume{background:var(--yellow);border-color:var(--yellow);color:#fff}
+.btn.start:hover,.btn.resume:hover{background:var(--yellow-mid);border-color:var(--yellow-mid);color:#fff}
+.btn.pause{background:#fff;color:var(--yellow-mid);border-color:var(--yellow)}
+.btn.pause:hover{background:var(--yellow-pale)}
+.btn.stop{background:#fff;color:var(--red);border-color:var(--red)}
+.btn.stop:hover{background:#fcebeb}
+
+.add-link-row{padding:0 24px 16px;text-align:center}
+.add-link{
+  font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;
+  color:var(--ink-light);cursor:pointer;
+}
+.add-link:hover{color:var(--yellow-mid)}
+
+/* Entry list */
+.section{margin:18px 0 0}
+.section-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);
+}
+.section-title{
+  font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);
+}
+.section-title .label-num{margin-right:6px}
+.section-en{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:13px;color:var(--ink-light);font-weight:300;
+}
+.total{
+  font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;
+  color:var(--yellow-mid);letter-spacing:-0.01em;
+}
+
+.entry{
+  display:grid;grid-template-columns:50px 1fr 60px 80px 22px;gap:10px;
+  padding:10px 4px;border-bottom:1px dashed var(--line);
+  font-size:12.5px;align-items:center;cursor:pointer;transition:background 0.15s;
+}
+.entry:hover{background:var(--yellow-lightest)}
+.entry:last-child{border-bottom:none}
+.entry .time{
+  font-family:'Cormorant Garamond',serif;font-size:13px;
+  color:var(--ink-soft);letter-spacing:0.04em;
+}
+.entry .proj{font-weight:400;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry .stage{
+  font-size:10px;color:var(--yellow-mid);text-align:center;
+  background:var(--yellow-pale);padding:2px 6px;border-radius:2px;
+  font-family:'Inter',sans-serif;letter-spacing:0.1em;font-weight:500;
+}
+.entry .dur{
+  text-align:right;font-family:'Cormorant Garamond',serif;
+  font-size:16px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;
+}
+.entry .del{text-align:center;color:var(--ink-light);font-size:14px;cursor:pointer;line-height:1}
+.entry .del:hover{color:var(--red)}
+.empty{text-align:center;padding:36px 0;color:var(--ink-light);font-size:12px;font-style:italic;font-family:'Cormorant Garamond',serif}
+
+/* Bar distribution */
+.bar-row{
+  display:grid;grid-template-columns:110px 1fr 80px;gap:12px;
+  padding:8px 4px;font-size:12.5px;align-items:center;border-bottom:1px dashed var(--line);
+}
+.bar-row:last-child{border-bottom:none}
+.bar-row .nam{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .bar-wrap{height:4px;background:var(--line-soft);border-radius:2px;overflow:hidden}
+.bar-row .bar{height:100%;border-radius:2px}
+.bar-row .dur{
+  text-align:right;font-family:'Cormorant Garamond',serif;
+  font-size:15px;color:var(--ink-soft);font-variant-numeric:tabular-nums;
+}
+
+/* Report table */
+.report-block{margin-top:16px}
+.report-month-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:0;
+}
+.report-month-label{
+  font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;
+  color:var(--yellow-mid);letter-spacing:0.03em;
+}
+.report-month-total{
+  font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;
+  color:var(--ink-soft);font-variant-numeric:tabular-nums;
+}
+.report-table{
+  width:100%;border-collapse:collapse;font-size:12px;
+  margin-bottom:8px;
+}
+.report-table th{
+  padding:7px 6px;text-align:right;font-family:'Inter',sans-serif;
+  font-size:9.5px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink-light);border-bottom:1px solid var(--line);
+}
+.report-table td{
+  padding:7px 6px;text-align:right;font-family:'Cormorant Garamond',serif;
+  font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;
+  border-bottom:1px dashed var(--line);
+}
+.report-table td:first-child{
+  font-family:'Noto Serif TC',serif;color:var(--ink);font-size:12.5px;
+  text-align:left;font-weight:400;
+}
+.report-table td.zero{color:var(--ink-light)}
+.report-table td.proj-total{color:var(--yellow-mid);font-weight:500}
+.report-table tfoot td{
+  background:var(--yellow-lightest);font-weight:500;color:var(--ink);
+  border-top:1px solid var(--line);border-bottom:none;
+}
+.report-table tfoot td:first-child{
+  color:var(--ink-soft);font-family:'Inter',sans-serif;font-size:10px;
+  letter-spacing:0.2em;text-transform:uppercase;font-weight:500;
+}
+
+/* Import note */
+.import-note{
+  background:var(--yellow-lightest);border-left:3px solid var(--yellow);
+  padding:13px 18px;margin-top:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+}
+.import-note-text{
+  font-family:'Noto Serif TC',serif;font-size:12.5px;color:var(--ink);letter-spacing:0.06em;
+}
+.import-note-text .italic{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-soft)}
+.import-btn{
+  padding:6px 14px;font-size:10px;font-weight:500;border:0.5px solid var(--yellow);
+  background:#fff;color:var(--yellow-mid);border-radius:3px;cursor:pointer;
+  font-family:'Inter',sans-serif;letter-spacing:0.2em;text-transform:uppercase;
+}
+.import-btn:hover{background:var(--yellow);color:#fff}
+
+/* Footer */
+.footer{
+  margin-top:24px;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--ink-light);
+  letter-spacing:0.2em;text-transform:uppercase;
+}
+.footer-mark{
+  font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;
+  text-transform:none;letter-spacing:0.02em;
+}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(40,35,25,0.4);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal{
+  background:var(--paper);border-radius:4px;width:100%;max-width:440px;
+  padding:28px 32px;border:1px solid var(--line);max-height:90vh;overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,0.15);
+}
+.modal-title{
+  font-family:'Noto Serif TC',serif;font-size:17px;font-weight:500;
+  margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--line);
+}
+.modal .field{margin-bottom:12px}
+.modal-btns{
+  display:flex;gap:8px;justify-content:flex-end;
+  margin-top:18px;padding-top:14px;border-top:1px solid var(--line);
+}
+.btn-sub{
+  padding:7px 16px;font-size:10px;font-weight:500;border-radius:3px;
+  border:0.5px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;
+  font-family:'Inter',sans-serif;letter-spacing:0.2em;text-transform:uppercase;
+}
+.btn-sub:hover{background:var(--yellow-lightest)}
+.btn-sub.primary{background:var(--yellow);color:#fff;border-color:var(--yellow)}
+.btn-sub.primary:hover{background:var(--yellow-mid);border-color:var(--yellow-mid)}
+.btn-sub.danger{background:#fff;color:var(--red);border-color:var(--red)}
+.btn-sub.danger:hover{background:#fcebeb}
+
+@media (max-width:520px){
+  .a4{padding:24px 22px 24px}
+  .corner-l,.corner-r{font-size:9px}
+  .title{font-size:20px}
+  .timer-clock{font-size:46px}
+}
+</style>
+</head>
+<body>
+<div class="viewport"><article class="a4" id="app"></article></div>
+
+<script>
+// ── 設定 ──────────────────────────────────────────────────
+// API 路徑(同主追蹤器)
+var API = "/api/notion";
+// 是否走 API(預設 true;若離線會自動退到 localStorage)
+var USE_API = true;
+
+var STORAGE_KEY='timeTrackerEntries';
+var CURRENT_KEY='timeTrackerCurrent';
+var PROJECTS_KEY='timeTrackerProjects';
+var LAST_SYNC_KEY='timeTrackerLastSync';
+
+function loadEntries(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return [];}}
+function saveEntriesLocal(arr){localStorage.setItem(STORAGE_KEY,JSON.stringify(arr));}
+function loadCurrent(){try{return JSON.parse(localStorage.getItem(CURRENT_KEY))||null;}catch(e){return null;}}
+function saveCurrent(c){if(c)localStorage.setItem(CURRENT_KEY,JSON.stringify(c));else localStorage.removeItem(CURRENT_KEY);}
+function loadProjects(){try{return JSON.parse(localStorage.getItem(PROJECTS_KEY))||[];}catch(e){return [];}}
+function saveProjects(arr){localStorage.setItem(PROJECTS_KEY,JSON.stringify(arr));}
+function uid(){return 'e'+Date.now()+Math.random().toString(36).slice(2,7);}
+
+// ── Notion API ──────────────────────────────────────────────
+function apiListEntries(cb){
+  fetch(API+'?action=time-list').then(function(r){return r.json();}).then(function(d){
+    if(d.entries){cb(null,d.entries);}else{cb(d.error||'API error');}
+  }).catch(function(e){cb(e.message||'Network error');});
+}
+function apiSaveEntry(entry,cb){
+  fetch(API+'?action=time-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok){cb(null,d.notionId);}else{cb(d.error||'Save error');}
+    }).catch(function(e){cb(e.message||'Network error');});
+}
+function apiDeleteEntry(notionId,cb){
+  fetch(API+'?action=time-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({notionId:notionId})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok){cb(null);}else{cb(d.error||'Delete error');}
+    }).catch(function(e){cb(e.message||'Network error');});
+}
+function apiUpdateProjectTotal(notionId,totalMinutes,cb){
+  fetch(API+'?action=time-update-total',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({notionId:notionId,totalMinutes:totalMinutes})})
+    .then(function(r){return r.json();}).then(function(d){cb(d.ok?null:d.error);}).catch(function(e){cb(e.message);});
+}
+function apiListProjects(cb){
+  fetch(API).then(function(r){return r.json();}).then(function(d){
+    if(d.projects){
+      var ps=d.projects.filter(function(p){return !p.closed;}).map(function(p){
+        return {id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||''};
+      });
+      cb(null,ps);
+    }else{cb(d.error||'API error');}
+  }).catch(function(e){cb(e.message||'Network error');});
+}
+
+// ── Entry CRUD(本地優先 + 雲端同步)──────────────────────────
+function saveEntries(arr){saveEntriesLocal(arr);}
+
+function syncFromCloud(cb){
+  if(!USE_API){cb&&cb();return;}
+  apiListEntries(function(err,entries){
+    if(err){console.warn('雲端讀取失敗,使用本機',err);cb&&cb();return;}
+    // 雲端為主,本地是 cache
+    state.entries=entries;
+    saveEntriesLocal(entries);
+    localStorage.setItem(LAST_SYNC_KEY,String(Date.now()));
+    cb&&cb();
+    render();
+  });
+}
+
+function fmtClock(ms){
+  var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+function fmtDur(ms){
+  var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  if(h===0)return m+'m';
+  return h+'h'+(m>0?' '+m+'m':'');
+}
+function fmtTime(ts){var d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function fmtDateEN(ts){var d=new Date(ts);var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return months[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();}
+function todayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function dayOfWeekEN(){var w=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];return w[new Date().getDay()];}
+
+function entryDuration(e){
+  if(!e.endAt)return 0;
+  return e.endAt-e.startAt-(e.pauseTotal||0);
+}
+
+function importFromFile(file,cb){
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var data=JSON.parse(r.result);
+      var projects=(data.projects||[]).filter(function(p){return !p.closed;}).map(function(p){
+        return {id:p.id||p.notionId,client:p.client,name:p.name,type:p.type||''};
+      });
+      saveProjects(projects);
+      cb(null,projects);
+    }catch(e){cb(e);}
+  };
+  r.readAsText(file);
+}
+
+var state={
+  view:'today',
+  current:loadCurrent(),
+  entries:loadEntries(),
+  projects:loadProjects(),
+  modal:null,
+  modalForm:{}
+};
+
+setInterval(function(){
+  if(state.current&&!state.current.pausedAt){render();}
+},1000);
+
+function startTimer(){
+  var projSel=document.getElementById('proj-select');
+  var stageSel=document.getElementById('stage-select');
+  var noteInput=document.getElementById('note-input');
+  if(!projSel||!projSel.value){alert('請選專案');return;}
+  var opt=projSel.options[projSel.selectedIndex];
+  var proj=state.projects.find(function(p){return p.id===projSel.value;});
+  state.current={
+    projectId:projSel.value,
+    projectLabel:proj?proj.name:opt.text,
+    client:proj?proj.client:'',
+    stage:stageSel.value||'其他',
+    note:noteInput.value||'',
+    startAt:Date.now(),pausedAt:null,pauseTotal:0
+  };
+  saveCurrent(state.current);
+  render();
+}
+function pauseTimer(){if(!state.current||state.current.pausedAt)return;state.current.pausedAt=Date.now();saveCurrent(state.current);render();}
+function resumeTimer(){if(!state.current||!state.current.pausedAt)return;state.current.pauseTotal=(state.current.pauseTotal||0)+(Date.now()-state.current.pausedAt);state.current.pausedAt=null;saveCurrent(state.current);render();}
+function stopTimer(){
+  if(!state.current)return;
+  var c=state.current;
+  if(c.pausedAt){c.pauseTotal=(c.pauseTotal||0)+(Date.now()-c.pausedAt);c.pausedAt=null;}
+  var entry={id:uid(),projectId:c.projectId,projectLabel:c.projectLabel,client:c.client||'',stage:c.stage,note:c.note,startAt:c.startAt,endAt:Date.now(),pauseTotal:c.pauseTotal||0};
+  entry.durMin=Math.round(entryDuration(entry)/60000);
+  state.entries.unshift(entry);
+  saveEntries(state.entries);
+  state.current=null;saveCurrent(null);
+  render();
+  // 寫入 Notion
+  if(USE_API){
+    state.syncing=true;render();
+    apiSaveEntry(entry,function(err,notionId){
+      state.syncing=false;
+      if(err){state.syncError='儲存失敗:'+err;render();return;}
+      // 用 notionId 取代 local id
+      entry.notionId=notionId;
+      state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});
+      saveEntries(state.entries);
+      // 更新該專案 Notion 總時數
+      updateProjectTotalIfApplicable(entry.projectId);
+      render();
+    });
+  }
+}
+function deleteEntry(id){
+  if(!confirm('確定刪除?'))return;
+  var ent=state.entries.find(function(e){return e.id===id;});
+  state.entries=state.entries.filter(function(e){return e.id!==id;});
+  saveEntries(state.entries);render();
+  if(USE_API&&ent&&ent.notionId){
+    apiDeleteEntry(ent.notionId,function(err){
+      if(err)console.warn('刪除 Notion 失敗',err);
+      if(ent.projectId)updateProjectTotalIfApplicable(ent.projectId);
+    });
+  } else if(USE_API&&ent&&ent.projectId){
+    updateProjectTotalIfApplicable(ent.projectId);
+  }
+}
+function openModal(m){
+  if(m==='manual'){
+    var now=new Date(),start=new Date(now.getTime()-3600000);
+    state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now)};
+  } else if(m.indexOf('edit:')===0){
+    var id=m.slice(5);
+    var e=state.entries.find(function(x){return x.id===id;});
+    if(!e)return;
+    state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),pauseTotal:e.pauseTotal||0};
+  }
+  state.modal=m;render();
+}
+function closeModal(){state.modal=null;render();}
+function saveModal(){
+  var f=state.modalForm;
+  if(!f.projectLabel){alert('請選專案');return;}
+  var startAt=new Date(f.startDate+'T'+f.startTime+':00').getTime();
+  var endAt=new Date(f.endDate+'T'+f.endTime+':00').getTime();
+  if(endAt<=startAt){alert('結束時間要在開始之後');return;}
+  var entry;
+  if(f.id){
+    state.entries=state.entries.map(function(e){
+      if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,pauseTotal:f.pauseTotal||0});entry.durMin=Math.round(entryDuration(entry)/60000);return entry;}
+      return e;
+    });
+  } else {
+    entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,pauseTotal:0};
+    entry.durMin=Math.round(entryDuration(entry)/60000);
+    state.entries.unshift(entry);
+  }
+  state.entries.sort(function(a,b){return b.startAt-a.startAt;});
+  saveEntries(state.entries);closeModal();
+  if(USE_API&&entry){
+    apiSaveEntry(entry,function(err,notionId){
+      if(err){console.warn('儲存失敗',err);return;}
+      if(notionId){entry.notionId=notionId;state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});saveEntries(state.entries);}
+      updateProjectTotalIfApplicable(entry.projectId);
+      render();
+    });
+  }
+}
+function deleteFromModal(){
+  if(!state.modalForm.id||!confirm('確定刪除?'))return;
+  var ent=state.entries.find(function(e){return e.id===state.modalForm.id;});
+  state.entries=state.entries.filter(function(e){return e.id!==state.modalForm.id;});
+  saveEntries(state.entries);closeModal();
+  if(USE_API&&ent&&ent.notionId){
+    apiDeleteEntry(ent.notionId,function(err){
+      if(err)console.warn('刪除失敗',err);
+      if(ent.projectId)updateProjectTotalIfApplicable(ent.projectId);
+    });
+  } else if(USE_API&&ent&&ent.projectId){
+    updateProjectTotalIfApplicable(ent.projectId);
+  }
+}
+
+// 更新指定專案的 Notion 總時數 = 該專案所有 entry 的時長加總
+function updateProjectTotalIfApplicable(projectId){
+  if(!USE_API||!projectId||projectId==='__other__')return;
+  var proj=state.projects.find(function(p){return p.id===projectId;});
+  if(!proj||!proj.notionId)return;
+  var total=state.entries.filter(function(e){return e.projectId===projectId;}).reduce(function(s,e){return s+(e.durMin||Math.round(entryDuration(e)/60000));},0);
+  apiUpdateProjectTotal(proj.notionId,total,function(err){
+    if(err)console.warn('更新總時數失敗',err);
+  });
+}
+function importFile(input){
+  if(!input.files[0])return;
+  importFromFile(input.files[0],function(err,ps){
+    if(err){alert('匯入失敗:'+err.message);return;}
+    state.projects=ps;alert('已匯入 '+ps.length+' 個專案');render();
+  });
+}
+
+function render(){
+  var current=state.current,now=new Date();
+  var html='';
+  html+='<div class="corner-l">Time Tracker</div>';
+  html+='<div class="corner-r">'+fmtDateEN(Date.now())+'</div>';
+
+  // Header
+  html+='<header class="header">';
+  html+='  <div class="eyebrow">Daily Work Log · 2026</div>';
+  html+='  <div class="title-row">';
+  html+='    <h1 class="title">工作時間追蹤</h1>';
+  html+='    <span class="title-sub">'+dayOfWeekEN()+'</span>';
+  html+='  </div>';
+  html+='</header>';
+
+  // Tabs
+  html+='<div class="tabs">';
+  ['today','report'].forEach(function(v){
+    var lab={today:'⏱ Today',report:'📊 Report'}[v];
+    html+='  <button class="tab '+(state.view===v?'active':'')+'" onclick="state.view=\''+v+'\';render();">'+lab+'</button>';
+  });
+  html+='</div>';
+
+  // Timer card(只在 today;或進行中要看)
+  if(state.view==='today'||current){
+  html+='<section class="timer-card">';
+  if(!current){
+    html+='  <div class="tc-top">';
+    html+='    <div class="label"><span class="label-num">01</span><span>選擇專案 / Project</span></div>';
+    html+='    <div><div class="field-label">Project</div>';
+    html+='      <select id="proj-select" class="fcontrol">';
+    html+='        <option value="">— 請選專案 —</option>';
+    state.projects.forEach(function(p){html+='      <option value="'+p.id+'">【'+p.client+'】'+p.name+'</option>';});
+    html+='        <option value="__other__">+ 其他工作(行政/會議/學習等)</option>';
+    html+='      </select></div>';
+    html+='    <div class="row2">';
+    html+='      <div><div class="field-label">Stage / 階段</div>';
+    html+='        <select id="stage-select" class="fcontrol">';
+    ['初剪','ES','業配','Final','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
+    html+='        </select></div>';
+    html+='      <div><div class="field-label">Note / 備註</div>';
+    html+='        <input id="note-input" class="fcontrol" placeholder="例:修剪頭尾"></div>';
+    html+='    </div>';
+    html+='  </div>';
+    html+='  <div class="timer-display">';
+    html+='    <div class="timer-clock">00:00:00</div>';
+    html+='    <div class="timer-status">Ready</div>';
+    html+='  </div>';
+    html+='  <div class="btns"><button class="btn start" onclick="startTimer()">▸ 開始</button></div>';
+    html+='  <div class="add-link-row"><span class="add-link" onclick="openModal(\'manual\')">+ Add Entry Manually · 手動補填過去時段</span></div>';
+  } else {
+    var elapsed=current.pausedAt?(current.pausedAt-current.startAt-(current.pauseTotal||0)):(Date.now()-current.startAt-(current.pauseTotal||0));
+    html+='  <div class="timer-info">';
+    html+='    <div class="timer-info-proj">'+current.projectLabel+'</div>';
+    html+='    <div class="timer-info-meta">階段:<span class="stage">'+current.stage+'</span>'+(current.note?' · '+current.note:'')+'</div>';
+    html+='  </div>';
+    html+='  <div class="timer-display">';
+    html+='    <div class="timer-clock">'+fmtClock(elapsed)+'</div>';
+    if(current.pausedAt){
+      html+='    <div class="timer-status paused">‖ Paused · 暫停中</div>';
+    } else {
+      html+='    <div class="timer-status live">● Recording · 進行中</div>';
+    }
+    html+='  </div>';
+    if(current.pausedAt){
+      html+='  <div class="btns"><button class="btn resume" onclick="resumeTimer()">▸ 繼續</button><button class="btn stop" onclick="stopTimer()">■ 結束</button></div>';
+    } else {
+      html+='  <div class="btns"><button class="btn pause" onclick="pauseTimer()">‖ 暫停</button><button class="btn stop" onclick="stopTimer()">■ 結束</button></div>';
+    }
+  }
+  html+='</section>';
+  } // end if(state.view==='today'||current)
+
+  // ── 今日打卡(only when view===today)─────────────────
+  var today=todayKey();
+  if(state.view==='today'){
+    var viewEntries=state.entries.filter(function(e){return dateKey(e.startAt)===today;});
+    var totalMs=viewEntries.reduce(function(s,e){return s+entryDuration(e);},0);
+    html+='<section class="section">';
+    html+='  <div class="section-head">';
+    html+='    <div class="section-title"><span class="label-num">02</span>今日紀錄 · <span class="section-en">Today\'s Log ('+viewEntries.length+')</span></div>';
+    html+='    <div class="total">'+fmtDur(totalMs)+'</div>';
+    html+='  </div>';
+    if(viewEntries.length===0){
+      html+='  <div class="empty">No entries yet · 今天還沒有紀錄</div>';
+    } else {
+      viewEntries.forEach(function(e){
+        var dur=entryDuration(e);
+        html+='  <div class="entry" onclick="openModal(\'edit:'+e.id+'\')">';
+        html+='    <div class="time">'+fmtTime(e.startAt)+'</div>';
+        html+='    <div class="proj">'+(e.projectLabel||'(無)')+'</div>';
+        html+='    <div class="stage">'+e.stage+'</div>';
+        html+='    <div class="dur">'+fmtDur(dur)+'</div>';
+        html+='    <div class="del" onclick="event.stopPropagation();deleteEntry(\''+e.id+'\')">×</div>';
+        html+='  </div>';
+      });
+    }
+    html+='</section>';
+
+    // Bar distribution(只在今日)
+    if(viewEntries.length>0){
+      var byProj={};
+      viewEntries.forEach(function(e){var k=e.projectLabel||'(無)';byProj[k]=(byProj[k]||0)+entryDuration(e);});
+      var rows=Object.entries(byProj).sort(function(a,b){return b[1]-a[1];});
+      var maxMs=Math.max.apply(null,rows.map(function(r){return r[1];}));
+      var COLORS=['#E8B340','#C9A227','#B8862A','#9C7522','#7A5C1B','#5F4814','#473510','#332608'];
+      html+='<section class="section">';
+      html+='  <div class="section-head">';
+      html+='    <div class="section-title"><span class="label-num">03</span>時間分配 · <span class="section-en">Distribution</span></div>';
+      html+='  </div>';
+      rows.forEach(function(r,i){
+        var w=(r[1]/maxMs)*100;
+        html+='  <div class="bar-row">';
+        html+='    <div class="nam">'+r[0]+'</div>';
+        html+='    <div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:'+COLORS[i%COLORS.length]+'"></div></div>';
+        html+='    <div class="dur">'+fmtDur(r[1])+'</div>';
+        html+='  </div>';
+      });
+      html+='</section>';
+    }
+  }
+
+  // ── 結算表(only when view===report)──────────────────
+  if(state.view==='report'){
+    // 按月份分組 → 每月按專案彙總,各階段累計
+    var STAGES=['初剪','ES','業配','Final','其他'];
+    var monthMap={};
+    state.entries.forEach(function(e){
+      var ym=dateKey(e.startAt).slice(0,7); // YYYY-MM
+      if(!monthMap[ym])monthMap[ym]={};
+      var key=e.projectLabel||'(無)';
+      if(!monthMap[ym][key])monthMap[ym][key]={stages:{},total:0};
+      var dur=entryDuration(e);
+      var st=e.stage||'其他';
+      monthMap[ym][key].stages[st]=(monthMap[ym][key].stages[st]||0)+dur;
+      monthMap[ym][key].total+=dur;
+    });
+    var months=Object.keys(monthMap).sort().reverse();
+    if(months.length===0){
+      html+='<section class="section">';
+      html+='  <div class="section-head">';
+      html+='    <div class="section-title"><span class="label-num">02</span>結算表 · <span class="section-en">Report</span></div>';
+      html+='  </div>';
+      html+='  <div class="empty">No data yet · 還沒有紀錄</div>';
+      html+='</section>';
+    } else {
+      html+='<section class="section">';
+      html+='  <div class="section-head">';
+      html+='    <div class="section-title"><span class="label-num">02</span>結算表 · <span class="section-en">Monthly Breakdown</span></div>';
+      html+='  </div>';
+      html+='</section>';
+      months.forEach(function(ym){
+        var projects=Object.entries(monthMap[ym]).sort(function(a,b){return b[1].total-a[1].total;});
+        var monthTotal=projects.reduce(function(s,p){return s+p[1].total;},0);
+        // 月份小計(每階段)
+        var stageTotals={};
+        STAGES.forEach(function(s){stageTotals[s]=0;});
+        projects.forEach(function(p){STAGES.forEach(function(s){stageTotals[s]+=p[1].stages[s]||0;});});
+        html+='<div class="report-block">';
+        html+='  <div class="report-month-head">';
+        html+='    <span class="report-month-label">'+ym.replace('-','/')+'</span>';
+        html+='    <span class="report-month-total">'+fmtDur(monthTotal)+'</span>';
+        html+='  </div>';
+        html+='  <table class="report-table">';
+        html+='    <thead><tr>';
+        html+='      <th style="text-align:left">專案</th>';
+        STAGES.forEach(function(s){html+='      <th>'+s+'</th>';});
+        html+='      <th>合計</th>';
+        html+='    </tr></thead>';
+        html+='    <tbody>';
+        projects.forEach(function(p){
+          var name=p[0],data=p[1];
+          html+='      <tr>';
+          html+='        <td style="text-align:left">'+name+'</td>';
+          STAGES.forEach(function(s){
+            var v=data.stages[s]||0;
+            html+='        <td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';
+          });
+          html+='        <td class="proj-total">'+fmtDur(data.total)+'</td>';
+          html+='      </tr>';
+        });
+        html+='    </tbody>';
+        html+='    <tfoot><tr>';
+        html+='      <td style="text-align:left">小計</td>';
+        STAGES.forEach(function(s){
+          var v=stageTotals[s];
+          html+='      <td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';
+        });
+        html+='      <td>'+fmtDur(monthTotal)+'</td>';
+        html+='    </tr></tfoot>';
+        html+='  </table>';
+        html+='</div>';
+      });
+    }
+  }
+
+  // 同步狀態
+  if(USE_API){
+    var statusMsg='',statusBtn='';
+    if(state.loadingProjects){statusMsg='Loading projects... · 載入中';}
+    else if(state.loadError){statusMsg=state.loadError;statusBtn='Retry';}
+    else if(state.syncing){statusMsg='Saving to Notion... · 同步中';}
+    else if(state.syncError){statusMsg=state.syncError;statusBtn='Retry';}
+    else{statusMsg='<span class="italic">'+state.projects.length+' projects · synced with Notion</span>';statusBtn='Refresh';}
+    html+='<div class="import-note">';
+    html+='  <span class="import-note-text">'+statusMsg+'</span>';
+    if(statusBtn){
+      html+='  <button class="import-btn" onclick="state.loadingProjects=true;state.loadError=null;state.syncError=null;render();apiListProjects(function(err,ps){state.loadingProjects=false;if(err){state.loadError=err;}else{state.projects=ps;saveProjects(ps);}syncFromCloud();render();});">'+statusBtn+'</button>';
+    }
+    html+='</div>';
+  } else if(state.projects.length===0){
+    html+='<div class="import-note">';
+    html+='  <span class="import-note-text">尚未匯入專案 · <span class="italic">Import projects</span></span>';
+    html+='  <button class="import-btn" onclick="document.getElementById(\'imp\').click()">Import</button>';
+    html+='  <input type="file" id="imp" accept=".json" style="display:none" onchange="importFile(this)">';
+    html+='</div>';
+  } else {
+    html+='<div class="import-note">';
+    html+='  <span class="import-note-text"><span class="italic">'+state.projects.length+' projects loaded</span></span>';
+    html+='  <button class="import-btn" onclick="document.getElementById(\'imp\').click()">Re-import</button>';
+    html+='  <input type="file" id="imp" accept=".json" style="display:none" onchange="importFile(this)">';
+    html+='</div>';
+  }
+
+  // Footer
+  html+='<footer class="footer">';
+  html+='  <span>Time Tracker · v1</span>';
+  html+='  <span class="footer-mark">小玩 studio</span>';
+  html+='</footer>';
+
+  // Modal
+  if(state.modal){
+    var f=state.modalForm,isEdit=!!f.id;
+    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='  <div class="modal">';
+    html+='    <div class="modal-title">'+(isEdit?'編輯紀錄 · Edit Entry':'手動補填 · Add Entry')+'</div>';
+    html+='    <div class="field"><div class="field-label">Project / 專案</div>';
+    html+='      <select class="fcontrol" onchange="var p=state.projects.find(function(x){return x.id===this.value;}.bind({value:this.value}));state.modalForm.projectId=this.value;state.modalForm.projectLabel=p?p.name:this.options[this.selectedIndex].text;state.modalForm.client=p?p.client:\'\';">';
+    html+='        <option value="">— 請選 —</option>';
+    state.projects.forEach(function(p){var lab='【'+p.client+'】'+p.name;html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>'+lab+'</option>';});
+    html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
+    html+='      </select></div>';
+    html+='    <div class="row2">';
+    html+='      <div class="field"><div class="field-label">Stage / 階段</div>';
+    html+='        <select class="fcontrol" onchange="state.modalForm.stage=this.value;">';
+    ['初剪','ES','業配','Final','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
+    html+='        </select></div>';
+    html+='      <div class="field"><div class="field-label">Note / 備註</div>';
+    html+='        <input class="fcontrol" value="'+(f.note||'')+'" onchange="state.modalForm.note=this.value;">';
+    html+='      </div>';
+    html+='    </div>';
+    html+='    <div class="row2">';
+    html+='      <div class="field"><div class="field-label">開始日 · Start</div>';
+    html+='        <input type="date" class="fcontrol" value="'+f.startDate+'" onchange="state.modalForm.startDate=this.value;"></div>';
+    html+='      <div class="field"><div class="field-label">開始時間</div>';
+    html+='        <input type="time" class="fcontrol" value="'+f.startTime+'" onchange="state.modalForm.startTime=this.value;"></div>';
+    html+='    </div>';
+    html+='    <div class="row2">';
+    html+='      <div class="field"><div class="field-label">結束日 · End</div>';
+    html+='        <input type="date" class="fcontrol" value="'+f.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
+    html+='      <div class="field"><div class="field-label">結束時間</div>';
+    html+='        <input type="time" class="fcontrol" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
+    html+='    </div>';
+    html+='    <div class="modal-btns">';
+    if(isEdit)html+='      <button class="btn-sub danger" onclick="deleteFromModal()">刪除</button>';
+    html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
+    html+='      <button class="btn-sub primary" onclick="saveModal()">儲存</button>';
+    html+='    </div>';
+    html+='  </div>';
+    html+='</div>';
+  }
+
+  document.getElementById('app').innerHTML=html;
+}
+
+render();
+
+// 啟動時自動從 Notion 拉專案 + 時間紀錄
+if(USE_API){
+  state.loadingProjects=true;render();
+  apiListProjects(function(err,ps){
+    state.loadingProjects=false;
+    if(err){state.loadError='專案載入失敗:'+err;}
+    else{state.projects=ps;saveProjects(ps);}
+    render();
+    syncFromCloud();
+  });
+}
+</script>
+</body>
+</html>
