@@ -2,6 +2,7 @@
 const NOTION_API = "https://api.notion.com/v1";
 const DB_ID = "9b73ebba-2aec-49ac-be96-4483360a1456";
 const CLIENTS_DB_ID = "7f44768f-64cf-404a-abe1-c153e68b1179";
+const TIME_DB_ID = "3790c47d-6782-80ce-bcc8-d55f69b9f893";
 
 export default async function handler(req, res) {
   // CORS
@@ -140,36 +141,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // ── 儲存全部客戶設定（先刪再建,排除 __cal_extras__、加延遲避 rate limit）─
+    // ── 儲存全部客戶設定（先刪再建）──────────────────────────────
     if (req.method === "POST" && action === "save-clients") {
       const { clients, colors } = body;
-      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-      // 1. 撈現有客戶
+      // 先查所有現有客戶
       const listRes = await fetch(`${NOTION_API}/databases/${CLIENTS_DB_ID}/query`, {
         method: "POST", headers: notionHeaders, body: JSON.stringify({}),
       });
       const listData = await listRes.json();
-
-      // 2. 過濾掉 __cal_extras__,只封存真正的客戶頁面
-      const existingClients = (listData.results || []).filter(function(page) {
-        const name = (page.properties && page.properties["客戶名稱"]
-          && page.properties["客戶名稱"].title
-          && page.properties["客戶名稱"].title[0]
-          && page.properties["客戶名稱"].title[0].plain_text) || "";
-        return name !== "__cal_extras__";
-      });
-
-      // 3. 序列封存舊客戶,每筆間隔 350ms (Notion API rate limit 約 3 req/sec)
-      for (const page of existingClients) {
+      // 逐一封存舊的（sequential 避免 rate limit）
+      for (const page of (listData.results || [])) {
         await fetch(`${NOTION_API}/pages/${page.id}`, {
           method: "PATCH", headers: notionHeaders,
           body: JSON.stringify({ archived: true }),
         });
-        await sleep(350);
       }
-
-      // 4. 序列新增新客戶,每筆間隔 350ms
+      // 新增新的
       for (let i = 0; i < (clients || []).length; i++) {
         const name = clients[i];
         await fetch(`${NOTION_API}/pages`, {
@@ -183,7 +170,6 @@ export default async function handler(req, res) {
             },
           }),
         });
-        await sleep(350);
       }
       return res.status(200).json({ ok: true });
     }
@@ -238,6 +224,88 @@ export default async function handler(req, res) {
           }),
         });
       }
+      return res.status(200).json({ ok: true });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ── 時間紀錄 actions ───────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+
+    // 讀取所有時間紀錄
+    if (req.method === "GET" && action === "time-list") {
+      let results = [], cursor = undefined, hasMore = true;
+      while (hasMore) {
+        const payload = { page_size: 100, sorts: [{ property: "開始", direction: "descending" }] };
+        if (cursor) payload.start_cursor = cursor;
+        const response = await fetch(`${NOTION_API}/databases/${TIME_DB_ID}/query`, {
+          method: "POST",
+          headers: notionHeaders,
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (data.object === "error") return res.status(400).json({ error: data.message, code: data.code });
+        results = results.concat(data.results || []);
+        hasMore = data.has_more;
+        cursor = data.next_cursor;
+      }
+      const entries = results.map(timePageToEntry).filter(Boolean);
+      return res.status(200).json({ entries });
+    }
+
+    // 新增/更新一筆時間紀錄
+    if (req.method === "POST" && action === "time-save") {
+      const e = body || {};
+      const props = entryToProps(e);
+      let result;
+      if (e.notionId) {
+        // 更新
+        const r = await fetch(`${NOTION_API}/pages/${e.notionId}`, {
+          method: "PATCH",
+          headers: notionHeaders,
+          body: JSON.stringify({ properties: props }),
+        });
+        result = await r.json();
+      } else {
+        // 新增
+        const r = await fetch(`${NOTION_API}/pages`, {
+          method: "POST",
+          headers: notionHeaders,
+          body: JSON.stringify({
+            parent: { database_id: TIME_DB_ID },
+            properties: props,
+          }),
+        });
+        result = await r.json();
+      }
+      if (result.object === "error") return res.status(400).json({ error: result.message, code: result.code });
+      return res.status(200).json({ ok: true, notionId: result.id });
+    }
+
+    // 刪除(歸檔)一筆時間紀錄
+    if (req.method === "POST" && action === "time-delete") {
+      const { notionId } = body || {};
+      if (!notionId) return res.status(400).json({ error: "Missing notionId" });
+      const r = await fetch(`${NOTION_API}/pages/${notionId}`, {
+        method: "PATCH",
+        headers: notionHeaders,
+        body: JSON.stringify({ archived: true }),
+      });
+      const result = await r.json();
+      if (result.object === "error") return res.status(400).json({ error: result.message });
+      return res.status(200).json({ ok: true });
+    }
+
+    // 更新某個專案的總時數
+    if (req.method === "POST" && action === "time-update-total") {
+      const { notionId, totalMinutes } = body || {};
+      if (!notionId) return res.status(400).json({ error: "Missing notionId" });
+      const r = await fetch(`${NOTION_API}/pages/${notionId}`, {
+        method: "PATCH",
+        headers: notionHeaders,
+        body: JSON.stringify({ properties: { "總時數": { number: totalMinutes || 0 } } }),
+      });
+      const result = await r.json();
+      if (result.object === "error") return res.status(400).json({ error: result.message });
       return res.status(200).json({ ok: true });
     }
 
@@ -344,3 +412,41 @@ function projectToProperties(p) {
     "額外資料":  { rich_text: richText(JSON.stringify({feeItems:p.feeItems||[],costItems:p.costItems||[],overRate:p.overRate!==undefined?p.overRate:850})) },
   };
 }
+
+// ── 時間紀錄 helper ───────────────────────────────────────────────
+function timePageToEntry(page) {
+  if (!page || !page.properties) return null;
+  const p = page.properties;
+  function txt(k) { try { return (p[k] && p[k].rich_text && p[k].rich_text[0]) ? p[k].rich_text[0].plain_text : (p[k] && p[k].title && p[k].title[0]) ? p[k].title[0].plain_text : ""; } catch(e) { return ""; } }
+  function sel(k) { try { return (p[k] && p[k].select) ? p[k].select.name : ""; } catch(e) { return ""; } }
+  function dt(k)  { try { return (p[k] && p[k].date) ? p[k].date.start : ""; } catch(e) { return ""; } }
+  function num(k) { try { return (p[k] && p[k].number !== null && p[k].number !== undefined) ? p[k].number : 0; } catch(e) { return 0; } }
+  return {
+    id: page.id ? page.id.replace(/-/g, "") : "",
+    notionId: page.id || "",
+    name: txt("名稱"),
+    startAt: dt("開始") ? new Date(dt("開始")).getTime() : 0,
+    endAt: dt("結束") ? new Date(dt("結束")).getTime() : 0,
+    durMin: num("時長分"),
+    client: txt("客戶"),
+    projectLabel: txt("專案"),
+    stage: sel("階段") || "其他",
+    note: txt("備註"),
+  };
+}
+
+function entryToProps(e) {
+  const richText = s => [{ type: "text", text: { content: String(s || "") } }];
+  const props = {
+    "名稱": { title: richText(e.name || `${e.client || ""} · ${e.projectLabel || ""}`) },
+    "客戶": { rich_text: richText(e.client) },
+    "專案": { rich_text: richText(e.projectLabel) },
+    "階段": { select: e.stage ? { name: e.stage } : null },
+    "備註": { rich_text: richText(e.note) },
+    "時長分": { number: Number(e.durMin) || 0 },
+  };
+  if (e.startAt) props["開始"] = { date: { start: new Date(e.startAt).toISOString() } };
+  if (e.endAt) props["結束"] = { date: { start: new Date(e.endAt).toISOString() } };
+  return props;
+}
+
