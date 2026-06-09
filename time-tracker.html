@@ -187,6 +187,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .day-d-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
 .day-d-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500}
 .day-d-tot{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--yellow-mid);font-weight:500}
+.day-d-shift{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--ink-light);margin-bottom:10px;padding-bottom:6px;border-bottom:1px dashed var(--line);letter-spacing:0.02em}
 
 /* 今日報表 · 時間軸 */
 .tl{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:5px 0;font-size:12px;align-items:flex-start}
@@ -623,7 +624,7 @@ function exportCSV(){
     if(!monthMap[ym])monthMap[ym]={};
     var key=e.projectLabel||'(無)';
     if(!monthMap[ym][key])monthMap[ym][key]={stages:{},total:0};
-    var dur=e.endAt-e.startAt,st=e.stage||'其他';
+    var dur=e.endAt-e.startAt-(e.pauseTotal||0),st=e.stage||'其他';
     monthMap[ym][key].stages[st]=(monthMap[ym][key].stages[st]||0)+dur;
     monthMap[ym][key].total+=dur;
   });
@@ -820,7 +821,7 @@ function render(){
     var todayKey2=state.shift?state.shift.workDay:todayKey();
     var todayEntries=state.entries.filter(function(e){return (e.workDay||dateKey(e.startAt))===todayKey2;});
     todayEntries.sort(function(a,b){return a.startAt-b.startAt;});
-    var workMs=todayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt);},0);
+    var workMs=todayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt-(e.pauseTotal||0));},0);
     var spanMs=0,restMs=0,spanLabel='—';
     var todayActive=state.active.filter(function(a){return (a.workDay||dateKey(a.startAt))===todayKey2;});
     var todayShifts=state.shifts.filter(function(s){return s.workDay===todayKey2;});
@@ -870,7 +871,7 @@ function render(){
           var clientHtml=e.client?'<span class="cli">·'+e.client+'</span>':'';
           html+='<div class="tl" onclick="openEdit(\''+e.id+'\')" style="cursor:pointer">';
           html+='<span class="t">'+fmtTime(e.startAt)+'</span>';
-          html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(e.endAt-e.startAt)+'</span></div></div>';
+          html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(e.endAt-e.startAt-(e.pauseTotal||0))+'</span></div></div>';
         }
       });
       // 按案拆區
@@ -880,7 +881,7 @@ function render(){
       todayEntries.forEach(function(e){
         var key=e.projectLabel||'(無)';
         if(!dayMap[key])dayMap[key]={total:0,client:e.client||'',stages:{}};
-        var dur=e.endAt-e.startAt;
+        var dur=e.endAt-e.startAt-(e.pauseTotal||0);
         dayMap[key].total+=dur;
         var st=isOtherWork(e)?'其他工作':(e.stage||'其他');
         if(!dayMap[key].stages[st])dayMap[key].stages[st]={dur:0,notes:[]};
@@ -912,7 +913,7 @@ function render(){
 
     state.entries.forEach(function(e){
       var ym=dateKey(e.startAt).slice(0,7);
-      var dur=e.endAt-e.startAt;
+      var dur=e.endAt-e.startAt-(e.pauseTotal||0);
       monthTotalAll[ym]=(monthTotalAll[ym]||0)+dur;
       if(isOtherWork(e)){
         if(!otherMonthMap[ym])otherMonthMap[ym]={items:{},total:0};
@@ -1089,8 +1090,18 @@ function render(){
       var dayTot=dayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt-(e.pauseTotal||0));},0);
       var sdDate=new Date(sd+'T00:00:00');
       var sdLabel=(sdDate.getMonth()+1)+'/'+sdDate.getDate()+'('+'日一二三四五六'[sdDate.getDay()]+')';
+      // 找該日 shift(從歷史 + 當前)
+      var sdShifts=state.shifts.filter(function(s){return s.workDay===sd;});
+      var sdShiftInfo='';
+      if(state.shift&&state.shift.workDay===sd){
+        sdShiftInfo='上班 '+fmtTime(state.shift.startAt)+' · 還在上班中';
+      } else if(sdShifts.length>0){
+        var sh=sdShifts[0];
+        sdShiftInfo='上班 '+fmtTime(sh.startAt)+' → 下班 '+fmtTime(sh.endAt);
+      }
       html+='<div class="day-detail">';
       html+='  <div class="day-d-head"><span class="day-d-title">'+sdLabel+'</span><span class="day-d-tot">'+fmtDur(dayTot)+'</span></div>';
+      if(sdShiftInfo)html+='  <div class="day-d-shift">'+sdShiftInfo+'</div>';
       if(dayEntries.length===0){
         html+='  <div class="empty">No entries · 沒有紀錄</div>';
       } else {
