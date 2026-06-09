@@ -18,7 +18,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter',sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
 .viewport{padding:32px 16px 60px;display:flex;justify-content:center}
-.a4{width:100%;max-width:560px;background:var(--paper);padding:32px 36px 28px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 20px 60px rgba(180,140,40,0.10),0 8px 20px rgba(180,140,40,0.05);display:flex;flex-direction:column}
+.a4{width:100%;max-width:680px;background:var(--paper);padding:32px 40px 28px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 20px 60px rgba(180,140,40,0.10),0 8px 20px rgba(180,140,40,0.05);display:flex;flex-direction:column}
 
 .corner-l{position:absolute;top:22px;left:36px;font-family:'Inter',sans-serif;font-size:10px;color:var(--ink-light);letter-spacing:0.3em;text-transform:uppercase;font-weight:500}
 .corner-r{position:absolute;top:22px;right:36px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light)}
@@ -149,11 +149,11 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-month-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .report-month-label{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--yellow-mid);letter-spacing:0.03em}
 .report-month-total{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;color:var(--ink-soft)}
-.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
-.report-table th{padding:7px 6px;text-align:right;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);border-bottom:1px solid var(--line)}
-.report-table th:first-child{text-align:left}
-.report-table td{padding:7px 6px;text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;border-bottom:1px dashed var(--line)}
-.report-table td:first-child{font-family:'Noto Serif TC',serif;color:var(--ink);font-size:12.5px;text-align:left;font-weight:400}
+.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;table-layout:auto}
+.report-table th{padding:7px 6px;text-align:right;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);border-bottom:1px solid var(--line);white-space:nowrap}
+.report-table th:first-child{text-align:left;width:30%}
+.report-table td{padding:7px 6px;text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;border-bottom:1px dashed var(--line);white-space:nowrap}
+.report-table td:first-child{font-family:'Noto Serif TC',serif;color:var(--ink);font-size:12.5px;text-align:left;font-weight:400;white-space:normal}
 .report-table td.zero{color:var(--ink-light)}
 .report-table td.proj-total{color:var(--yellow-mid);font-weight:500}
 .report-table td .client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;margin-left:4px}
