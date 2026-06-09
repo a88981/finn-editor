@@ -32,6 +32,20 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .gear-item .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:var(--ink-light);margin-left:6px}
 .gear-divider{height:1px;background:var(--line);margin:4px 0}
 
+/* 上下班打卡條 */
+.clock-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:4px;padding:13px 16px;margin-bottom:14px;gap:14px}
+.clock-bar.working{border-left:3px solid var(--green)}
+.clock-info{flex:1;min-width:0}
+.clock-status{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-light);font-weight:500;margin-bottom:3px}
+.clock-status.live{color:var(--green)}
+.clock-time{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+.clock-time.idle{color:var(--ink-light);font-size:16px;font-style:italic;font-weight:400}
+.clock-btn{padding:8px 18px;font-size:10px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:none;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
+.clock-btn.in{background:var(--green);color:#fff}
+.clock-btn.in:hover{background:#487228}
+.clock-btn.out{background:#fff;color:var(--red);border:1px solid var(--red)}
+.clock-btn.out:hover{background:#fcebeb}
+
 /* 扁扁的待交件提醒列 */
 .todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .todo-tiny-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.18em;color:var(--ink-light);text-transform:uppercase;font-weight:500;white-space:nowrap}
@@ -132,6 +146,30 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-table td.rate .nt{font-size:10px;color:var(--ink-light);margin-right:1px;font-style:normal;letter-spacing:0}
 .report-table td.rate .low{color:var(--red);font-style:normal;font-weight:500}
 .bar-row2 .nam .client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;margin-left:4px}
+
+/* 今日報表 · 時間軸 */
+.tl{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:5px 0;font-size:12px;align-items:flex-start}
+.tl .t{font-family:'Cormorant Garamond',serif;color:var(--ink-soft);font-size:12px;font-variant-numeric:tabular-nums;padding-top:6px}
+.tl .b{display:flex;justify-content:space-between;align-items:center;background:var(--yellow-lightest);border-left:2px solid var(--yellow);padding:6px 10px;border-radius:0 3px 3px 0;gap:8px}
+.tl .b.rest{background:transparent;border-left:2px dashed var(--line)}
+.tl .b .nam{font-family:'Noto Serif TC',serif;font-weight:500;font-size:12.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;overflow:hidden}
+.tl .b .nam .cli{font-size:10px;color:var(--ink-light);font-family:Inter,sans-serif;font-weight:400;letter-spacing:0.04em}
+.tl .b .nam .stg{font-size:9.5px;color:var(--yellow-mid);background:#fff;padding:1px 5px;border-radius:2px;font-family:Inter,sans-serif;letter-spacing:0.1em;font-weight:500;text-transform:uppercase}
+.tl .b .dur{font-family:'Cormorant Garamond',serif;font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.tl .b.rest .dur{font-style:italic;color:var(--ink-light)}
+.tl .b.rest .nam{font-style:italic;color:var(--ink-light);font-weight:400}
+
+/* 今日報表 · 按案拆 */
+.proj-block{margin-bottom:14px}
+.proj-block:last-child{margin-bottom:0}
+.pb-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:5px;border-bottom:0.5px solid var(--line);margin-bottom:5px}
+.pb-name{font-family:'Noto Serif TC',serif;font-size:13px;font-weight:500}
+.pb-client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;margin-left:4px;font-weight:400}
+.pb-tot{font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:500;color:var(--yellow-mid)}
+.pb-stage{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;gap:8px}
+.pb-stage .s{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--yellow-mid);background:var(--yellow-pale);padding:2px 6px;border-radius:2px;font-weight:500;white-space:nowrap}
+.pb-stage .d{font-family:'Cormorant Garamond',serif;font-size:12.5px;color:var(--ink-soft);white-space:nowrap}
+.pb-stage .note{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:var(--ink-light);flex:1;margin:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .report-table tfoot td{background:var(--yellow-lightest);font-weight:500;color:var(--ink);border-top:1px solid var(--line);border-bottom:none}
 .report-table tfoot td:first-child{color:var(--ink-soft);font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:500}
 
@@ -169,7 +207,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion",USE_API=true;
-var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2';
+var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2',SHIFT_KEY='timeTrackerShift_v2';
 function ls_get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
 function ls_set(k,v){localStorage.setItem(k,JSON.stringify(v));}
 function uid(){return 'e'+Date.now()+Math.random().toString(36).slice(2,7);}
@@ -224,15 +262,38 @@ var state={
   gearMenu:false,
   newProjId:'', // 新增打卡選的專案(空 / id / __other__)
   newOtherName:'', // 其他工作的自由命名
+  shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD'}
   active:ls_get(ACTIVE_KEY)||[],
   entries:ls_get(ENTRIES_KEY)||[],
   projects:ls_get(PROJECTS_KEY)||[],
   modal:null,modalForm:{},loading:false,loadError:null
 };
 
+// 每分鐘重繪一次上班時長
+setInterval(function(){if(state.shift)render();},60000);
+
 // (進行中卡片改成靜態顯示「14:30 開始」,不需要每秒重繪)
 
+function clockIn(){
+  if(state.shift){alert('已經在上班中了');return;}
+  state.shift={startAt:Date.now(),workDay:todayKey()};
+  ls_set(SHIFT_KEY,state.shift);
+  render();
+}
+function clockOut(){
+  if(!state.shift){return;}
+  if(state.active.length>0){
+    if(!confirm('還有 '+state.active.length+' 個進行中的打卡,要全部結束並下班嗎?'))return;
+    // 結束所有進行中
+    state.active.slice().forEach(function(item){stopPunch(item.id);});
+  }
+  state.shift=null;
+  ls_set(SHIFT_KEY,null);
+  render();
+}
+
 function startPunch(){
+  if(!state.shift){alert('請先按「上班」再開始打卡');return;}
   var projSel=document.getElementById('proj-select');
   var noteInput=document.getElementById('note-input');
   var startInput=document.getElementById('start-input');
@@ -257,7 +318,8 @@ function startPunch(){
     projectLabel:label,
     client:client,
     stage:stage,note:noteInput?(noteInput.value||''):'',
-    startAt:tsFromHM(startInput.value||nowHM())
+    startAt:tsFromHM(startInput.value||nowHM()),
+    workDay:state.shift.workDay
   });
   ls_set(ACTIVE_KEY,state.active);
   // 重置
@@ -292,7 +354,8 @@ function stopPunch(id){
     client:item.client,stage:item.stage,note:item.note,
     startAt:item.startAt,endAt:endAt,
     durMin:Math.round(workMs/60000),
-    pauseTotal:pauseTotal // 紀錄暫停總時長以供顯示
+    pauseTotal:pauseTotal,
+    workDay:item.workDay||dateKey(item.startAt)
   };
   state.entries.unshift(entry);
   state.active=state.active.filter(function(x){return x.id!==id;});
@@ -450,6 +513,28 @@ function render(){
   html+='</div>';
 
   if(state.view==='today'){
+    // ── 上下班打卡條 ──
+    if(state.shift){
+      var shiftMs=Date.now()-state.shift.startAt;
+      var wdDate=new Date(state.shift.workDay+'T00:00:00');
+      var wdLabel=wdDate.getMonth()+1+'/'+wdDate.getDate()+'('+'日一二三四五六'[wdDate.getDay()]+')';
+      html+='<div class="clock-bar working">';
+      html+='  <div class="clock-info">';
+      html+='    <div class="clock-status live">● 上班中 · '+wdLabel+' '+fmtTime(state.shift.startAt)+' 打卡</div>';
+      html+='    <div class="clock-time">'+fmtDur(shiftMs)+'</div>';
+      html+='  </div>';
+      html+='  <button class="clock-btn out" onclick="clockOut()">■ 下班</button>';
+      html+='</div>';
+    } else {
+      html+='<div class="clock-bar">';
+      html+='  <div class="clock-info">';
+      html+='    <div class="clock-status">尚未上班</div>';
+      html+='    <div class="clock-time idle">準備好就開工</div>';
+      html+='  </div>';
+      html+='  <button class="clock-btn in" onclick="clockIn()">▸ 上班</button>';
+      html+='</div>';
+    }
+
     // 待交件提醒列(扁扁的金黃條)
     var todos=[];
     var todayD=new Date();todayD.setHours(0,0,0,0);
@@ -535,20 +620,25 @@ function render(){
     }
 
     var today=todayKey();
-    var todayEntries=state.entries.filter(function(e){return dateKey(e.startAt)===today;});
+    // 「今天」= 上班中當前 workDay,或 today date(沒上班時用日曆日)
+    var todayKey2=state.shift?state.shift.workDay:todayKey();
+    var todayEntries=state.entries.filter(function(e){return (e.workDay||dateKey(e.startAt))===todayKey2;});
     todayEntries.sort(function(a,b){return a.startAt-b.startAt;});
     var workMs=todayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt);},0);
     var spanMs=0,restMs=0,spanLabel='—';
-    if(todayEntries.length>0){
-      var firstStart=todayEntries[0].startAt;
-      var lastEnd=Math.max.apply(null,todayEntries.map(function(e){return e.endAt;}));
-      state.active.forEach(function(a){if(dateKey(a.startAt)===today){if(a.startAt<firstStart)firstStart=a.startAt;if(Date.now()>lastEnd)lastEnd=Date.now();}});
+    var todayActive=state.active.filter(function(a){return (a.workDay||dateKey(a.startAt))===todayKey2;});
+    if(todayEntries.length>0||todayActive.length>0){
+      // firstStart 取上班打卡 / 第一筆 entry / 第一筆 active 三者最早
+      var candidates=[];
+      if(state.shift)candidates.push(state.shift.startAt);
+      todayEntries.forEach(function(e){candidates.push(e.startAt);});
+      todayActive.forEach(function(a){candidates.push(a.startAt);});
+      var firstStart=Math.min.apply(null,candidates);
+      var lastEnd=todayEntries.length>0?Math.max.apply(null,todayEntries.map(function(e){return e.endAt;})):firstStart;
+      if(todayActive.length>0||state.shift)lastEnd=Date.now();
       spanMs=lastEnd-firstStart;
       restMs=Math.max(0,spanMs-workMs);
-      spanLabel=fmtTime(firstStart)+' → '+fmtTime(lastEnd);
-    } else if(state.active.length>0){
-      var actToday=state.active.filter(function(a){return dateKey(a.startAt)===today;});
-      if(actToday.length>0){var firstActive=Math.min.apply(null,actToday.map(function(a){return a.startAt;}));spanMs=Date.now()-firstActive;spanLabel=fmtTime(firstActive)+' → 現在';}
+      spanLabel=fmtTime(firstStart)+' → '+(todayActive.length>0||state.shift?'現在':fmtTime(lastEnd));
     }
     if(todayEntries.length>0||state.active.length>0){
       html+='<div class="summary">';
@@ -558,7 +648,61 @@ function render(){
       html+='</div>';
     }
 
-    // 今日紀錄已拿掉:進行中/暫停中卡片即為當天打卡;歷史紀錄到 Report 看
+    // ── 今日報表(時間軸 + 按案拆)──
+    if(todayEntries.length>0){
+      // 時間軸:把 entries + 中間 rest 段排在一起
+      var timeline=[];
+      todayEntries.forEach(function(e,i){
+        // 補空檔(從前一筆結束到本筆開始)
+        if(i>0){
+          var prevEnd=todayEntries[i-1].endAt;
+          var gap=e.startAt-prevEnd;
+          if(gap>=5*60*1000){ // 大於 5 分鐘才算休息
+            timeline.push({type:'rest',startAt:prevEnd,duration:gap});
+          }
+        }
+        timeline.push({type:'work',entry:e});
+      });
+      // 時間軸區
+      html+='<div class="section-head" style="margin-top:18px"><div class="section-title">今日時間軸 · <span class="section-en">Timeline</span></div></div>';
+      timeline.forEach(function(t){
+        if(t.type==='rest'){
+          html+='<div class="tl"><span class="t">'+fmtTime(t.startAt)+'</span>';
+          html+='<div class="b rest"><span class="nam">休息 / 空檔</span><span class="dur">'+fmtDur(t.duration)+'</span></div></div>';
+        } else {
+          var e=t.entry;
+          var clientHtml=e.client?'<span class="cli">·'+e.client+'</span>':'';
+          html+='<div class="tl" onclick="openEdit(\''+e.id+'\')" style="cursor:pointer">';
+          html+='<span class="t">'+fmtTime(e.startAt)+'</span>';
+          html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(e.endAt-e.startAt)+'</span></div></div>';
+        }
+      });
+      // 按案拆區
+      html+='<div class="section-head" style="margin-top:18px"><div class="section-title">今日專案明細 · <span class="section-en">By Project</span></div></div>';
+      // 聚合:依專案 → 各階段
+      var dayMap={};
+      todayEntries.forEach(function(e){
+        var key=e.projectLabel||'(無)';
+        if(!dayMap[key])dayMap[key]={total:0,client:e.client||'',stages:{}};
+        var dur=e.endAt-e.startAt;
+        dayMap[key].total+=dur;
+        var st=isOtherWork(e)?'其他工作':(e.stage||'其他');
+        if(!dayMap[key].stages[st])dayMap[key].stages[st]={dur:0,notes:[]};
+        dayMap[key].stages[st].dur+=dur;
+        if(e.note)dayMap[key].stages[st].notes.push(e.note);
+      });
+      Object.entries(dayMap).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(p){
+        var name=p[0],d=p[1];
+        var clientHtml=d.client?'<span class="pb-client">·'+d.client+'</span>':'';
+        html+='<div class="proj-block">';
+        html+='  <div class="pb-head"><div><span class="pb-name">'+name+'</span>'+clientHtml+'</div><div class="pb-tot">'+fmtDur(d.total)+'</div></div>';
+        Object.entries(d.stages).sort(function(a,b){return b[1].dur-a[1].dur;}).forEach(function(s){
+          var noteText=s[1].notes.length>0?s[1].notes.slice(0,2).join(', '):'';
+          html+='  <div class="pb-stage"><span class="s">'+s[0]+'</span><span class="note">'+noteText+'</span><span class="d">'+fmtDur(s[1].dur)+'</span></div>';
+        });
+        html+='</div>';
+      });
+    }
   }
 
   if(state.view==='report'){
