@@ -76,15 +76,15 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-meta{font-size:10.5px;color:var(--ink-light);margin-top:2px;font-family:'Cormorant Garamond',serif;font-style:italic}
 .ac-meta .stage{display:inline-block;font-family:'Inter',sans-serif;font-style:normal;font-size:9.5px;letter-spacing:0.12em;padding:1px 5px;border-radius:2px;background:var(--yellow-pale);color:var(--yellow-mid);font-weight:500;margin-right:6px;text-transform:uppercase}
 .ac-time-start{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--green);letter-spacing:0.04em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
-.ac-time-start.paused{color:#d8903a}
+.ac-time-start.paused{color:var(--red)}
 .ac-time-start .ac-start-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.25em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-left:4px}
-.active-card.paused{border-left-color:#d8903a;background:var(--yellow-lightest)}
+.active-card.paused{border-left-color:var(--red);background:#fcecec}
 .ac-btns{display:flex;flex-direction:column;gap:5px}
 .ac-btn-mini{padding:5px 11px;font-size:9.5px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid;background:#fff;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
 .ac-btn-mini.pause{border-color:#d8903a;color:#d8903a}
 .ac-btn-mini.pause:hover{background:var(--yellow-lightest)}
-.ac-btn-mini.resume{border-color:var(--green);background:var(--green);color:#fff}
-.ac-btn-mini.resume:hover{background:#487228}
+.ac-btn-mini.resume{border-color:var(--yellow);background:var(--yellow);color:#fff}
+.ac-btn-mini.resume:hover{background:var(--yellow-mid);border-color:var(--yellow-mid)}
 .ac-btn-mini.stop{border-color:var(--red);color:var(--red)}
 .ac-btn-mini.stop:hover{background:#fcebeb}
 .ac-stop{padding:6px 13px;font-size:10px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid var(--red);background:#fff;color:var(--red);cursor:pointer;font-family:'Inter',sans-serif}
@@ -126,6 +126,11 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-table td:first-child{font-family:'Noto Serif TC',serif;color:var(--ink);font-size:12.5px;text-align:left;font-weight:400}
 .report-table td.zero{color:var(--ink-light)}
 .report-table td.proj-total{color:var(--yellow-mid);font-weight:500}
+.report-table td .client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;margin-left:4px}
+.report-table td.rate{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--yellow-mid);font-style:italic;font-variant-numeric:tabular-nums}
+.report-table td.rate .nt{font-size:10px;color:var(--ink-light);margin-right:1px;font-style:normal;letter-spacing:0}
+.report-table td.rate .low{color:var(--red);font-style:normal;font-weight:500}
+.bar-row2 .nam .client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;margin-left:4px}
 .report-table tfoot td{background:var(--yellow-lightest);font-weight:500;color:var(--ink);border-top:1px solid var(--line);border-bottom:none}
 .report-table tfoot td:first-child{color:var(--ink-soft);font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:500}
 
@@ -197,7 +202,8 @@ function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){retu
       cut1Due:p.cut1Due||'',cut1Done:!!p.cut1Done,noCut1:!!p.noCut1,
       v1Due:p.v1Due||'',v1Done:!!p.v1Done,
       bizDue:p.bizDue||'',bizDone:!!p.bizDone,noBiz:!!p.noBiz,
-      finalDue:p.finalDue||'',finalDone:!!p.finalDone
+      finalDue:p.finalDue||'',finalDone:!!p.finalDone,
+      fee:Number(p.fee)||0
     };});
     cb(null,ps);
   }
@@ -510,7 +516,7 @@ function render(){
         var isPaused=!!item.pausedAt;
         html+='  <div class="active-card '+(isPaused?'paused':'')+'">';
         html+='    <div class="ac-info">';
-        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'">'+fmtTime(item.startAt)+' <span class="ac-start-label">'+(isPaused?'開始 · 暫停中':'開始')+'</span></div>';
+        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span></div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+'</div>';
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
         html+='    </div>';
@@ -551,9 +557,7 @@ function render(){
       html+='</div>';
     }
 
-    html+='<div class="section-head"><div class="section-title">今日紀錄 · <span class="section-en">Log ('+todayEntries.length+')</span></div><div class="total">'+fmtDur(workMs)+'</div></div>';
-    if(todayEntries.length===0){html+='<div class="empty">No entries yet · 今天還沒打卡</div>';}
-    else{todayEntries.forEach(function(e){html+='<div class="entry" onclick="openEdit(\''+e.id+'\')"><div class="time">'+fmtTime(e.startAt)+'→'+fmtTime(e.endAt)+'</div><div class="proj">'+(e.projectLabel||'(無)')+'</div><div class="stage">'+stageLabel(e.stage)+'</div><div class="dur">'+fmtDur(e.endAt-e.startAt)+'</div><div class="del" onclick="event.stopPropagation();deleteEntry(\''+e.id+'\')">×</div></div>';});}
+    // 今日紀錄已拿掉:進行中/暫停中卡片即為當天打卡;歷史紀錄到 Report 看
   }
 
   if(state.view==='report'){
@@ -577,10 +581,12 @@ function render(){
       } else {
         if(!projMonthMap[ym])projMonthMap[ym]={};
         var key=e.projectLabel||'(無)';
-        if(!projMonthMap[ym][key])projMonthMap[ym][key]={stages:{},total:0};
+        if(!projMonthMap[ym][key])projMonthMap[ym][key]={stages:{},total:0,client:e.client||'',projectId:e.projectId||''};
         var st=e.stage||'其他';
         projMonthMap[ym][key].stages[st]=(projMonthMap[ym][key].stages[st]||0)+dur;
         projMonthMap[ym][key].total+=dur;
+        if(!projMonthMap[ym][key].client&&e.client)projMonthMap[ym][key].client=e.client;
+        if(!projMonthMap[ym][key].projectId&&e.projectId)projMonthMap[ym][key].projectId=e.projectId;
       }
     });
     var allMonths=Object.keys(monthTotalAll).sort().reverse();
@@ -601,17 +607,31 @@ function render(){
         html+='  <table class="report-table">';
         html+='    <thead><tr><th>專案</th>';
         STAGES.forEach(function(s){html+='<th>'+s+'</th>';});
-        html+='    <th>合計</th></tr></thead>';
+        html+='    <th>合計</th><th>時薪</th></tr></thead>';
         html+='    <tbody>';
         projects.forEach(function(p){
-          html+='      <tr><td>'+p[0]+'</td>';
-          STAGES.forEach(function(s){var v=p[1].stages[s]||0;html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
-          html+='      <td class="proj-total">'+fmtDur(p[1].total)+'</td></tr>';
+          var data=p[1];
+          var clientName=data.client?'<span class="client">·'+data.client+'</span>':'';
+          html+='      <tr><td>'+p[0]+clientName+'</td>';
+          STAGES.forEach(function(s){var v=data.stages[s]||0;html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
+          html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
+          // 時薪 = fee / 累積小時
+          var proj=state.projects.find(function(x){return x.id===data.projectId;});
+          var fee=proj?(proj.fee||0):0;
+          var hours=data.total/3600000;
+          if(fee>0&&hours>0){
+            var rate=Math.round(fee/hours);
+            var rateCls=rate<1000?'low':'';
+            html+='      <td class="rate"><span class="'+rateCls+'"><span class="nt">$</span>'+rate.toLocaleString()+'</span></td>';
+          } else {
+            html+='      <td class="rate zero">—</td>';
+          }
+          html+='      </tr>';
         });
         html+='    </tbody>';
         html+='    <tfoot><tr><td>小計</td>';
         STAGES.forEach(function(s){var v=stageTotals[s];html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
-        html+='    <td>'+fmtDur(monthTotal)+'</td></tr></tfoot>';
+        html+='    <td>'+fmtDur(monthTotal)+'</td><td class="zero">—</td></tr></tfoot>';
         html+='  </table>';
         html+='</div>';
       });
@@ -645,7 +665,8 @@ function render(){
           var PCOLORS=['#5fb3d4','#85c585','#ff6f9d','#a085c4','#7a9bbf','#efba2c','#c9a227','#d89a3a'];
           projRows.forEach(function(r,i){
             var w=(r[1].total/maxProj)*100;
-            html+='<div class="bar-row2"><div class="nam">'+r[0]+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:'+PCOLORS[i%PCOLORS.length]+'"></div></div><div class="dur">'+fmtDur(r[1].total)+'</div></div>';
+            var clientName=r[1].client?'<span class="client">·'+r[1].client+'</span>':'';
+            html+='<div class="bar-row2"><div class="nam">'+r[0]+clientName+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:'+PCOLORS[i%PCOLORS.length]+'"></div></div><div class="dur">'+fmtDur(r[1].total)+'</div></div>';
           });
         }
         // 其他工作
