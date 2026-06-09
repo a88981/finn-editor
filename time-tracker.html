@@ -72,7 +72,10 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .tab.active{color:var(--yellow-mid)}
 .tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--yellow)}
 
-.punch-card{background:#fff;border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:14px}
+.punch-card{background:#fff;border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:14px;position:relative}
+.punch-card.disabled{background:#f5f5f0;opacity:0.85}
+.punch-card.disabled .fc:disabled,.punch-card.disabled .btn-start:disabled{background:#ebebe6;color:var(--ink-light);cursor:not-allowed;border-color:#e0e0d8}
+.punch-warning{background:#fff3e0;border:1px solid #e8b340;border-radius:3px;padding:6px 10px;margin-bottom:10px;font-family:'Noto Sans TC',sans-serif;font-size:11.5px;color:var(--ink-soft);text-align:center;letter-spacing:0.04em}
 .punch-head{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-light);font-weight:500;margin-bottom:9px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:9px}
 .row3{display:grid;grid-template-columns:1fr 130px 80px;gap:10px;align-items:flex-end}
@@ -207,7 +210,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion",USE_API=true;
-var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2',SHIFT_KEY='timeTrackerShift_v2';
+var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2',SHIFT_KEY='timeTrackerShift_v2',SHIFTS_KEY='timeTrackerShifts_v2';
 function ls_get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
 function ls_set(k,v){localStorage.setItem(k,JSON.stringify(v));}
 function uid(){return 'e'+Date.now()+Math.random().toString(36).slice(2,7);}
@@ -263,6 +266,7 @@ var state={
   newProjId:'', // 新增打卡選的專案(空 / id / __other__)
   newOtherName:'', // 其他工作的自由命名
   shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD'}
+  shifts:ls_get(SHIFTS_KEY)||[], // 歷史 shift 紀錄 [{workDay, startAt, endAt}]
   active:ls_get(ACTIVE_KEY)||[],
   entries:ls_get(ENTRIES_KEY)||[],
   projects:ls_get(PROJECTS_KEY)||[],
@@ -274,9 +278,65 @@ setInterval(function(){if(state.shift)render();},60000);
 
 // (進行中卡片改成靜態顯示「14:30 開始」,不需要每秒重繪)
 
+function openShiftBackfill(){
+  var d=new Date(),y=todayKey();
+  state.modalForm={workDay:y,startTime:'10:00',endTime:'18:00'};
+  state.modal='shift';
+  render();
+}
+function saveShiftBackfill(){
+  var f=state.modalForm;
+  if(!f.workDay||!f.startTime||!f.endTime){alert('請填完整');return;}
+  var startAt=new Date(f.workDay+'T'+f.startTime+':00').getTime();
+  var endAt=new Date(f.workDay+'T'+f.endTime+':00').getTime();
+  // 跨日:下班 < 上班 → 加一天
+  if(endAt<=startAt)endAt+=24*3600000;
+  state.shifts.push({workDay:f.workDay,startAt:startAt,endAt:endAt,backfilled:true});
+  ls_set(SHIFTS_KEY,state.shifts);
+  closeModal();
+}
+
+function editClockIn(){
+  if(!state.shift)return;
+  var current=fmtTime(state.shift.startAt);
+  var newHM=prompt('修改上班時間(格式 HH:MM)\n\n例:你 10:00 起床就工作,但忘了按上班,12:00 才想起來按 — 現在改成 10:00 即可',current);
+  if(!newHM||newHM===current)return;
+  if(!/^\d{1,2}:\d{2}$/.test(newHM)){alert('格式不對,例:10:30');return;}
+  var parts=newHM.split(':');
+  var d=new Date(state.shift.startAt);
+  d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
+  state.shift.startAt=d.getTime();
+  ls_set(SHIFT_KEY,state.shift);
+  render();
+}
+
+function editActiveStart(id){
+  var item=state.active.find(function(x){return x.id===id;});
+  if(!item)return;
+  var current=fmtTime(item.startAt);
+  var newHM=prompt('修改開始時間(格式 HH:MM)',current);
+  if(!newHM||newHM===current)return;
+  if(!/^\d{1,2}:\d{2}$/.test(newHM)){alert('格式不對,例:14:30');return;}
+  var parts=newHM.split(':');
+  var d=new Date(item.startAt);
+  d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
+  item.startAt=d.getTime();
+  ls_set(ACTIVE_KEY,state.active);
+  render();
+}
+
 function clockIn(){
   if(state.shift){alert('已經在上班中了');return;}
-  state.shift={startAt:Date.now(),workDay:todayKey()};
+  var defaultHM=nowHM();
+  var newHM=prompt('上班時間\n\n要從幾點開始算?(預設現在)\n格式 HH:MM,例:10:00',defaultHM);
+  if(!newHM)return;
+  if(!/^\d{1,2}:\d{2}$/.test(newHM)){alert('格式不對,例:10:30');return;}
+  var parts=newHM.split(':');
+  var d=new Date();
+  d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
+  // 若選的時間在未來,當作今天現在
+  if(d.getTime()>Date.now())d=new Date();
+  state.shift={startAt:d.getTime(),workDay:todayKey()};
   ls_set(SHIFT_KEY,state.shift);
   render();
 }
@@ -284,9 +344,11 @@ function clockOut(){
   if(!state.shift){return;}
   if(state.active.length>0){
     if(!confirm('還有 '+state.active.length+' 個進行中的打卡,要全部結束並下班嗎?'))return;
-    // 結束所有進行中
     state.active.slice().forEach(function(item){stopPunch(item.id);});
   }
+  // 存進歷史 shifts
+  state.shifts.push({workDay:state.shift.workDay,startAt:state.shift.startAt,endAt:Date.now()});
+  ls_set(SHIFTS_KEY,state.shifts);
   state.shift=null;
   ls_set(SHIFT_KEY,null);
   render();
@@ -372,8 +434,8 @@ function deleteEntry(id){
   if(USE_API&&ent&&ent.notionId)apiDeleteEntry(ent.notionId,function(err){if(err)console.warn('刪除失敗',err);});
 }
 
-function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt)};state.modal='edit';render();}
-function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now)};state.modal='manual';render();}
+function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt)};state.modal='edit';render();}
+function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now),workDay:dateKey(start)};state.modal='manual';render();}
 function closeModal(){state.modal=null;render();}
 
 function saveModal(){
@@ -382,9 +444,10 @@ function saveModal(){
   var startAt=new Date(f.startDate+'T'+f.startTime+':00').getTime();
   var endAt=new Date(f.endDate+'T'+f.endTime+':00').getTime();
   if(endAt<=startAt){alert('結束時間要在開始之後');return;}
+  var workDay=f.workDay||dateKey(startAt);
   var entry;
-  if(f.id){state.entries=state.entries.map(function(e){if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:Math.round((endAt-startAt)/60000)});return entry;}return e;});}
-  else{entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:Math.round((endAt-startAt)/60000)};state.entries.unshift(entry);}
+  if(f.id){state.entries=state.entries.map(function(e){if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:Math.round((endAt-startAt)/60000),workDay:workDay});return entry;}return e;});}
+  else{entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:Math.round((endAt-startAt)/60000),workDay:workDay};state.entries.unshift(entry);}
   state.entries.sort(function(a,b){return b.startAt-a.startAt;});
   ls_set(ENTRIES_KEY,state.entries);closeModal();
   if(USE_API&&entry)apiSaveEntry(entry,function(err,notionId){if(err){console.warn('儲存失敗',err);return;}if(notionId){entry.notionId=notionId;state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});ls_set(ENTRIES_KEY,state.entries);render();}});
@@ -497,6 +560,8 @@ function render(){
     html+='<div class="gear-menu" onclick="event.stopPropagation()">';
     html+='  <button class="gear-item" onclick="state.gearMenu=false;refreshProjects();syncFromCloud();">重新整理<span class="en">Refresh</span></button>';
     html+='  <div class="gear-divider"></div>';
+    html+='  <button class="gear-item" onclick="state.gearMenu=false;openManual();">補工作紀錄<span class="en">Add past work</span></button>';
+    html+='  <div class="gear-divider"></div>';
     html+='  <button class="gear-item" onclick="state.gearMenu=false;render();exportJSON();">備份資料<span class="en">Backup JSON</span></button>';
     html+='  <button class="gear-item" onclick="state.gearMenu=false;render();exportCSV();">匯出 CSV<span class="en">Export CSV</span></button>';
     html+='  <div class="gear-divider"></div>';
@@ -520,7 +585,7 @@ function render(){
       var wdLabel=wdDate.getMonth()+1+'/'+wdDate.getDate()+'('+'日一二三四五六'[wdDate.getDay()]+')';
       html+='<div class="clock-bar working">';
       html+='  <div class="clock-info">';
-      html+='    <div class="clock-status live">● 上班中 · '+wdLabel+' '+fmtTime(state.shift.startAt)+' 打卡</div>';
+      html+='    <div class="clock-status live">● 上班中 · '+wdLabel+' <span onclick="editClockIn()" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--ink-light)" title="修改上班時間">'+fmtTime(state.shift.startAt)+'</span> 打卡</div>';
       html+='    <div class="clock-time">'+fmtDur(shiftMs)+'</div>';
       html+='  </div>';
       html+='  <button class="clock-btn out" onclick="clockOut()">■ 下班</button>';
@@ -568,30 +633,34 @@ function render(){
       if(todos.length>showCount)html+='<span class="more">+'+(todos.length-showCount)+'</span>';
       html+='</div>';
     }
-    html+='<div class="punch-card">';
-    html+='  <div class="punch-head">+ 新增打卡 · Punch In</div>';
+    var disabled=!state.shift;
+    html+='<div class="punch-card'+(disabled?' disabled':'')+'">';
+    if(disabled){
+      html+='  <div class="punch-warning">⚠ 請先按上班才能新增工作</div>';
+    }
+    html+='  <div class="punch-head">+ 新增工作 · Add Work</div>';
     html+='  <div class="row">';
     html+='    <div><div class="flabel">Project / 專案</div>';
-    html+='      <select id="proj-select" class="fc" onchange="state.newProjId=this.value;render();">';
+    html+='      <select id="proj-select" class="fc" '+(disabled?'disabled':'')+' onchange="state.newProjId=this.value;render();">';
     html+='        <option value="">— 請選 —</option>';
     state.projects.forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(state.newProjId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     if(state.newProjId==='__other__'){
       html+='    <div><div class="flabel">在做什麼? / Doing what?</div>';
-      html+='      <input id="other-name-input" class="fc" placeholder="例:寫工作追蹤器" value="'+(state.newOtherName||'')+'" oninput="state.newOtherName=this.value">';
+      html+='      <input id="other-name-input" class="fc" '+(disabled?'disabled':'')+' placeholder="例:寫工作追蹤器" value="'+(state.newOtherName||'')+'" oninput="state.newOtherName=this.value">';
       html+='    </div>';
     } else {
       html+='    <div><div class="flabel">Stage / 階段</div>';
-      html+='      <select id="stage-select" class="fc">';
+      html+='      <select id="stage-select" class="fc" '+(disabled?'disabled':'')+'>';
       ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
       html+='      </select></div>';
     }
     html+='  </div>';
     html+='  <div class="row3">';
-    html+='    <div><div class="flabel">Note / 備註</div><input id="note-input" class="fc" placeholder="修頭尾"></div>';
-    html+='    <div><div class="flabel">Start / 開始</div><input id="start-input" type="time" class="fc" value="'+nowHM()+'"></div>';
-    html+='    <button class="btn-start" onclick="startPunch()">▸ Start</button>';
+    html+='    <div><div class="flabel">Note / 備註</div><input id="note-input" class="fc" '+(disabled?'disabled':'')+' placeholder="修頭尾"></div>';
+    html+='    <div><div class="flabel">Start / 開始</div><input id="start-input" type="time" class="fc" '+(disabled?'disabled':'')+' value="'+nowHM()+'"></div>';
+    html+='    <button class="btn-start" '+(disabled?'disabled':'')+' onclick="startPunch()">▸ Start</button>';
     html+='  </div>';
     html+='</div>';
 
@@ -602,7 +671,7 @@ function render(){
         var isPaused=!!item.pausedAt;
         html+='  <div class="active-card '+(isPaused?'paused':'')+'">';
         html+='    <div class="ac-info">';
-        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span></div>';
+        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'" onclick="editActiveStart(\''+item.id+'\')" style="cursor:pointer" title="點擊修改開始時間">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span></div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+(item.client?'<span class="ac-client">·'+item.client+'</span>':'')+'</div>';
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
         html+='    </div>';
@@ -627,20 +696,26 @@ function render(){
     var workMs=todayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt);},0);
     var spanMs=0,restMs=0,spanLabel='—';
     var todayActive=state.active.filter(function(a){return (a.workDay||dateKey(a.startAt))===todayKey2;});
-    if(todayEntries.length>0||todayActive.length>0){
-      // firstStart 取上班打卡 / 第一筆 entry / 第一筆 active 三者最早
+    var todayShifts=state.shifts.filter(function(s){return s.workDay===todayKey2;});
+    if(todayEntries.length>0||todayActive.length>0||todayShifts.length>0||state.shift){
+      // firstStart 取上班 / 第一筆 entry / active / 補的 shift 最早
       var candidates=[];
       if(state.shift)candidates.push(state.shift.startAt);
+      todayShifts.forEach(function(s){candidates.push(s.startAt);});
       todayEntries.forEach(function(e){candidates.push(e.startAt);});
       todayActive.forEach(function(a){candidates.push(a.startAt);});
+      if(candidates.length===0)candidates.push(Date.now());
       var firstStart=Math.min.apply(null,candidates);
-      var lastEnd=todayEntries.length>0?Math.max.apply(null,todayEntries.map(function(e){return e.endAt;})):firstStart;
+      var ends=[];
+      todayEntries.forEach(function(e){ends.push(e.endAt);});
+      todayShifts.forEach(function(s){ends.push(s.endAt);});
+      var lastEnd=ends.length>0?Math.max.apply(null,ends):firstStart;
       if(todayActive.length>0||state.shift)lastEnd=Date.now();
       spanMs=lastEnd-firstStart;
       restMs=Math.max(0,spanMs-workMs);
       spanLabel=fmtTime(firstStart)+' → '+(todayActive.length>0||state.shift?'現在':fmtTime(lastEnd));
     }
-    if(todayEntries.length>0||state.active.length>0){
+    if(todayEntries.length>0||state.active.length>0||state.shift||todayShifts.length>0){
       html+='<div class="summary">';
       html+='  <div class="summary-block"><div class="summary-label">Working</div><div class="summary-value work">'+fmtDur(workMs)+'</div></div>';
       html+='  <div class="summary-block"><div class="summary-label">Rest</div><div class="summary-value rest">'+fmtDur(restMs)+'</div></div>';
@@ -837,7 +912,24 @@ function render(){
     html+='</div>';
   }
 
-  if(state.modal){
+  if(state.modal==='shift'){
+    var sf=state.modalForm;
+    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='  <div class="modal">';
+    html+='    <div class="modal-title">補上下班 · Add Past Shift</div>';
+    html+='    <div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:12px;color:var(--ink-light);margin-bottom:14px">標記某天的上下班時間,讓報表知道你那天有工作</div>';
+    html+='    <div class="field"><div class="flabel">日期 · Day</div><input type="date" class="fc" value="'+sf.workDay+'" onchange="state.modalForm.workDay=this.value;"></div>';
+    html+='    <div class="row">';
+    html+='      <div class="field"><div class="flabel">上班 · Clock In</div><input type="time" class="fc" value="'+sf.startTime+'" onchange="state.modalForm.startTime=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">下班 · Clock Out</div><input type="time" class="fc" value="'+sf.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
+    html+='    </div>';
+    html+='    <div class="modal-btns">';
+    html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
+    html+='      <button class="btn-sub primary" onclick="saveShiftBackfill()">儲存</button>';
+    html+='    </div>';
+    html+='  </div>';
+    html+='</div>';
+  } else if(state.modal){
     var f=state.modalForm,isEdit=state.modal==='edit';
     html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
     html+='  <div class="modal">';
@@ -868,6 +960,7 @@ function render(){
     html+='      <div class="field"><div class="flabel">結束日 · End</div><input type="date" class="fc" value="'+f.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
     html+='      <div class="field"><div class="flabel">結束時間</div><input type="time" class="fc" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
     html+='    </div>';
+    html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+(f.workDay||f.startDate)+'" onchange="state.modalForm.workDay=this.value;"></div>';
     html+='    <div class="modal-btns">';
     if(isEdit)html+='      <button class="btn-sub danger" onclick="deleteFromModal()">刪除</button>';
     html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
