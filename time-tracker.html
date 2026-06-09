@@ -390,8 +390,15 @@ function clockIn(){
 function startBreak(){
   if(!state.shift||state.shift.breakAt)return;
   state.shift.breakAt=Date.now();
-  // 整批暫停 active 工作
-  state.active.forEach(function(item){if(!item.pausedAt)item.pausedAt=Date.now();});
+  // 整批暫停 active 工作,但記住哪些是「休息前已暫停」的(不要事後恢復)
+  state.active.forEach(function(item){
+    if(item.pausedAt){
+      item.wasManuallyPaused=true; // 本來就在暫停
+    } else {
+      item.wasManuallyPaused=false;
+      item.pausedAt=Date.now();
+    }
+  });
   ls_set(SHIFT_KEY,state.shift);
   ls_set(ACTIVE_KEY,state.active);
   render();
@@ -401,12 +408,13 @@ function endBreak(){
   var dur=Date.now()-state.shift.breakAt;
   state.shift.breakTotal=(state.shift.breakTotal||0)+dur;
   state.shift.breakAt=null;
-  // 整批恢復 active 工作
+  // 只恢復「休息時被自動暫停」的,保留「本來就手動暫停」的
   state.active.forEach(function(item){
-    if(item.pausedAt){
+    if(item.pausedAt&&!item.wasManuallyPaused){
       item.pauseTotal=(item.pauseTotal||0)+(Date.now()-item.pausedAt);
       item.pausedAt=null;
     }
+    delete item.wasManuallyPaused;
   });
   ls_set(SHIFT_KEY,state.shift);
   ls_set(ACTIVE_KEY,state.active);
