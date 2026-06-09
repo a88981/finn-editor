@@ -23,6 +23,15 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .corner-l{position:absolute;top:22px;left:36px;font-family:'Inter',sans-serif;font-size:10px;color:var(--ink-light);letter-spacing:0.3em;text-transform:uppercase;font-weight:500}
 .corner-r{position:absolute;top:22px;right:36px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light)}
 
+/* Settings gear menu */
+.gear-btn{position:absolute;top:18px;right:80px;width:28px;height:28px;border:none;background:transparent;cursor:pointer;color:var(--ink-light);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;border-radius:3px}
+.gear-btn:hover{background:var(--yellow-lightest);color:var(--yellow-mid)}
+.gear-menu{position:absolute;top:50px;right:36px;background:#fff;border:1px solid var(--line);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.08);z-index:50;min-width:160px;padding:4px 0}
+.gear-item{display:block;width:100%;padding:9px 16px;background:transparent;border:none;text-align:left;font-family:'Noto Sans TC',sans-serif;font-size:13px;color:var(--ink);cursor:pointer}
+.gear-item:hover{background:var(--yellow-lightest);color:var(--yellow-mid)}
+.gear-item .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:var(--ink-light);margin-left:6px}
+.gear-divider{height:1px;background:var(--line);margin:4px 0}
+
 .header{margin:24px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .eyebrow{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.35em;color:var(--yellow-mid);text-transform:uppercase;font-weight:500;margin-bottom:8px}
 .title-row{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
@@ -94,6 +103,12 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-table tfoot td{background:var(--yellow-lightest);font-weight:500;color:var(--ink);border-top:1px solid var(--line);border-bottom:none}
 .report-table tfoot td:first-child{color:var(--ink-soft);font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:500}
 
+.bar-row2{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;padding:5px 0;font-size:12.5px;align-items:center}
+.bar-row2 .nam{font-family:'Noto Serif TC',serif;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row2 .bar-wrap{height:6px;background:#f0ece0;border-radius:3px;overflow:hidden}
+.bar-row2 .bar{height:100%;border-radius:3px}
+.bar-row2 .dur{text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+
 .import-note{background:var(--yellow-lightest);border-left:3px solid var(--yellow);padding:11px 16px;margin-top:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .import-note-text{font-family:'Noto Serif TC',serif;font-size:12px;color:var(--ink);letter-spacing:0.06em}
 .import-note-text .italic{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-soft)}
@@ -136,6 +151,8 @@ function todayKey(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()
 function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
 function tsFromHM(hm){var d=new Date(),p=hm.split(':');d.setHours(parseInt(p[0])||0,parseInt(p[1])||0,0,0);return d.getTime();}
+function stageLabel(s){return s==='__other_work__'?'其他工作':(s||'其他');}
+function isOtherWork(e){return e&&e.stage==='__other_work__';}
 
 function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
   var arr=null;
@@ -165,6 +182,9 @@ function apiDeleteEntry(notionId,cb){fetch(API+'?action=time-delete',{method:'PO
 
 var state={
   view:'today',
+  gearMenu:false,
+  newProjId:'', // 新增打卡選的專案(空 / id / __other__)
+  newOtherName:'', // 其他工作的自由命名
   active:ls_get(ACTIVE_KEY)||[],
   entries:ls_get(ENTRIES_KEY)||[],
   projects:ls_get(PROJECTS_KEY)||[],
@@ -175,19 +195,34 @@ setInterval(function(){if(state.active.length>0)render();},1000);
 
 function startPunch(){
   var projSel=document.getElementById('proj-select');
-  var stageSel=document.getElementById('stage-select');
   var noteInput=document.getElementById('note-input');
   var startInput=document.getElementById('start-input');
   if(!projSel||!projSel.value){alert('請選專案');return;}
-  var proj=state.projects.find(function(p){return p.id===projSel.value;});
+  var isOther=projSel.value==='__other__';
+  var label,stage,client;
+  if(isOther){
+    var otherName=(state.newOtherName||'').trim();
+    if(!otherName){alert('請輸入你在做什麼');return;}
+    label=otherName;
+    stage='__other_work__';
+    client='';
+  } else {
+    var proj=state.projects.find(function(p){return p.id===projSel.value;});
+    label=proj?proj.name:projSel.options[projSel.selectedIndex].text;
+    var stageSel=document.getElementById('stage-select');
+    stage=stageSel?(stageSel.value||'其他'):'其他';
+    client=proj?proj.client:'';
+  }
   state.active.push({
     id:uid(),projectId:projSel.value,
-    projectLabel:proj?proj.name:projSel.options[projSel.selectedIndex].text,
-    client:proj?proj.client:'',
-    stage:stageSel.value||'其他',note:noteInput.value||'',
+    projectLabel:label,
+    client:client,
+    stage:stage,note:noteInput?(noteInput.value||''):'',
     startAt:tsFromHM(startInput.value||nowHM())
   });
   ls_set(ACTIVE_KEY,state.active);
+  // 重置
+  state.newProjId='';state.newOtherName='';
   render();
 }
 
@@ -331,6 +366,18 @@ function render(){
   var html='';
   html+='<div class="corner-l">Time Tracker</div>';
   html+='<div class="corner-r">'+fmtDateEN(Date.now())+'</div>';
+  html+='<button class="gear-btn" onclick="event.stopPropagation();state.gearMenu=!state.gearMenu;render();" title="設定">⚙</button>';
+  if(state.gearMenu){
+    html+='<div class="gear-menu" onclick="event.stopPropagation()">';
+    html+='  <button class="gear-item" onclick="state.gearMenu=false;refreshProjects();syncFromCloud();">重新整理<span class="en">Refresh</span></button>';
+    html+='  <div class="gear-divider"></div>';
+    html+='  <button class="gear-item" onclick="state.gearMenu=false;render();exportJSON();">備份資料<span class="en">Backup JSON</span></button>';
+    html+='  <button class="gear-item" onclick="state.gearMenu=false;render();exportCSV();">匯出 CSV<span class="en">Export CSV</span></button>';
+    html+='  <div class="gear-divider"></div>';
+    html+='  <button class="gear-item" onclick="state.gearMenu=false;render();document.getElementById(\'imp-file\').click();">還原備份<span class="en">Restore</span></button>';
+    html+='  <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importJSON(this)">';
+    html+='</div>';
+  }
   html+='<header class="header">';
   html+='  <div class="eyebrow">Daily Time Log · 2026</div>';
   html+='  <div class="title-row"><h1 class="title">⏱ 工作時間追蹤</h1><span class="title-sub">'+dayOfWeekEN()+'</span></div>';
@@ -344,15 +391,21 @@ function render(){
     html+='  <div class="punch-head">+ 新增打卡 · Punch In</div>';
     html+='  <div class="row">';
     html+='    <div><div class="flabel">Project / 專案</div>';
-    html+='      <select id="proj-select" class="fc">';
+    html+='      <select id="proj-select" class="fc" onchange="state.newProjId=this.value;render();">';
     html+='        <option value="">— 請選 —</option>';
-    state.projects.forEach(function(p){html+='        <option value="'+p.id+'">【'+p.client+'】'+p.name+'</option>';});
-    html+='        <option value="__other__">+ 其他工作</option>';
+    state.projects.forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
+    html+='        <option value="__other__" '+(state.newProjId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
-    html+='    <div><div class="flabel">Stage / 階段</div>';
-    html+='      <select id="stage-select" class="fc">';
-    ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
-    html+='      </select></div>';
+    if(state.newProjId==='__other__'){
+      html+='    <div><div class="flabel">在做什麼? / Doing what?</div>';
+      html+='      <input id="other-name-input" class="fc" placeholder="例:寫工作追蹤器" value="'+(state.newOtherName||'')+'" oninput="state.newOtherName=this.value">';
+      html+='    </div>';
+    } else {
+      html+='    <div><div class="flabel">Stage / 階段</div>';
+      html+='      <select id="stage-select" class="fc">';
+      ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
+      html+='      </select></div>';
+    }
     html+='  </div>';
     html+='  <div class="row3">';
     html+='    <div><div class="flabel">Note / 備註</div><input id="note-input" class="fc" placeholder="修頭尾"></div>';
@@ -370,7 +423,7 @@ function render(){
         html+='    <div class="ac-info">';
         html+='      <div class="ac-time">'+fmtClock(elapsed)+'</div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+'</div>';
-        html+='      <div class="ac-meta"><span class="stage">'+item.stage+'</span>'+fmtTime(item.startAt)+' 開始'+(item.note?' · '+item.note:'')+'</div>';
+        html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+fmtTime(item.startAt)+' 開始'+(item.note?' · '+item.note:'')+'</div>';
         html+='    </div>';
         html+='    <button class="ac-stop" onclick="stopPunch(\''+item.id+'\')">■ Stop</button>';
         html+='  </div>';
@@ -404,27 +457,46 @@ function render(){
 
     html+='<div class="section-head"><div class="section-title">今日紀錄 · <span class="section-en">Log ('+todayEntries.length+')</span></div><div class="total">'+fmtDur(workMs)+'</div></div>';
     if(todayEntries.length===0){html+='<div class="empty">No entries yet · 今天還沒打卡</div>';}
-    else{todayEntries.forEach(function(e){html+='<div class="entry" onclick="openEdit(\''+e.id+'\')"><div class="time">'+fmtTime(e.startAt)+'→'+fmtTime(e.endAt)+'</div><div class="proj">'+(e.projectLabel||'(無)')+'</div><div class="stage">'+e.stage+'</div><div class="dur">'+fmtDur(e.endAt-e.startAt)+'</div><div class="del" onclick="event.stopPropagation();deleteEntry(\''+e.id+'\')">×</div></div>';});}
+    else{todayEntries.forEach(function(e){html+='<div class="entry" onclick="openEdit(\''+e.id+'\')"><div class="time">'+fmtTime(e.startAt)+'→'+fmtTime(e.endAt)+'</div><div class="proj">'+(e.projectLabel||'(無)')+'</div><div class="stage">'+stageLabel(e.stage)+'</div><div class="dur">'+fmtDur(e.endAt-e.startAt)+'</div><div class="del" onclick="event.stopPropagation();deleteEntry(\''+e.id+'\')">×</div></div>';});}
   }
 
   if(state.view==='report'){
     var STAGES=['前置','初剪','ES','業配','其他'];
-    var monthMap={};
+    // 第1段:專案結算(排除其他工作)
+    var projMonthMap={};
+    // 第2段:其他工作明細(只取其他工作)
+    var otherMonthMap={};
+    // 各月份總時數
+    var monthTotalAll={};
+
     state.entries.forEach(function(e){
       var ym=dateKey(e.startAt).slice(0,7);
-      if(!monthMap[ym])monthMap[ym]={};
-      var key=e.projectLabel||'(無)';
-      if(!monthMap[ym][key])monthMap[ym][key]={stages:{},total:0};
-      var dur=e.endAt-e.startAt,st=e.stage||'其他';
-      monthMap[ym][key].stages[st]=(monthMap[ym][key].stages[st]||0)+dur;
-      monthMap[ym][key].total+=dur;
+      var dur=e.endAt-e.startAt;
+      monthTotalAll[ym]=(monthTotalAll[ym]||0)+dur;
+      if(isOtherWork(e)){
+        if(!otherMonthMap[ym])otherMonthMap[ym]={items:{},total:0};
+        var k=e.projectLabel||'(無)';
+        otherMonthMap[ym].items[k]=(otherMonthMap[ym].items[k]||0)+dur;
+        otherMonthMap[ym].total+=dur;
+      } else {
+        if(!projMonthMap[ym])projMonthMap[ym]={};
+        var key=e.projectLabel||'(無)';
+        if(!projMonthMap[ym][key])projMonthMap[ym][key]={stages:{},total:0};
+        var st=e.stage||'其他';
+        projMonthMap[ym][key].stages[st]=(projMonthMap[ym][key].stages[st]||0)+dur;
+        projMonthMap[ym][key].total+=dur;
+      }
     });
-    var months=Object.keys(monthMap).sort().reverse();
-    if(months.length===0){html+='<div class="empty" style="padding:60px 0">No data yet · 還沒有紀錄</div>';}
+    var allMonths=Object.keys(monthTotalAll).sort().reverse();
+
+    if(allMonths.length===0){html+='<div class="empty" style="padding:60px 0">No data yet · 還沒有紀錄</div>';}
     else{
-      html+='<div class="section-head"><div class="section-title">結算表 · <span class="section-en">Monthly Breakdown</span></div></div>';
-      months.forEach(function(ym){
-        var projects=Object.entries(monthMap[ym]).sort(function(a,b){return b[1].total-a[1].total;});
+      // ── 第 1 段:每月專案結算 ──
+      html+='<div class="section-head"><div class="section-title">① 每月專案結算 · <span class="section-en">Project Breakdown</span></div></div>';
+      allMonths.forEach(function(ym){
+        var projObj=projMonthMap[ym];
+        if(!projObj||Object.keys(projObj).length===0)return;
+        var projects=Object.entries(projObj).sort(function(a,b){return b[1].total-a[1].total;});
         var monthTotal=projects.reduce(function(s,p){return s+p[1].total;},0);
         var stageTotals={};STAGES.forEach(function(s){stageTotals[s]=0;});
         projects.forEach(function(p){STAGES.forEach(function(s){stageTotals[s]+=p[1].stages[s]||0;});});
@@ -447,6 +519,50 @@ function render(){
         html+='  </table>';
         html+='</div>';
       });
+
+      // ── 第 2 段:每月工作時間分配 ──
+      html+='<div class="section-head" style="margin-top:28px"><div class="section-title">② 每月工作時間分配 · <span class="section-en">Monthly Distribution</span></div></div>';
+      allMonths.forEach(function(ym){
+        var monthTotal=monthTotalAll[ym]||0;
+        var projObj=projMonthMap[ym]||{};
+        var otherObj=otherMonthMap[ym]||{items:{},total:0};
+        var projTotal=Object.values(projObj).reduce(function(s,p){return s+p.total;},0);
+        var otherTotal=otherObj.total;
+        var workDays={};
+        state.entries.forEach(function(e){if(dateKey(e.startAt).slice(0,7)===ym)workDays[dateKey(e.startAt)]=true;});
+        var dayCount=Object.keys(workDays).length;
+
+        var projRows=Object.entries(projObj).sort(function(a,b){return b[1].total-a[1].total;});
+        var otherRows=Object.entries(otherObj.items).sort(function(a,b){return b[1]-a[1];});
+
+        html+='<div class="report-block">';
+        html+='  <div class="report-month-head"><span class="report-month-label">'+ym.replace('-','/')+'</span><span class="report-month-total">'+fmtDur(monthTotal)+'</span></div>';
+        // 兩個 KPI 數字
+        html+='  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 14px">';
+        html+='    <div style="text-align:center;padding:8px 4px"><div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.2em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:3px">總工時</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:500;color:var(--yellow-mid);line-height:1">'+fmtDur(monthTotal)+'</div></div>';
+        html+='    <div style="text-align:center;padding:8px 4px"><div style="font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.2em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:3px">工作天</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:500;color:var(--ink-soft);line-height:1">'+dayCount+'</div></div>';
+        html+='  </div>';
+        // 專案工時
+        if(projRows.length>0){
+          html+='<div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.2em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin:10px 0 6px;padding-top:6px;border-top:1px dashed var(--line)">專案工時 · '+fmtDur(projTotal)+'</div>';
+          var maxProj=Math.max.apply(null,projRows.map(function(r){return r[1].total;}));
+          var PCOLORS=['#5fb3d4','#85c585','#ff6f9d','#a085c4','#7a9bbf','#efba2c','#c9a227','#d89a3a'];
+          projRows.forEach(function(r,i){
+            var w=(r[1].total/maxProj)*100;
+            html+='<div class="bar-row2"><div class="nam">'+r[0]+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:'+PCOLORS[i%PCOLORS.length]+'"></div></div><div class="dur">'+fmtDur(r[1].total)+'</div></div>';
+          });
+        }
+        // 其他工作
+        if(otherRows.length>0){
+          html+='<div style="font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.2em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin:14px 0 6px;padding-top:8px;border-top:1px dashed var(--line)">其他工作 · '+fmtDur(otherTotal)+'</div>';
+          var maxOther=Math.max.apply(null,otherRows.map(function(r){return r[1];}));
+          otherRows.forEach(function(r){
+            var w=(r[1]/maxOther)*100;
+            html+='<div class="bar-row2"><div class="nam">'+r[0]+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:#B8862A"></div></div><div class="dur">'+fmtDur(r[1])+'</div></div>';
+          });
+        }
+        html+='</div>';
+      });
     }
   }
 
@@ -457,13 +573,6 @@ function render(){
     else statusMsg='<span class="italic">'+state.projects.length+' projects · synced with Notion</span>';
     html+='<div class="import-note">';
     html+='  <span class="import-note-text">'+statusMsg+'</span>';
-    html+='  <div style="display:flex;gap:6px;flex-wrap:wrap">';
-    html+='    <button class="import-btn" onclick="refreshProjects();syncFromCloud();">Refresh</button>';
-    html+='    <button class="import-btn" onclick="exportJSON()">Backup</button>';
-    html+='    <button class="import-btn" onclick="exportCSV()">CSV</button>';
-    html+='    <button class="import-btn" onclick="document.getElementById(\'imp-file\').click()">Restore</button>';
-    html+='    <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importJSON(this)">';
-    html+='  </div>';
     html+='</div>';
   }
 
@@ -473,16 +582,21 @@ function render(){
     html+='  <div class="modal">';
     html+='    <div class="modal-title">'+(isEdit?'編輯紀錄 · Edit':'手動補填 · Add Entry')+'</div>';
     html+='    <div class="field"><div class="flabel">Project / 專案</div>';
-    html+='      <select class="fc" onchange="var v=this.value;var p=state.projects.find(function(x){return x.id===v;});state.modalForm.projectId=v;state.modalForm.projectLabel=p?p.name:this.options[this.selectedIndex].text;state.modalForm.client=p?p.client:\'\';">';
+    html+='      <select class="fc" onchange="var v=this.value;var p=state.projects.find(function(x){return x.id===v;});state.modalForm.projectId=v;if(v===\'__other__\'){state.modalForm.stage=\'__other_work__\';if(!state.modalForm.projectLabel||state.projects.find(function(x){return x.name===state.modalForm.projectLabel;}))state.modalForm.projectLabel=\'\';}else if(p){state.modalForm.projectLabel=p.name;state.modalForm.client=p.client;if(state.modalForm.stage===\'__other_work__\')state.modalForm.stage=\'初剪\';}else{state.modalForm.projectLabel=this.options[this.selectedIndex].text;}render();">';
     html+='        <option value="">— 請選 —</option>';
     state.projects.forEach(function(p){html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     html+='    <div class="row">';
-    html+='      <div class="field"><div class="flabel">Stage / 階段</div>';
-    html+='        <select class="fc" onchange="state.modalForm.stage=this.value;">';
-    ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
-    html+='        </select></div>';
+    if(f.projectId==='__other__'){
+      html+='      <div class="field"><div class="flabel">在做什麼? / Doing what?</div>';
+      html+='        <input class="fc" value="'+(f.projectLabel||'')+'" oninput="state.modalForm.projectLabel=this.value;" placeholder="例:寫工作追蹤器"></div>';
+    } else {
+      html+='      <div class="field"><div class="flabel">Stage / 階段</div>';
+      html+='        <select class="fc" onchange="state.modalForm.stage=this.value;">';
+      ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
+      html+='        </select></div>';
+    }
     html+='      <div class="field"><div class="flabel">Note / 備註</div><input class="fc" value="'+(f.note||'')+'" oninput="state.modalForm.note=this.value;"></div>';
     html+='    </div>';
     html+='    <div class="row">';
@@ -506,6 +620,7 @@ function render(){
 }
 
 render();
+document.addEventListener('click',function(){if(state.gearMenu){state.gearMenu=false;render();}});
 if(USE_API){refreshProjects();syncFromCloud();}
 </script>
 </body>
