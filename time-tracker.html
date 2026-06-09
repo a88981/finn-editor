@@ -285,7 +285,8 @@ function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){retu
       v1Due:p.v1Due||'',v1Done:!!p.v1Done,
       bizDue:p.bizDue||'',bizDone:!!p.bizDone,noBiz:!!p.noBiz,
       finalDue:p.finalDue||'',finalDone:!!p.finalDone,
-      fee:Number(p.fee)||0
+      fee:Number(p.fee)||0,
+      finalLen:p.finalLen||p.length||''
     };});
     cb(null,ps);
   }
@@ -909,16 +910,19 @@ function render(){
         html+='  <table class="report-table">';
         html+='    <thead><tr><th>專案</th>';
         STAGES.forEach(function(s){html+='<th>'+s+'</th>';});
-        html+='    <th>合計</th><th>時薪</th></tr></thead>';
+        html+='    <th>片長</th><th>合計</th><th>時薪</th></tr></thead>';
         html+='    <tbody>';
         projects.forEach(function(p){
           var data=p[1];
           var clientName=data.client?'<span class="client">·'+data.client+'</span>':'';
           html+='      <tr><td>'+p[0]+clientName+'</td>';
           STAGES.forEach(function(s){var v=data.stages[s]||0;html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
-          html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
-          // 時薪 = fee / 累積小時
+          // 片長
           var proj=state.projects.find(function(x){return x.id===data.projectId;});
+          var finalLen=proj?(proj.finalLen||''):'';
+          html+='      <td '+(finalLen?'':'class="zero"')+'>'+(finalLen||'—')+'</td>';
+          html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
+          // 時薪
           var fee=proj?(proj.fee||0):0;
           var hours=data.total/3600000;
           if(fee>0&&hours>0){
@@ -933,7 +937,7 @@ function render(){
         html+='    </tbody>';
         html+='    <tfoot><tr><td>小計</td>';
         STAGES.forEach(function(s){var v=stageTotals[s];html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
-        html+='    <td>'+fmtDur(monthTotal)+'</td><td class="zero">—</td></tr></tfoot>';
+        html+='    <td class="zero">—</td><td>'+fmtDur(monthTotal)+'</td><td class="zero">—</td></tr></tfoot>';
         html+='  </table>';
         html+='</div>';
       });
