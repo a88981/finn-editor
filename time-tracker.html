@@ -150,9 +150,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-month-label{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--yellow-mid);letter-spacing:0.03em}
 .report-month-total{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;color:var(--ink-soft)}
 .report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;table-layout:auto}
-.report-table th{padding:7px 6px;text-align:right;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);border-bottom:1px solid var(--line);white-space:nowrap}
+.report-table th{padding:7px 6px;text-align:center;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);border-bottom:1px solid var(--line);white-space:nowrap}
 .report-table th:first-child{text-align:left;width:30%}
-.report-table td{padding:7px 6px;text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;border-bottom:1px dashed var(--line);white-space:nowrap}
+.report-table td{padding:7px 6px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;border-bottom:1px dashed var(--line);white-space:nowrap}
 .report-table td:first-child{font-family:'Noto Serif TC',serif;color:var(--ink);font-size:12.5px;text-align:left;font-weight:400;white-space:normal}
 .report-table td.zero{color:var(--ink-light)}
 .report-table td.proj-total{color:var(--yellow-mid);font-weight:500}
@@ -1012,7 +1012,7 @@ function render(){
         html+='  <table class="report-table">';
         html+='    <thead><tr><th>專案</th>';
         STAGES.forEach(function(s){html+='<th>'+s+'</th>';});
-        html+='    <th>合計</th><th>天</th><th>片長</th><th>時薪</th></tr></thead>';
+        html+='    <th>總時數</th><th>天</th><th>片長</th><th>時薪</th></tr></thead>';
         html+='    <tbody>';
         projects.forEach(function(p){
           var data=p[1];
