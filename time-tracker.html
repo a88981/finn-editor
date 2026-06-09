@@ -232,6 +232,8 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .btn-sub{padding:7px 16px;font-size:10px;font-weight:500;border-radius:3px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.2em;text-transform:uppercase}
 .btn-sub.primary{background:var(--yellow);color:#fff;border-color:var(--yellow)}
 .btn-sub.danger{background:#fff;color:var(--red);border-color:var(--red)}
+.btn-sub.reopen{background:#fff;color:var(--green);border-color:var(--green)}
+.btn-sub.reopen:hover{background:#f0f7ea}
 
 @media (max-width:520px){
   .a4{padding:24px 22px 24px}
@@ -505,6 +507,34 @@ function deleteEntry(id){
   state.entries=state.entries.filter(function(e){return e.id!==id;});
   ls_set(ENTRIES_KEY,state.entries);render();
   if(USE_API&&ent&&ent.notionId)apiDeleteEntry(ent.notionId,function(err){if(err)console.warn('刪除失敗',err);});
+}
+
+function reopenEntry(id){
+  var e=state.entries.find(function(x){return x.id===id;});
+  if(!e)return;
+  if(!confirm('把這筆紀錄拉回「進行中」?\n\n結束→復原中間這段會自動算成暫停(不計工時)。'))return;
+  // 計算「從結束到現在」這段要算進 pauseTotal(等於額外暫停)
+  var extraPause=Date.now()-e.endAt;
+  var newPauseTotal=(e.pauseTotal||0)+extraPause;
+  // 拉回 active
+  state.active.push({
+    id:e.id,projectId:e.projectId,projectLabel:e.projectLabel,
+    client:e.client||'',stage:e.stage,note:e.note||'',
+    startAt:e.startAt,
+    pauseTotal:newPauseTotal,
+    pausedAt:null,
+    workDay:e.workDay||dateKey(e.startAt),
+    notionId:e.notionId
+  });
+  // 從 entries 移除
+  state.entries=state.entries.filter(function(x){return x.id!==e.id;});
+  ls_set(ACTIVE_KEY,state.active);
+  ls_set(ENTRIES_KEY,state.entries);
+  closeModal();
+  // 若有 notionId,把 Notion 那筆 archive(待重新存)
+  if(USE_API&&e.notionId){
+    apiDeleteEntry(e.notionId,function(err){if(err)console.warn('Notion archive 失敗',err);});
+  }
 }
 
 function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt)};state.modal='edit';render();}
@@ -1124,6 +1154,7 @@ function render(){
     html+='    </div>';
     html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+(f.workDay||f.startDate)+'" onchange="state.modalForm.workDay=this.value;"></div>';
     html+='    <div class="modal-btns">';
+    if(isEdit)html+='      <button class="btn-sub reopen" onclick="reopenEntry(state.modalForm.id)">↩ 復原</button>';
     if(isEdit)html+='      <button class="btn-sub danger" onclick="deleteFromModal()">刪除</button>';
     html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
     html+='      <button class="btn-sub primary" onclick="saveModal()">儲存</button>';
