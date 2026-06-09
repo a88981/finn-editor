@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⏱ 工作時間追蹤</title>
+<title>⏱ 工作日誌</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,16 +35,27 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 /* 上下班打卡條 */
 .clock-bar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:4px;padding:13px 16px;margin-bottom:14px;gap:14px}
 .clock-bar.working{border-left:3px solid var(--green)}
+.clock-bar.on-break{border-left:3px solid #d8903a;background:#fff7e8}
 .clock-info{flex:1;min-width:0}
 .clock-status{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-light);font-weight:500;margin-bottom:3px}
 .clock-status.live{color:var(--green)}
-.clock-time{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+.clock-status.break{color:#d8903a}
+.clock-time{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--ink-soft);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
 .clock-time.idle{color:var(--ink-light);font-size:16px;font-style:italic;font-weight:400}
+.clock-time.break-time{color:#d8903a;font-size:22px}
 .clock-btn{padding:8px 18px;font-size:10px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:none;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
 .clock-btn.in{background:var(--green);color:#fff}
 .clock-btn.in:hover{background:#487228}
 .clock-btn.out{background:#fff;color:var(--red);border:1px solid var(--red)}
 .clock-btn.out:hover{background:#fcebeb}
+.clock-btns{display:flex;flex-direction:column;gap:5px}
+.clock-btn-mini{padding:5px 11px;font-size:9.5px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid;background:#fff;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
+.clock-btn-mini.break{border-color:#d8903a;color:#d8903a}
+.clock-btn-mini.break:hover{background:#fff7e8}
+.clock-btn-mini.resume{border-color:var(--yellow);background:var(--yellow);color:#fff}
+.clock-btn-mini.resume:hover{background:var(--yellow-mid);border-color:var(--yellow-mid)}
+.clock-btn-mini.out{border-color:var(--red);color:var(--red)}
+.clock-btn-mini.out:hover{background:#fcebeb}
 
 /* 扁扁的待交件提醒列 */
 .todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -113,7 +124,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .section-en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light);font-weight:300}
 .total{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--yellow-mid)}
 
-.summary{background:var(--yellow-lightest);border:1px solid var(--yellow-soft);border-radius:4px;padding:13px 16px;margin:14px 0 6px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.summary{background:var(--yellow-lightest);border:1px solid var(--yellow-soft);border-radius:4px;padding:13px 16px;margin:14px 0 6px;display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
 .summary-block{text-align:center}
 .summary-label{font-family:'Inter',sans-serif;font-size:9.5px;letter-spacing:0.2em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:4px}
 .summary-value{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
@@ -149,6 +160,32 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-table td.rate .nt{font-size:10px;color:var(--ink-light);margin-right:1px;font-style:normal;letter-spacing:0}
 .report-table td.rate .low{color:var(--red);font-style:normal;font-weight:500}
 .bar-row2 .nam .client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;margin-left:4px}
+
+/* Expand 按鈕 */
+.expand-btn{background:transparent;border:1px solid var(--line);color:var(--ink-soft);padding:6px 16px;font-family:'Noto Sans TC',sans-serif;font-size:11.5px;border-radius:3px;cursor:pointer;letter-spacing:0.04em}
+.expand-btn:hover{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--yellow-mid)}
+
+/* 日曆 */
+.month-nav{display:flex;justify-content:space-between;align-items:center;margin:6px 0 12px}
+.month-nav .month-label{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--yellow-mid);letter-spacing:0.04em}
+.nav-btn{background:transparent;border:1px solid var(--line);width:28px;height:28px;border-radius:3px;color:var(--ink-soft);cursor:pointer;font-family:Inter,sans-serif;font-size:13px;display:flex;align-items:center;justify-content:center;padding:0}
+.nav-btn:hover{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--yellow-mid)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px}
+.cal-head{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);text-align:center;padding:4px 0;font-weight:500}
+.cal-day{aspect-ratio:1;border:0.5px solid transparent;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-light);position:relative}
+.cal-day.blank{border:none}
+.cal-day.has-data{background:var(--yellow-lightest);color:var(--ink);border-color:var(--yellow-pale);font-weight:500}
+.cal-day.has-data .h{font-family:Inter,sans-serif;font-size:8px;letter-spacing:0.04em;color:var(--yellow-mid);font-weight:500;margin-top:1px}
+.cal-day.empty-day{color:#c8c8c0}
+.cal-day.today{outline:1px solid var(--yellow-mid);outline-offset:-2px}
+.cal-day.selected{background:var(--yellow);color:#fff;border-color:var(--yellow-mid)}
+.cal-day.selected .h{color:#fff}
+
+/* 日詳細卡片 */
+.day-detail{background:#fff;border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-top:10px}
+.day-d-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.day-d-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500}
+.day-d-tot{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--yellow-mid);font-weight:500}
 
 /* 今日報表 · 時間軸 */
 .tl{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:5px 0;font-size:12px;align-items:flex-start}
@@ -224,6 +261,9 @@ function todayKey(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()
 function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
 function tsFromHM(hm){var d=new Date(),p=hm.split(':');d.setHours(parseInt(p[0])||0,parseInt(p[1])||0,0,0);return d.getTime();}
+function fmtDurShort(ms){if(ms<=0)return '';var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h===0)return m+'m';if(m===0)return h+'h';return h+'h';}
+function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
+function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function stageLabel(s){return s||'其他';}
 function isOtherWork(e){return e&&e.projectId==='__other__';}
 
@@ -265,7 +305,10 @@ var state={
   gearMenu:false,
   newProjId:'', // 新增打卡選的專案(空 / id / __other__)
   newOtherName:'', // 其他工作的自由命名
-  shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD'}
+  dailyMonth:todayKey().slice(0,7), // 'YYYY-MM' 日誌頁當前查看月份
+  dailySelectedDay:null, // 'YYYY-MM-DD' 日誌頁選中的某天
+  reportShowAll:false, // Report 是否展開全部月份
+  shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD', breakAt:?, breakTotal:0}
   shifts:ls_get(SHIFTS_KEY)||[], // 歷史 shift 紀錄 [{workDay, startAt, endAt}]
   active:ls_get(ACTIVE_KEY)||[],
   entries:ls_get(ENTRIES_KEY)||[],
@@ -340,14 +383,43 @@ function clockIn(){
   ls_set(SHIFT_KEY,state.shift);
   render();
 }
+function startBreak(){
+  if(!state.shift||state.shift.breakAt)return;
+  state.shift.breakAt=Date.now();
+  // 整批暫停 active 工作
+  state.active.forEach(function(item){if(!item.pausedAt)item.pausedAt=Date.now();});
+  ls_set(SHIFT_KEY,state.shift);
+  ls_set(ACTIVE_KEY,state.active);
+  render();
+}
+function endBreak(){
+  if(!state.shift||!state.shift.breakAt)return;
+  var dur=Date.now()-state.shift.breakAt;
+  state.shift.breakTotal=(state.shift.breakTotal||0)+dur;
+  state.shift.breakAt=null;
+  // 整批恢復 active 工作
+  state.active.forEach(function(item){
+    if(item.pausedAt){
+      item.pauseTotal=(item.pauseTotal||0)+(Date.now()-item.pausedAt);
+      item.pausedAt=null;
+    }
+  });
+  ls_set(SHIFT_KEY,state.shift);
+  ls_set(ACTIVE_KEY,state.active);
+  render();
+}
+
 function clockOut(){
   if(!state.shift){return;}
   if(state.active.length>0){
     if(!confirm('還有 '+state.active.length+' 個進行中的打卡,要全部結束並下班嗎?'))return;
     state.active.slice().forEach(function(item){stopPunch(item.id);});
   }
+  // 若還在休息中,結算掉
+  var breakTotal=state.shift.breakTotal||0;
+  if(state.shift.breakAt)breakTotal+=(Date.now()-state.shift.breakAt);
   // 存進歷史 shifts
-  state.shifts.push({workDay:state.shift.workDay,startAt:state.shift.startAt,endAt:Date.now()});
+  state.shifts.push({workDay:state.shift.workDay,startAt:state.shift.startAt,endAt:Date.now(),breakTotal:breakTotal});
   ls_set(SHIFTS_KEY,state.shifts);
   state.shift=null;
   ls_set(SHIFT_KEY,null);
@@ -571,24 +643,36 @@ function render(){
   }
   html+='<header class="header">';
   html+='  <div class="eyebrow">Daily Time Log · 2026</div>';
-  html+='  <div class="title-row"><h1 class="title">⏱ 工作時間追蹤</h1><span class="title-sub">'+dayOfWeekEN()+'</span></div>';
+  html+='  <div class="title-row"><h1 class="title">⏱ 工作日誌</h1><span class="title-sub">'+dayOfWeekEN()+'</span></div>';
   html+='</header>';
   html+='<div class="tabs">';
-  ['today','report'].forEach(function(v){var lab={today:'⏱ Today',report:'📊 Report'}[v];html+='<button class="tab '+(state.view===v?'active':'')+'" onclick="state.view=\''+v+'\';render();">'+lab+'</button>';});
+  ['today','report','daily'].forEach(function(v){var lab={today:'⏱ Today',report:'📊 Report',daily:'📅 日誌'}[v];html+='<button class="tab '+(state.view===v?'active':'')+'" onclick="state.view=\''+v+'\';render();">'+lab+'</button>';});
   html+='</div>';
 
   if(state.view==='today'){
     // ── 上下班打卡條 ──
     if(state.shift){
-      var shiftMs=Date.now()-state.shift.startAt;
+      var isBreak=!!state.shift.breakAt;
       var wdDate=new Date(state.shift.workDay+'T00:00:00');
       var wdLabel=wdDate.getMonth()+1+'/'+wdDate.getDate()+'('+'日一二三四五六'[wdDate.getDay()]+')';
-      html+='<div class="clock-bar working">';
+      html+='<div class="clock-bar '+(isBreak?'on-break':'working')+'">';
       html+='  <div class="clock-info">';
-      html+='    <div class="clock-status live">● 上班中 · '+wdLabel+' <span onclick="editClockIn()" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--ink-light)" title="修改上班時間">'+fmtTime(state.shift.startAt)+'</span> 打卡</div>';
-      html+='    <div class="clock-time">'+fmtDur(shiftMs)+'</div>';
+      if(isBreak){
+        html+='    <div class="clock-status break">‖ 休息中 · '+fmtTime(state.shift.breakAt)+' 起</div>';
+        html+='    <div class="clock-time break-time">'+fmtDur(Date.now()-state.shift.breakAt)+'</div>';
+      } else {
+        html+='    <div class="clock-status live">● 上班中 · '+wdLabel+' <span onclick="editClockIn()" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--ink-light)" title="修改上班時間">'+fmtTime(state.shift.startAt)+'</span> 起</div>';
+        html+='    <div class="clock-time">'+fmtTime(state.shift.startAt)+' 開始</div>';
+      }
       html+='  </div>';
-      html+='  <button class="clock-btn out" onclick="clockOut()">■ 下班</button>';
+      html+='  <div class="clock-btns">';
+      if(isBreak){
+        html+='    <button class="clock-btn-mini resume" onclick="endBreak()">▸ 回來</button>';
+      } else {
+        html+='    <button class="clock-btn-mini break" onclick="startBreak()">‖ 休息</button>';
+      }
+      html+='    <button class="clock-btn-mini out" onclick="clockOut()">■ 下班</button>';
+      html+='  </div>';
       html+='</div>';
     } else {
       html+='<div class="clock-bar">';
@@ -633,10 +717,10 @@ function render(){
       if(todos.length>showCount)html+='<span class="more">+'+(todos.length-showCount)+'</span>';
       html+='</div>';
     }
-    var disabled=!state.shift;
+    var disabled=!state.shift||!!(state.shift&&state.shift.breakAt);
     html+='<div class="punch-card'+(disabled?' disabled':'')+'">';
     if(disabled){
-      html+='  <div class="punch-warning">⚠ 請先按上班才能新增工作</div>';
+      html+='  <div class="punch-warning">⚠ '+(state.shift&&state.shift.breakAt?'休息中,點「▸ 回來」才能繼續':'請先按上班才能新增工作')+'</div>';
     }
     html+='  <div class="punch-head">+ 新增工作 · Add Work</div>';
     html+='  <div class="row">';
@@ -717,9 +801,14 @@ function render(){
     }
     if(todayEntries.length>0||state.active.length>0||state.shift||todayShifts.length>0){
       html+='<div class="summary">';
-      html+='  <div class="summary-block"><div class="summary-label">Working</div><div class="summary-value work">'+fmtDur(workMs)+'</div></div>';
-      html+='  <div class="summary-block"><div class="summary-label">Rest</div><div class="summary-value rest">'+fmtDur(restMs)+'</div></div>';
-      html+='  <div class="summary-block"><div class="summary-label">Span</div><div class="summary-value span">'+fmtDur(spanMs)+'</div><div class="summary-range">'+spanLabel+'</div></div>';
+      html+='  <div class="summary-block"><div class="summary-label">今日工時 · Working</div><div class="summary-value work">'+fmtDur(workMs)+'</div></div>';
+      if(state.shift){
+        html+='  <div class="summary-block"><div class="summary-label">上班</div><div class="summary-value span">'+fmtTime(state.shift.startAt)+' 起算</div></div>';
+      } else if(todayEntries.length>0){
+        var fStart=Math.min.apply(null,todayEntries.map(function(e){return e.startAt;}));
+        var lEnd=Math.max.apply(null,todayEntries.map(function(e){return e.endAt;}));
+        html+='  <div class="summary-block"><div class="summary-label">時間</div><div class="summary-value span">'+fmtTime(fStart)+' → '+fmtTime(lEnd)+'</div></div>';
+      }
       html+='</div>';
     }
 
@@ -810,12 +899,15 @@ function render(){
       }
     });
     var allMonths=Object.keys(monthTotalAll).sort().reverse();
+    // 預設只顯示最近 3 個月,除非展開
+    var monthsToShow=state.reportShowAll?allMonths:allMonths.slice(0,3);
+    var hiddenCount=allMonths.length-monthsToShow.length;
 
     if(allMonths.length===0){html+='<div class="empty" style="padding:60px 0">No data yet · 還沒有紀錄</div>';}
     else{
       // ── 第 1 段:每月專案結算 ──
       html+='<div class="section-head"><div class="section-title">① 每月專案結算 · <span class="section-en">Project Breakdown</span></div></div>';
-      allMonths.forEach(function(ym){
+      monthsToShow.forEach(function(ym){
         var projObj=projMonthMap[ym];
         if(!projObj||Object.keys(projObj).length===0)return;
         var projects=Object.entries(projObj).sort(function(a,b){return b[1].total-a[1].total;});
@@ -858,7 +950,7 @@ function render(){
 
       // ── 第 2 段:每月工作時間分配 ──
       html+='<div class="section-head" style="margin-top:28px"><div class="section-title">② 每月工作時間分配 · <span class="section-en">Monthly Distribution</span></div></div>';
-      allMonths.forEach(function(ym){
+      monthsToShow.forEach(function(ym){
         var monthTotal=monthTotalAll[ym]||0;
         var projObj=projMonthMap[ym]||{};
         var otherObj=otherMonthMap[ym]||{items:{},total:0};
@@ -900,6 +992,82 @@ function render(){
         }
         html+='</div>';
       });
+      // 展開更多月份
+      if(hiddenCount>0){
+        html+='<div style="text-align:center;margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)"><button class="expand-btn" onclick="state.reportShowAll=true;render();">展開更早的 '+hiddenCount+' 個月 · Show '+hiddenCount+' more</button></div>';
+      } else if(state.reportShowAll&&allMonths.length>3){
+        html+='<div style="text-align:center;margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)"><button class="expand-btn" onclick="state.reportShowAll=false;render();">收起 · Collapse</button></div>';
+      }
+    }
+  }
+
+  if(state.view==='daily'){
+    var dailyMonth=state.dailyMonth;
+    var dailyMonthDate=new Date(dailyMonth+'-01T00:00:00');
+    var yearM=dailyMonth.split('-');
+    var year=parseInt(yearM[0]),month=parseInt(yearM[1]);
+    var firstDow=dailyMonthDate.getDay();
+    var daysInMonth=new Date(year,month,0).getDate();
+    // 聚合該月每天的工時
+    var dayTotals={};
+    state.entries.forEach(function(e){
+      var wd=e.workDay||dateKey(e.startAt);
+      if(wd.slice(0,7)===dailyMonth){
+        var dur=e.endAt-e.startAt-(e.pauseTotal||0);
+        dayTotals[wd]=(dayTotals[wd]||0)+dur;
+      }
+    });
+    // 月份切換
+    html+='<div class="month-nav">';
+    html+='  <button class="nav-btn" onclick="prevMonth()">‹</button>';
+    html+='  <span class="month-label">'+year+'/'+pad(month)+'</span>';
+    html+='  <button class="nav-btn" onclick="nextMonth()">›</button>';
+    html+='</div>';
+    // 迷你日曆
+    html+='<div class="cal-grid">';
+    ['日','一','二','三','四','五','六'].forEach(function(w){html+='<div class="cal-head">'+w+'</div>';});
+    for(var i=0;i<firstDow;i++)html+='<div class="cal-day blank"></div>';
+    var today=todayKey();
+    for(var d=1;d<=daysInMonth;d++){
+      var dayKey=dailyMonth+'-'+pad(d);
+      var total=dayTotals[dayKey]||0;
+      var hasData=total>0;
+      var isToday=dayKey===today;
+      var isSelected=dayKey===state.dailySelectedDay;
+      var cls='cal-day';
+      if(hasData)cls+=' has-data';
+      if(!hasData&&!isToday)cls+=' empty-day';
+      if(isToday)cls+=' today';
+      if(isSelected)cls+=' selected';
+      var clickable=hasData?' onclick="state.dailySelectedDay=\''+dayKey+'\';render();" style="cursor:pointer"':'';
+      html+='<div class="'+cls+'"'+clickable+'>'+d;
+      if(hasData)html+='<span class="h">'+fmtDurShort(total)+'</span>';
+      html+='</div>';
+    }
+    html+='</div>';
+
+    // 選中的某天詳細
+    if(state.dailySelectedDay){
+      var sd=state.dailySelectedDay;
+      var dayEntries=state.entries.filter(function(e){return (e.workDay||dateKey(e.startAt))===sd;});
+      dayEntries.sort(function(a,b){return a.startAt-b.startAt;});
+      var dayTot=dayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt-(e.pauseTotal||0));},0);
+      var sdDate=new Date(sd+'T00:00:00');
+      var sdLabel=(sdDate.getMonth()+1)+'/'+sdDate.getDate()+'('+'日一二三四五六'[sdDate.getDay()]+')';
+      html+='<div class="day-detail">';
+      html+='  <div class="day-d-head"><span class="day-d-title">'+sdLabel+'</span><span class="day-d-tot">'+fmtDur(dayTot)+'</span></div>';
+      if(dayEntries.length===0){
+        html+='  <div class="empty">No entries · 沒有紀錄</div>';
+      } else {
+        dayEntries.forEach(function(e){
+          var clientHtml=e.client?'<span class="cli">·'+e.client+'</span>':'';
+          html+='  <div class="tl" onclick="openEdit(\''+e.id+'\')" style="cursor:pointer">';
+          html+='    <span class="t">'+fmtTime(e.startAt)+'</span>';
+          html+='    <div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(e.endAt-e.startAt-(e.pauseTotal||0))+'</span></div>';
+          html+='  </div>';
+        });
+      }
+      html+='</div>';
     }
   }
 
