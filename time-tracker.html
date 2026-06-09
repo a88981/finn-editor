@@ -661,8 +661,9 @@ function render(){
         html+='    <div class="clock-status break">‖ 休息中 · '+fmtTime(state.shift.breakAt)+' 起</div>';
         html+='    <div class="clock-time break-time">'+fmtDur(Date.now()-state.shift.breakAt)+'</div>';
       } else {
+        var shiftMs3=Date.now()-state.shift.startAt-(state.shift.breakTotal||0);
         html+='    <div class="clock-status live">● 上班中 · '+wdLabel+' <span onclick="editClockIn()" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--ink-light)" title="修改上班時間">'+fmtTime(state.shift.startAt)+'</span> 起</div>';
-        html+='    <div class="clock-time">'+fmtTime(state.shift.startAt)+' 開始</div>';
+        html+='    <div class="clock-time">'+fmtDur(Math.max(0,shiftMs3))+'</div>';
       }
       html+='  </div>';
       html+='  <div class="clock-btns">';
