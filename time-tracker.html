@@ -574,7 +574,7 @@ function exportCSV(){
   lines.push('');
   // 第二段:結算表(按月份 × 階段)
   lines.push('# 結算表 · Monthly Report');
-  var STAGES=['前置','初剪','ES','業配','其他'];
+  var STAGES=['前置','初剪','ES','業配','輸出','其他'];
   lines.push('月份,專案,'+STAGES.join(',')+',合計');
   var monthMap={};
   state.entries.forEach(function(e){
@@ -738,7 +738,7 @@ function render(){
     } else {
       html+='    <div><div class="flabel">Stage / 階段</div>';
       html+='      <select id="stage-select" class="fc" '+(disabled?'disabled':'')+'>';
-      ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
+      ['前置','初剪','ES','業配','輸出','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
       html+='      </select></div>';
     }
     html+='  </div>';
@@ -860,7 +860,7 @@ function render(){
   }
 
   if(state.view==='report'){
-    var STAGES=['前置','初剪','ES','業配','其他'];
+    var STAGES=['前置','初剪','ES','業配','輸出','其他'];
     // 第1段:專案結算(排除其他工作)
     var projMonthMap={};
     // 第2段:其他工作明細(只取其他工作)
@@ -1105,7 +1105,7 @@ function render(){
     } else {
       html+='      <div class="field"><div class="flabel">Stage / 階段</div>';
       html+='        <select class="fc" onchange="state.modalForm.stage=this.value;">';
-      ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
+      ['前置','初剪','ES','業配','輸出','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
       html+='        </select></div>';
     }
     html+='      <div class="field"><div class="flabel">Note / 備註</div><input class="fc" value="'+(f.note||'')+'" oninput="state.modalForm.note=this.value;"></div>';
