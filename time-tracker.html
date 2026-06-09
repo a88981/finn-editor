@@ -151,8 +151,8 @@ function todayKey(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()
 function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
 function tsFromHM(hm){var d=new Date(),p=hm.split(':');d.setHours(parseInt(p[0])||0,parseInt(p[1])||0,0,0);return d.getTime();}
-function stageLabel(s){return s==='__other_work__'?'其他工作':(s||'其他');}
-function isOtherWork(e){return e&&e.stage==='__other_work__';}
+function stageLabel(s){return s||'其他';}
+function isOtherWork(e){return e&&e.projectId==='__other__';}
 
 function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
   var arr=null;
@@ -204,7 +204,7 @@ function startPunch(){
     var otherName=(state.newOtherName||'').trim();
     if(!otherName){alert('請輸入你在做什麼');return;}
     label=otherName;
-    stage='__other_work__';
+    stage='其他工作';
     client='';
   } else {
     var proj=state.projects.find(function(p){return p.id===projSel.value;});
@@ -582,7 +582,7 @@ function render(){
     html+='  <div class="modal">';
     html+='    <div class="modal-title">'+(isEdit?'編輯紀錄 · Edit':'手動補填 · Add Entry')+'</div>';
     html+='    <div class="field"><div class="flabel">Project / 專案</div>';
-    html+='      <select class="fc" onchange="var v=this.value;var p=state.projects.find(function(x){return x.id===v;});state.modalForm.projectId=v;if(v===\'__other__\'){state.modalForm.stage=\'__other_work__\';if(!state.modalForm.projectLabel||state.projects.find(function(x){return x.name===state.modalForm.projectLabel;}))state.modalForm.projectLabel=\'\';}else if(p){state.modalForm.projectLabel=p.name;state.modalForm.client=p.client;if(state.modalForm.stage===\'__other_work__\')state.modalForm.stage=\'初剪\';}else{state.modalForm.projectLabel=this.options[this.selectedIndex].text;}render();">';
+    html+='      <select class="fc" onchange="var v=this.value;var p=state.projects.find(function(x){return x.id===v;});state.modalForm.projectId=v;if(v===\'__other__\'){state.modalForm.stage=\'其他工作\';if(!state.modalForm.projectLabel||state.projects.find(function(x){return x.name===state.modalForm.projectLabel;}))state.modalForm.projectLabel=\'\';}else if(p){state.modalForm.projectLabel=p.name;state.modalForm.client=p.client;if(state.modalForm.stage===\'其他工作\')state.modalForm.stage=\'初剪\';}else{state.modalForm.projectLabel=this.options[this.selectedIndex].text;}render();">';
     html+='        <option value="">— 請選 —</option>';
     state.projects.forEach(function(p){html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
