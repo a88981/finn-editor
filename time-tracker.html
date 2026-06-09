@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⏱ 工作日誌</title>
+<title>📖 工作日誌</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,8 +45,8 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .clock-time.idle{color:var(--ink-light);font-size:16px;font-style:italic;font-weight:400}
 .clock-time.break-time{color:#d8903a;font-size:22px}
 .clock-btn{padding:8px 18px;font-size:10px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:none;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
-.clock-btn.in{background:var(--green);color:#fff}
-.clock-btn.in:hover{background:#487228}
+.clock-btn.in{background:var(--yellow);color:#fff}
+.clock-btn.in:hover{background:var(--yellow-mid)}
 .clock-btn.out{background:#fff;color:var(--red);border:1px solid var(--red)}
 .clock-btn.out:hover{background:#fcebeb}
 .clock-btns{display:flex;flex-direction:column;gap:5px}
@@ -764,7 +764,7 @@ function render(){
   }
   html+='<header class="header">';
   html+='  <div class="eyebrow">Daily Time Log · 2026</div>';
-  html+='  <div class="title-row"><h1 class="title">⏱ 工作日誌</h1><span class="title-sub">'+dayOfWeekEN()+'</span></div>';
+  html+='  <div class="title-row"><h1 class="title">📖 工作日誌</h1><span class="title-sub">'+dayOfWeekEN()+'</span></div>';
   html+='</header>';
   html+='<div class="tabs">';
   ['today','report','daily'].forEach(function(v){var lab={today:'⏱ Today',report:'📊 Report',daily:'📅 日誌'}[v];html+='<button class="tab '+(state.view===v?'active':'')+'" onclick="state.view=\''+v+'\';render();">'+lab+'</button>';});
