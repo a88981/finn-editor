@@ -141,7 +141,17 @@ function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){retu
   var arr=null;
   if(Array.isArray(d))arr=d;
   else if(d&&Array.isArray(d.projects))arr=d.projects;
-  if(arr){var ps=arr.filter(function(p){return !p.closed;}).map(function(p){return {id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||''};});cb(null,ps);}
+  if(arr){
+    var WAIT=['等待素材','待確認','暫緩'];
+    var ps=arr.filter(function(p){
+      if(p.closed)return false;
+      if(p.status==='Final完成')return false;
+      if(p.finalDone)return false;
+      if(WAIT.indexOf(p.status)>=0)return false;
+      return true;
+    }).map(function(p){return {id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||''};});
+    cb(null,ps);
+  }
   else cb((d&&d.error)||'API error');
 }).catch(function(e){cb(e.message||'Network error');});}
 function apiListEntries(cb){fetch(API+'?action=time-list',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
@@ -224,6 +234,99 @@ function deleteFromModal(){if(!state.modalForm.id||!confirm('確定刪除?'))ret
 function refreshProjects(){state.loading=true;state.loadError=null;render();apiListProjects(function(err,ps){state.loading=false;if(err)state.loadError=err;else{state.projects=ps;ls_set(PROJECTS_KEY,ps);}render();});}
 function syncFromCloud(){apiListEntries(function(err,entries){if(err){console.warn('雲端讀取失敗',err);return;}state.entries=entries;ls_set(ENTRIES_KEY,entries);render();});}
 
+// ── 匯出/匯入 ──
+function downloadFile(filename,content,type){
+  var blob=new Blob([content],{type:type});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+}
+
+function exportJSON(){
+  var data={
+    version:1,
+    exportedAt:new Date().toISOString(),
+    entries:state.entries,
+    projects:state.projects
+  };
+  var today=todayKey();
+  downloadFile('time-tracker-backup-'+today+'.json',JSON.stringify(data,null,2),'application/json');
+}
+
+function exportCSV(){
+  // 兩段:打卡紀錄 + 結算表
+  var lines=[];
+  // 第一段:打卡紀錄
+  lines.push('# 打卡紀錄 · Entries');
+  lines.push('日期,開始,結束,客戶,專案,階段,備註,時長(分)');
+  state.entries.slice().sort(function(a,b){return b.startAt-a.startAt;}).forEach(function(e){
+    var dur=Math.round((e.endAt-e.startAt)/60000);
+    var row=[
+      dateKey(e.startAt),
+      fmtTime(e.startAt),
+      fmtTime(e.endAt),
+      csvEsc(e.client||''),
+      csvEsc(e.projectLabel||''),
+      csvEsc(e.stage||''),
+      csvEsc(e.note||''),
+      dur
+    ];
+    lines.push(row.join(','));
+  });
+  lines.push('');
+  // 第二段:結算表(按月份 × 階段)
+  lines.push('# 結算表 · Monthly Report');
+  var STAGES=['前置','初剪','ES','業配','其他'];
+  lines.push('月份,專案,'+STAGES.join(',')+',合計');
+  var monthMap={};
+  state.entries.forEach(function(e){
+    var ym=dateKey(e.startAt).slice(0,7);
+    if(!monthMap[ym])monthMap[ym]={};
+    var key=e.projectLabel||'(無)';
+    if(!monthMap[ym][key])monthMap[ym][key]={stages:{},total:0};
+    var dur=e.endAt-e.startAt,st=e.stage||'其他';
+    monthMap[ym][key].stages[st]=(monthMap[ym][key].stages[st]||0)+dur;
+    monthMap[ym][key].total+=dur;
+  });
+  Object.keys(monthMap).sort().reverse().forEach(function(ym){
+    Object.entries(monthMap[ym]).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(p){
+      var row=[ym,csvEsc(p[0])];
+      STAGES.forEach(function(s){
+        var ms=p[1].stages[s]||0;
+        row.push(ms>0?Math.round(ms/60000):0);
+      });
+      row.push(Math.round(p[1].total/60000));
+      lines.push(row.join(','));
+    });
+  });
+  var bom='\uFEFF'; // UTF-8 BOM,讓 Excel 開不亂碼
+  var today=todayKey();
+  downloadFile('time-tracker-'+today+'.csv',bom+lines.join('\n'),'text/csv;charset=utf-8');
+}
+
+function csvEsc(s){s=String(s||'');if(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)return '"'+s.replace(/"/g,'""')+'"';return s;}
+
+function importJSON(input){
+  if(!input.files[0])return;
+  if(!confirm('匯入會覆蓋目前的打卡紀錄,確定?'))return;
+  var file=input.files[0];
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var data=JSON.parse(r.result);
+      var entries=data.entries||(Array.isArray(data)?data:[]);
+      if(!Array.isArray(entries)){alert('檔案格式不對');return;}
+      state.entries=entries;
+      ls_set(ENTRIES_KEY,entries);
+      render();
+      alert('已匯入 '+entries.length+' 筆紀錄(注意:這只還原本機,沒同步到 Notion)');
+    }catch(e){alert('讀取失敗:'+e.message);}
+  };
+  r.readAsText(file);
+}
+
 function render(){
   var html='';
   html+='<div class="corner-l">Time Tracker</div>';
@@ -248,7 +351,7 @@ function render(){
     html+='      </select></div>';
     html+='    <div><div class="flabel">Stage / 階段</div>';
     html+='      <select id="stage-select" class="fc">';
-    ['初剪','ES','業配','Final','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
+    ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'">'+s+'</option>';});
     html+='      </select></div>';
     html+='  </div>';
     html+='  <div class="row3">';
@@ -302,11 +405,10 @@ function render(){
     html+='<div class="section-head"><div class="section-title">今日紀錄 · <span class="section-en">Log ('+todayEntries.length+')</span></div><div class="total">'+fmtDur(workMs)+'</div></div>';
     if(todayEntries.length===0){html+='<div class="empty">No entries yet · 今天還沒打卡</div>';}
     else{todayEntries.forEach(function(e){html+='<div class="entry" onclick="openEdit(\''+e.id+'\')"><div class="time">'+fmtTime(e.startAt)+'→'+fmtTime(e.endAt)+'</div><div class="proj">'+(e.projectLabel||'(無)')+'</div><div class="stage">'+e.stage+'</div><div class="dur">'+fmtDur(e.endAt-e.startAt)+'</div><div class="del" onclick="event.stopPropagation();deleteEntry(\''+e.id+'\')">×</div></div>';});}
-    html+='<div style="text-align:center;margin-top:14px"><span style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:13px;color:var(--ink-light);cursor:pointer" onclick="openManual()">+ Add Entry Manually · 手動補填</span></div>';
   }
 
   if(state.view==='report'){
-    var STAGES=['初剪','ES','業配','Final','其他'];
+    var STAGES=['前置','初剪','ES','業配','其他'];
     var monthMap={};
     state.entries.forEach(function(e){
       var ym=dateKey(e.startAt).slice(0,7);
@@ -353,7 +455,16 @@ function render(){
     if(state.loading)statusMsg='Loading... · 載入中';
     else if(state.loadError)statusMsg=state.loadError;
     else statusMsg='<span class="italic">'+state.projects.length+' projects · synced with Notion</span>';
-    html+='<div class="import-note"><span class="import-note-text">'+statusMsg+'</span><button class="import-btn" onclick="refreshProjects();syncFromCloud();">Refresh</button></div>';
+    html+='<div class="import-note">';
+    html+='  <span class="import-note-text">'+statusMsg+'</span>';
+    html+='  <div style="display:flex;gap:6px;flex-wrap:wrap">';
+    html+='    <button class="import-btn" onclick="refreshProjects();syncFromCloud();">Refresh</button>';
+    html+='    <button class="import-btn" onclick="exportJSON()">Backup</button>';
+    html+='    <button class="import-btn" onclick="exportCSV()">CSV</button>';
+    html+='    <button class="import-btn" onclick="document.getElementById(\'imp-file\').click()">Restore</button>';
+    html+='    <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importJSON(this)">';
+    html+='  </div>';
+    html+='</div>';
   }
 
   if(state.modal){
@@ -370,7 +481,7 @@ function render(){
     html+='    <div class="row">';
     html+='      <div class="field"><div class="flabel">Stage / 階段</div>';
     html+='        <select class="fc" onchange="state.modalForm.stage=this.value;">';
-    ['初剪','ES','業配','Final','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
+    ['前置','初剪','ES','業配','其他'].forEach(function(s){html+='        <option value="'+s+'" '+(f.stage===s?'selected':'')+'>'+s+'</option>';});
     html+='        </select></div>';
     html+='      <div class="field"><div class="flabel">Note / 備註</div><input class="fc" value="'+(f.note||'')+'" oninput="state.modalForm.note=this.value;"></div>';
     html+='    </div>';
