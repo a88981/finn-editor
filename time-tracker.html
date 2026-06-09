@@ -131,7 +131,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .summary-value.work{color:var(--yellow-mid)}
 .summary-value.rest{color:var(--ink-light);font-style:italic}
 .summary-value.span{color:var(--ink-soft)}
-.summary-range{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:var(--ink-light);margin-top:2px}
+.summary-range{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:11px;color:var(--ink-light);margin-top:2px;letter-spacing:0.02em}
 
 .entry{display:grid;grid-template-columns:95px 1fr 55px 70px 22px;gap:10px;padding:9px 4px;border-bottom:1px dashed var(--line);font-size:12.5px;align-items:center;cursor:pointer}
 .entry:hover{background:var(--yellow-lightest)}
@@ -803,11 +803,13 @@ function render(){
       html+='<div class="summary">';
       html+='  <div class="summary-block"><div class="summary-label">今日工時 · Working</div><div class="summary-value work">'+fmtDur(workMs)+'</div></div>';
       if(state.shift){
-        html+='  <div class="summary-block"><div class="summary-label">上班</div><div class="summary-value span">'+fmtTime(state.shift.startAt)+' 起算</div></div>';
+        var shiftMs2=Date.now()-state.shift.startAt-(state.shift.breakTotal||0);
+        if(state.shift.breakAt)shiftMs2-=(Date.now()-state.shift.breakAt);
+        html+='  <div class="summary-block"><div class="summary-label">上班 · Shift</div><div class="summary-value span">'+fmtDur(Math.max(0,shiftMs2))+'</div><div class="summary-range">since '+fmtTime(state.shift.startAt)+'</div></div>';
       } else if(todayEntries.length>0){
         var fStart=Math.min.apply(null,todayEntries.map(function(e){return e.startAt;}));
         var lEnd=Math.max.apply(null,todayEntries.map(function(e){return e.endAt;}));
-        html+='  <div class="summary-block"><div class="summary-label">時間</div><div class="summary-value span">'+fmtTime(fStart)+' → '+fmtTime(lEnd)+'</div></div>';
+        html+='  <div class="summary-block"><div class="summary-label">時間 · Span</div><div class="summary-value span">'+fmtDur(lEnd-fStart)+'</div><div class="summary-range">'+fmtTime(fStart)+' → '+fmtTime(lEnd)+'</div></div>';
       }
       html+='</div>';
     }
