@@ -378,6 +378,29 @@ function editActiveStart(id){
   render();
 }
 
+function reopenLastShift(){
+  if(state.shift){alert('現在還在上班中');return;}
+  if(!state.shifts||state.shifts.length===0){alert('沒有歷史下班紀錄');return;}
+  // 找最後一筆 shift (sorted by endAt desc)
+  var sorted=state.shifts.slice().sort(function(a,b){return b.endAt-a.endAt;});
+  var lastShift=sorted[0];
+  var hoursPassed=Math.round((Date.now()-lastShift.endAt)/60000);
+  if(!confirm('復原最後一次下班?\n\n'+lastShift.workDay+' '+fmtTime(lastShift.startAt)+' → '+fmtTime(lastShift.endAt)+'\n\n下班到現在 '+hoursPassed+' 分鐘會自動算成休息(不計工時)。'))return;
+  // 把 lastShift 拉回 active shift,中間時間加進 breakTotal
+  var extraBreak=Date.now()-lastShift.endAt;
+  state.shift={
+    startAt:lastShift.startAt,
+    workDay:lastShift.workDay,
+    breakTotal:(lastShift.breakTotal||0)+extraBreak,
+    breakAt:null
+  };
+  // 從歷史移除
+  state.shifts=state.shifts.filter(function(s){return !(s.startAt===lastShift.startAt&&s.endAt===lastShift.endAt);});
+  ls_set(SHIFT_KEY,state.shift);
+  ls_set(SHIFTS_KEY,state.shifts);
+  render();
+}
+
 function clockIn(){
   if(state.shift){alert('已經在上班中了');return;}
   var defaultHM=nowHM();
@@ -738,10 +761,21 @@ function render(){
       html+='  </div>';
       html+='</div>';
     } else {
+      // 看有沒有最近 2 小時內的下班 (顯示復原按鈕)
+      var recentShift=null;
+      if(state.shifts&&state.shifts.length>0){
+        var sortedShifts=state.shifts.slice().sort(function(a,b){return b.endAt-a.endAt;});
+        if(Date.now()-sortedShifts[0].endAt<2*3600000)recentShift=sortedShifts[0];
+      }
       html+='<div class="clock-bar">';
       html+='  <div class="clock-info">';
-      html+='    <div class="clock-status">尚未上班</div>';
-      html+='    <div class="clock-time idle">準備好就開工</div>';
+      if(recentShift){
+        html+='    <div class="clock-status" style="color:var(--ink-soft)">剛下班 · 上一班 '+fmtTime(recentShift.startAt)+' → '+fmtTime(recentShift.endAt)+'</div>';
+        html+='    <div class="clock-time idle"><a onclick="reopenLastShift()" style="cursor:pointer;color:var(--yellow-mid);text-decoration:underline;text-decoration-style:dotted;font-style:normal;font-size:13px">↩ 我還沒下班(復原)</a></div>';
+      } else {
+        html+='    <div class="clock-status">尚未上班</div>';
+        html+='    <div class="clock-time idle">準備好就開工</div>';
+      }
       html+='  </div>';
       html+='  <button class="clock-btn in" onclick="clockIn()">▸ 上班</button>';
       html+='</div>';
