@@ -266,6 +266,11 @@ function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMont
 function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
 function tsFromHM(hm){var d=new Date(),p=hm.split(':');d.setHours(parseInt(p[0])||0,parseInt(p[1])||0,0,0);return d.getTime();}
 function fmtDurShort(ms){if(ms<=0)return '';var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h===0)return m+'m';if(m===0)return h+'h';return h+'h';}
+// 取得實工毫秒:優先用存好的 durMin(已扣暫停),沒有才現算
+function entryDur(e){
+  if(typeof e.durMin==='number'&&e.durMin>0)return e.durMin*60000;
+  return Math.max(0,(e.endAt||0)-(e.startAt||0)-(e.pauseTotal||0));
+}
 function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function stageLabel(s){return s||'其他';}
@@ -639,7 +644,7 @@ function exportCSV(){
     if(!monthMap[ym])monthMap[ym]={};
     var key=e.projectLabel||'(無)';
     if(!monthMap[ym][key])monthMap[ym][key]={stages:{},total:0};
-    var dur=e.endAt-e.startAt-(e.pauseTotal||0),st=e.stage||'其他';
+    var dur=entryDur(e),st=e.stage||'其他';
     monthMap[ym][key].stages[st]=(monthMap[ym][key].stages[st]||0)+dur;
     monthMap[ym][key].total+=dur;
   });
@@ -836,7 +841,7 @@ function render(){
     var todayKey2=state.shift?state.shift.workDay:todayKey();
     var todayEntries=state.entries.filter(function(e){return (e.workDay||dateKey(e.startAt))===todayKey2;});
     todayEntries.sort(function(a,b){return a.startAt-b.startAt;});
-    var workMs=todayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt-(e.pauseTotal||0));},0);
+    var workMs=todayEntries.reduce(function(s,e){return s+(entryDur(e));},0);
     var spanMs=0,restMs=0,spanLabel='—';
     var todayActive=state.active.filter(function(a){return (a.workDay||dateKey(a.startAt))===todayKey2;});
     var todayShifts=state.shifts.filter(function(s){return s.workDay===todayKey2;});
@@ -886,7 +891,7 @@ function render(){
           var clientHtml=e.client?'<span class="cli">·'+e.client+'</span>':'';
           html+='<div class="tl" onclick="openEdit(\''+e.id+'\')" style="cursor:pointer">';
           html+='<span class="t">'+fmtTime(e.startAt)+'</span>';
-          html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(e.endAt-e.startAt-(e.pauseTotal||0))+'</span></div></div>';
+          html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(entryDur(e))+'</span></div></div>';
         }
       });
       // 按案拆區
@@ -896,7 +901,7 @@ function render(){
       todayEntries.forEach(function(e){
         var key=e.projectLabel||'(無)';
         if(!dayMap[key])dayMap[key]={total:0,client:e.client||'',stages:{}};
-        var dur=e.endAt-e.startAt-(e.pauseTotal||0);
+        var dur=entryDur(e);
         dayMap[key].total+=dur;
         var st=isOtherWork(e)?'其他工作':(e.stage||'其他');
         if(!dayMap[key].stages[st])dayMap[key].stages[st]={dur:0,notes:[]};
@@ -928,7 +933,7 @@ function render(){
 
     state.entries.forEach(function(e){
       var ym=dateKey(e.startAt).slice(0,7);
-      var dur=e.endAt-e.startAt-(e.pauseTotal||0);
+      var dur=entryDur(e);
       monthTotalAll[ym]=(monthTotalAll[ym]||0)+dur;
       if(isOtherWork(e)){
         if(!otherMonthMap[ym])otherMonthMap[ym]={items:{},total:0};
@@ -1064,7 +1069,7 @@ function render(){
     state.entries.forEach(function(e){
       var wd=e.workDay||dateKey(e.startAt);
       if(wd.slice(0,7)===dailyMonth){
-        var dur=e.endAt-e.startAt-(e.pauseTotal||0);
+        var dur=entryDur(e);
         dayTotals[wd]=(dayTotals[wd]||0)+dur;
       }
     });
@@ -1102,7 +1107,7 @@ function render(){
       var sd=state.dailySelectedDay;
       var dayEntries=state.entries.filter(function(e){return (e.workDay||dateKey(e.startAt))===sd;});
       dayEntries.sort(function(a,b){return a.startAt-b.startAt;});
-      var dayTot=dayEntries.reduce(function(s,e){return s+(e.endAt-e.startAt-(e.pauseTotal||0));},0);
+      var dayTot=dayEntries.reduce(function(s,e){return s+(entryDur(e));},0);
       var sdDate=new Date(sd+'T00:00:00');
       var sdLabel=(sdDate.getMonth()+1)+'/'+sdDate.getDate()+'('+'日一二三四五六'[sdDate.getDay()]+')';
       // 找該日 shift(從歷史 + 當前)
@@ -1124,7 +1129,7 @@ function render(){
           var clientHtml=e.client?'<span class="cli">·'+e.client+'</span>':'';
           html+='  <div class="tl" onclick="openEdit(\''+e.id+'\')" style="cursor:pointer">';
           html+='    <span class="t">'+fmtTime(e.startAt)+'</span>';
-          html+='    <div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(e.endAt-e.startAt-(e.pauseTotal||0))+'</span></div>';
+          html+='    <div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(entryDur(e))+'</span></div>';
           html+='  </div>';
         });
       }
