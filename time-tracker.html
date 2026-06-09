@@ -570,7 +570,22 @@ function saveModal(){
 function deleteFromModal(){if(!state.modalForm.id||!confirm('確定刪除?'))return;var ent=state.entries.find(function(e){return e.id===state.modalForm.id;});state.entries=state.entries.filter(function(e){return e.id!==state.modalForm.id;});ls_set(ENTRIES_KEY,state.entries);closeModal();if(USE_API&&ent&&ent.notionId)apiDeleteEntry(ent.notionId,function(err){if(err)console.warn('刪除失敗',err);});}
 
 function refreshProjects(){state.loading=true;state.loadError=null;render();apiListProjects(function(err,ps){state.loading=false;if(err)state.loadError=err;else{state.projects=ps;ls_set(PROJECTS_KEY,ps);}render();});}
-function syncFromCloud(){apiListEntries(function(err,entries){if(err){console.warn('雲端讀取失敗',err);return;}state.entries=entries;ls_set(ENTRIES_KEY,entries);render();});}
+function syncFromCloud(){apiListEntries(function(err,entries){
+  if(err){console.warn('雲端讀取失敗',err);return;}
+  // 保留本地 pauseTotal、workDay(雲端如果是 0 或空,用本地的)
+  var localById={};
+  state.entries.forEach(function(e){if(e.id)localById[e.id]=e;});
+  entries.forEach(function(e){
+    var local=localById[e.id];
+    if(local){
+      if((!e.pauseTotal||e.pauseTotal===0)&&local.pauseTotal)e.pauseTotal=local.pauseTotal;
+      if(!e.workDay&&local.workDay)e.workDay=local.workDay;
+    }
+  });
+  state.entries=entries;
+  ls_set(ENTRIES_KEY,entries);
+  render();
+});}
 
 // ── 匯出/匯入 ──
 function downloadFile(filename,content,type){
