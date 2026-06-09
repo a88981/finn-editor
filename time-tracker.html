@@ -215,11 +215,15 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .report-table tfoot td{background:var(--yellow-lightest);font-weight:500;color:var(--ink);border-top:1px solid var(--line);border-bottom:none}
 .report-table tfoot td:first-child{color:var(--ink-soft);font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-weight:500}
 
-.bar-row2{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;padding:5px 0;font-size:12.5px;align-items:center}
+.bar-row2{display:grid;grid-template-columns:1.4fr 2fr 60px 60px;gap:10px;padding:5px 0;font-size:12.5px;align-items:center}
 .bar-row2 .nam{font-family:'Noto Serif TC',serif;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-row2 .bar-wrap{height:6px;background:#f0ece0;border-radius:3px;overflow:hidden}
 .bar-row2 .bar{height:100%;border-radius:3px}
 .bar-row2 .dur{text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.bar-row2 .rate{text-align:right;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--yellow-mid);font-variant-numeric:tabular-nums}
+.bar-row2 .rate.low{color:var(--red);font-style:normal;font-weight:500}
+.bar-row2 .rate .nt{font-size:9.5px;color:var(--ink-light);margin-right:1px;font-style:normal}
+.bar-row2 .rate.zero{color:var(--ink-light);font-style:normal}
 
 .import-note{background:var(--yellow-lightest);border-left:3px solid var(--yellow);padding:11px 16px;margin-top:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .import-note-text{font-family:'Noto Serif TC',serif;font-size:12px;color:var(--ink);letter-spacing:0.06em}
@@ -274,7 +278,7 @@ function entryDur(e){
 function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function stageLabel(s){return s||'其他';}
-function isOtherWork(e){return e&&e.projectId==='__other__';}
+function isOtherWork(e){return e&&(e.projectId==='__other__'||e.stage==='其他工作');}
 
 function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
   var arr=null;
@@ -375,6 +379,28 @@ function editActiveStart(id){
   d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
   item.startAt=d.getTime();
   ls_set(ACTIVE_KEY,state.active);
+  render();
+}
+
+function editShift(idx){
+  var sh=state.shifts[idx];
+  if(!sh)return;
+  var newStart=prompt('修改上班時間(HH:MM)',fmtTime(sh.startAt));
+  if(!newStart)return;
+  if(!/^\d{1,2}:\d{2}$/.test(newStart)){alert('格式不對,例:10:30');return;}
+  var newEnd=prompt('修改下班時間(HH:MM)',fmtTime(sh.endAt));
+  if(!newEnd)return;
+  if(!/^\d{1,2}:\d{2}$/.test(newEnd)){alert('格式不對,例:10:30');return;}
+  var sp=newStart.split(':');
+  var sd=new Date(sh.startAt);
+  sd.setHours(parseInt(sp[0])||0,parseInt(sp[1])||0,0,0);
+  var ep=newEnd.split(':');
+  var ed=new Date(sh.endAt);
+  ed.setHours(parseInt(ep[0])||0,parseInt(ep[1])||0,0,0);
+  // 若下班 ≤ 上班 → 下班加一天(跨日)
+  if(ed.getTime()<=sd.getTime())ed.setDate(ed.getDate()+1);
+  state.shifts[idx]=Object.assign({},sh,{startAt:sd.getTime(),endAt:ed.getTime()});
+  ls_set(SHIFTS_KEY,state.shifts);
   render();
 }
 
@@ -1019,7 +1045,7 @@ function render(){
           STAGES.forEach(function(s){var v=data.stages[s]||0;html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
           // 片長
           var proj=state.projects.find(function(x){return x.id===data.projectId;});
-          var finalLen=proj?(proj.finalLen||''):'';
+          var finalLen=proj?(proj.finalLen||proj.length||''):'';
           html+='      <td '+(finalLen?'':'class="zero"')+'>'+(finalLen||'—')+'</td>';
           html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
           // 時薪
@@ -1072,7 +1098,19 @@ function render(){
           projRows.forEach(function(r,i){
             var w=(r[1].total/maxProj)*100;
             var clientName=r[1].client?'<span class="client">·'+r[1].client+'</span>':'';
-            html+='<div class="bar-row2"><div class="nam">'+r[0]+clientName+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:'+PCOLORS[i%PCOLORS.length]+'"></div></div><div class="dur">'+fmtDur(r[1].total)+'</div></div>';
+            // 算時薪
+            var proj=state.projects.find(function(x){return x.id===r[1].projectId;});
+            var fee=proj?(proj.fee||0):0;
+            var hours=r[1].total/3600000;
+            var rateHtml='';
+            if(fee>0&&hours>0){
+              var rate=Math.round(fee/hours);
+              var rateCls=rate<1000?'low':'';
+              rateHtml='<div class="rate '+rateCls+'"><span class="nt">$</span>'+rate.toLocaleString()+'</div>';
+            } else {
+              rateHtml='<div class="rate zero">—</div>';
+            }
+            html+='<div class="bar-row2"><div class="nam">'+r[0]+clientName+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:'+PCOLORS[i%PCOLORS.length]+'"></div></div><div class="dur">'+fmtDur(r[1].total)+'</div>'+rateHtml+'</div>';
           });
         }
         // 其他工作
@@ -1081,7 +1119,7 @@ function render(){
           var maxOther=Math.max.apply(null,otherRows.map(function(r){return r[1];}));
           otherRows.forEach(function(r){
             var w=(r[1]/maxOther)*100;
-            html+='<div class="bar-row2"><div class="nam">'+r[0]+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:#B8862A"></div></div><div class="dur">'+fmtDur(r[1])+'</div></div>';
+            html+='<div class="bar-row2"><div class="nam">'+r[0]+'</div><div class="bar-wrap"><div class="bar" style="width:'+w+'%;background:#B8862A"></div></div><div class="dur">'+fmtDur(r[1])+'</div><div class="rate zero">—</div></div>';
           });
         }
         html+='</div>';
@@ -1155,7 +1193,10 @@ function render(){
         sdShiftInfo='上班 '+fmtTime(state.shift.startAt)+' · 還在上班中';
       } else if(sdShifts.length>0){
         var sh=sdShifts[0];
-        sdShiftInfo='上班 '+fmtTime(sh.startAt)+' → 下班 '+fmtTime(sh.endAt);
+        var shIdx=state.shifts.indexOf(sh);
+        sdShiftInfo='<span style="cursor:pointer" onclick="editShift('+shIdx+')" title="點擊修改上下班時間">'
+          +'上班 <span style="text-decoration:underline;text-decoration-style:dotted">'+fmtTime(sh.startAt)+'</span>'
+          +' → 下班 <span style="text-decoration:underline;text-decoration-style:dotted">'+fmtTime(sh.endAt)+'</span></span>';
       }
       html+='<div class="day-detail">';
       html+='  <div class="day-d-head"><span class="day-d-title">'+sdLabel+'</span><span class="day-d-tot">'+fmtDur(dayTot)+'</span></div>';
