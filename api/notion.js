@@ -432,10 +432,12 @@ function timePageToEntry(page) {
     startAt: dt("開始") ? new Date(dt("開始")).getTime() : 0,
     endAt: dt("結束") ? new Date(dt("結束")).getTime() : 0,
     durMin: num("時長分"),
+    pauseTotal: num("暫停分") * 60000, // Notion 存「暫停分」,轉成毫秒
     client: txt("客戶"),
     projectLabel: txt("專案"),
     stage: sel("階段") || "其他",
     note: txt("備註"),
+    workDay: txt("工作日"),
   };
 }
 
@@ -448,6 +450,8 @@ function entryToProps(e) {
     "階段": { select: e.stage ? { name: e.stage } : null },
     "備註": { rich_text: richText(e.note) },
     "時長分": { number: Number(e.durMin) || 0 },
+    "暫停分": { number: Math.round((Number(e.pauseTotal) || 0) / 60000) },
+    "工作日": { rich_text: richText(e.workDay || "") },
   };
   if (e.startAt) props["開始"] = { date: { start: new Date(e.startAt).toISOString() } };
   if (e.endAt) props["結束"] = { date: { start: new Date(e.endAt).toISOString() } };
