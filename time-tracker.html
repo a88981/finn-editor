@@ -73,6 +73,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-info{flex:1;min-width:0}
 .ac-time{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--green);font-variant-numeric:tabular-nums;line-height:1;margin-bottom:3px;letter-spacing:0.03em}
 .ac-proj{font-size:13.5px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Noto Serif TC',serif}
+.ac-proj .ac-client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;font-weight:400;margin-left:4px}
 .ac-meta{font-size:10.5px;color:var(--ink-light);margin-top:2px;font-family:'Cormorant Garamond',serif;font-style:italic}
 .ac-meta .stage{display:inline-block;font-family:'Inter',sans-serif;font-style:normal;font-size:9.5px;letter-spacing:0.12em;padding:1px 5px;border-radius:2px;background:var(--yellow-pale);color:var(--yellow-mid);font-weight:500;margin-right:6px;text-transform:uppercase}
 .ac-time-start{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--green);letter-spacing:0.04em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
@@ -517,7 +518,7 @@ function render(){
         html+='  <div class="active-card '+(isPaused?'paused':'')+'">';
         html+='    <div class="ac-info">';
         html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span></div>';
-        html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+'</div>';
+        html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+(item.client?'<span class="ac-client">·'+item.client+'</span>':'')+'</div>';
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
         html+='    </div>';
         html+='    <div class="ac-btns">';
