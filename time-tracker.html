@@ -32,6 +32,18 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .gear-item .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:var(--ink-light);margin-left:6px}
 .gear-divider{height:1px;background:var(--line);margin:4px 0}
 
+/* 扁扁的待交件提醒列 */
+.todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.todo-tiny-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.18em;color:var(--ink-light);text-transform:uppercase;font-weight:500;white-space:nowrap}
+.todo-tiny-item{display:inline-flex;align-items:center;gap:4px;font-size:11px}
+.todo-tiny-item .due{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:500;color:var(--ink-soft)}
+.todo-tiny-item.urgent .due{color:var(--red)}
+.todo-tiny-item.soon .due{color:#d8903a}
+.todo-tiny-item .nam{font-family:'Noto Serif TC',serif;color:var(--ink);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.todo-tiny-item .stage-mini{font-size:9px;color:var(--yellow-mid);background:#fff;padding:1px 4px;border-radius:2px;font-family:Inter,sans-serif;letter-spacing:0.08em;font-weight:500}
+.todo-tiny .dot{color:var(--ink-light);font-size:10px}
+.todo-tiny .more{color:var(--ink-light);font-style:italic;font-family:'Cormorant Garamond',serif;font-size:11px}
+
 .header{margin:24px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .eyebrow{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.35em;color:var(--yellow-mid);text-transform:uppercase;font-weight:500;margin-bottom:8px}
 .title-row{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
@@ -166,7 +178,13 @@ function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){retu
       if(p.finalDone)return false;
       if(WAIT.indexOf(p.status)>=0)return false;
       return true;
-    }).map(function(p){return {id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||''};});
+    }).map(function(p){return {
+      id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||'',
+      cut1Due:p.cut1Due||'',cut1Done:!!p.cut1Done,noCut1:!!p.noCut1,
+      v1Due:p.v1Due||'',v1Done:!!p.v1Done,
+      bizDue:p.bizDue||'',bizDone:!!p.bizDone,noBiz:!!p.noBiz,
+      finalDue:p.finalDue||'',finalDone:!!p.finalDone
+    };});
     cb(null,ps);
   }
   else cb((d&&d.error)||'API error');
@@ -191,7 +209,7 @@ var state={
   modal:null,modalForm:{},loading:false,loadError:null
 };
 
-setInterval(function(){if(state.active.length>0)render();},1000);
+// (進行中卡片改成靜態顯示「14:30 開始」,不需要每秒重繪)
 
 function startPunch(){
   var projSel=document.getElementById('proj-select');
@@ -387,6 +405,39 @@ function render(){
   html+='</div>';
 
   if(state.view==='today'){
+    // 待交件提醒列(扁扁的金黃條)
+    var todos=[];
+    var todayD=new Date();todayD.setHours(0,0,0,0);
+    state.projects.forEach(function(p){
+      var stages=[
+        {key:'cut1',done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
+        {key:'v1',done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
+        {key:'biz',done:p.bizDone,due:p.bizDue,skip:p.noBiz,label:'業配'},
+        {key:'final',done:p.finalDone,due:p.finalDue,skip:false,label:'Final'}
+      ];
+      stages.forEach(function(s){
+        if(s.skip||s.done||!s.due)return;
+        var d=new Date(s.due);d.setHours(0,0,0,0);
+        var days=Math.round((d-todayD)/86400000);
+        if(days<-7)return; // 7天以前的不顯示
+        todos.push({name:p.name,client:p.client,stage:s.label,due:s.due,days:days});
+      });
+    });
+    todos.sort(function(a,b){return a.days-b.days;});
+    if(todos.length>0){
+      html+='<div class="todo-tiny">';
+      html+='  <span class="todo-tiny-label">📌 待交</span>';
+      var showCount=Math.min(todos.length,3);
+      for(var i=0;i<showCount;i++){
+        var t=todos[i];
+        var cls=t.days<=0?'urgent':(t.days<=2?'soon':'');
+        var lbl=t.days<0?Math.abs(t.days)+'天前':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
+        if(i>0)html+='<span class="dot">·</span>';
+        html+='  <span class="todo-tiny-item '+cls+'"><span class="due">'+lbl+'</span><span class="nam">'+t.name+'</span><span class="stage-mini">'+t.stage+'</span></span>';
+      }
+      if(todos.length>showCount)html+='<span class="more">+'+(todos.length-showCount)+'</span>';
+      html+='</div>';
+    }
     html+='<div class="punch-card">';
     html+='  <div class="punch-head">+ 新增打卡 · Punch In</div>';
     html+='  <div class="row">';
@@ -418,10 +469,8 @@ function render(){
       html+='<div class="active-section">';
       html+='  <div class="section-head"><div class="section-title">進行中 · <span class="section-en">Active ('+state.active.length+')</span></div></div>';
       state.active.forEach(function(item){
-        var elapsed=Date.now()-item.startAt;
         html+='  <div class="active-card">';
         html+='    <div class="ac-info">';
-        html+='      <div class="ac-time">'+fmtClock(elapsed)+'</div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+'</div>';
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+fmtTime(item.startAt)+' 開始'+(item.note?' · '+item.note:'')+'</div>';
         html+='    </div>';
@@ -566,11 +615,10 @@ function render(){
     }
   }
 
-  if(USE_API){
+  if(USE_API&&(state.loading||state.loadError)){
     var statusMsg='';
     if(state.loading)statusMsg='Loading... · 載入中';
-    else if(state.loadError)statusMsg=state.loadError;
-    else statusMsg='<span class="italic">'+state.projects.length+' projects · synced with Notion</span>';
+    else if(state.loadError)statusMsg='⚠ '+state.loadError;
     html+='<div class="import-note">';
     html+='  <span class="import-note-text">'+statusMsg+'</span>';
     html+='</div>';
