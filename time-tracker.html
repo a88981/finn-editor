@@ -187,7 +187,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .day-d-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
 .day-d-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500}
 .day-d-tot{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--yellow-mid);font-weight:500}
-.day-d-shift{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--ink-light);margin-bottom:10px;padding-bottom:6px;border-bottom:1px dashed var(--line);letter-spacing:0.02em}
+.day-d-shift{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink-soft);margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--line);letter-spacing:0.02em}
+.day-d-shift .lbl{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.15em;color:var(--ink-light);font-weight:500;text-transform:uppercase;margin-right:4px}
+.day-d-shift .tm{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;font-weight:500}
 
 /* 今日報表 · 時間軸 */
 .tl{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:5px 0;font-size:12px;align-items:flex-start}
@@ -381,23 +383,30 @@ function editActiveStart(id){
 function editShift(idx){
   var sh=state.shifts[idx];
   if(!sh)return;
-  var newStart=prompt('修改上班時間(HH:MM)',fmtTime(sh.startAt));
-  if(!newStart)return;
-  if(!/^\d{1,2}:\d{2}$/.test(newStart)){alert('格式不對,例:10:30');return;}
-  var newEnd=prompt('修改下班時間(HH:MM)',fmtTime(sh.endAt));
-  if(!newEnd)return;
-  if(!/^\d{1,2}:\d{2}$/.test(newEnd)){alert('格式不對,例:10:30');return;}
-  var sp=newStart.split(':');
-  var sd=new Date(sh.startAt);
-  sd.setHours(parseInt(sp[0])||0,parseInt(sp[1])||0,0,0);
-  var ep=newEnd.split(':');
-  var ed=new Date(sh.endAt);
-  ed.setHours(parseInt(ep[0])||0,parseInt(ep[1])||0,0,0);
-  // 若下班 ≤ 上班 → 下班加一天(跨日)
-  if(ed.getTime()<=sd.getTime())ed.setDate(ed.getDate()+1);
-  state.shifts[idx]=Object.assign({},sh,{startAt:sd.getTime(),endAt:ed.getTime()});
-  ls_set(SHIFTS_KEY,state.shifts);
+  state.modalForm={
+    shiftIdx:idx,
+    startDate:dateKey(sh.startAt),
+    startTime:fmtTime(sh.startAt),
+    endDate:dateKey(sh.endAt),
+    endTime:fmtTime(sh.endAt),
+    workDay:sh.workDay||dateKey(sh.startAt)
+  };
+  state.modal='editShift';
   render();
+}
+function saveShiftEdit(){
+  var f=state.modalForm;
+  if(!f.startDate||!f.startTime||!f.endDate||!f.endTime){alert('請填完整');return;}
+  var startAt=new Date(f.startDate+'T'+f.startTime+':00').getTime();
+  var endAt=new Date(f.endDate+'T'+f.endTime+':00').getTime();
+  if(endAt<=startAt){alert('下班時間要在上班之後');return;}
+  var sh=state.shifts[f.shiftIdx];
+  if(!sh){closeModal();return;}
+  state.shifts[f.shiftIdx]=Object.assign({},sh,{
+    startAt:startAt,endAt:endAt,workDay:f.workDay||sh.workDay
+  });
+  ls_set(SHIFTS_KEY,state.shifts);
+  closeModal();
 }
 
 function reopenLastShift(){
@@ -1177,13 +1186,14 @@ function render(){
       var sdShifts=state.shifts.filter(function(s){return s.workDay===sd;});
       var sdShiftInfo='';
       if(state.shift&&state.shift.workDay===sd){
-        sdShiftInfo='上班 '+fmtTime(state.shift.startAt)+' · 還在上班中';
+        sdShiftInfo='<span class="lbl">上班</span><span class="tm">'+fmtTime(state.shift.startAt)+'</span> <span style="color:var(--ink-light);font-style:italic;font-family:Cormorant Garamond,serif;font-size:11.5px">· 還在上班中</span>';
       } else if(sdShifts.length>0){
         var sh=sdShifts[0];
         var shIdx=state.shifts.indexOf(sh);
         sdShiftInfo='<span style="cursor:pointer" onclick="editShift('+shIdx+')" title="點擊修改上下班時間">'
-          +'上班 <span style="text-decoration:underline;text-decoration-style:dotted">'+fmtTime(sh.startAt)+'</span>'
-          +' → 下班 <span style="text-decoration:underline;text-decoration-style:dotted">'+fmtTime(sh.endAt)+'</span></span>';
+          +'<span class="lbl">上班</span><span class="tm">'+fmtTime(sh.startAt)+'</span>'
+          +' <span style="color:var(--ink-light);margin:0 4px">→</span> '
+          +'<span class="lbl">下班</span><span class="tm">'+fmtTime(sh.endAt)+'</span></span>';
       }
       html+='<div class="day-detail">';
       html+='  <div class="day-d-head"><span class="day-d-title">'+sdLabel+'</span><span class="day-d-tot">'+fmtDur(dayTot)+'</span></div>';
@@ -1212,7 +1222,27 @@ function render(){
     html+='</div>';
   }
 
-  if(state.modal==='shift'){
+  if(state.modal==='editShift'){
+    var ef=state.modalForm;
+    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='  <div class="modal">';
+    html+='    <div class="modal-title">修改上下班 · Edit Shift</div>';
+    html+='    <div class="row">';
+    html+='      <div class="field"><div class="flabel">上班日 · Start Date</div><input type="date" class="fc" value="'+ef.startDate+'" onchange="state.modalForm.startDate=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">上班時間 · Start</div><input type="time" class="fc" value="'+ef.startTime+'" onchange="state.modalForm.startTime=this.value;"></div>';
+    html+='    </div>';
+    html+='    <div class="row">';
+    html+='      <div class="field"><div class="flabel">下班日 · End Date</div><input type="date" class="fc" value="'+ef.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">下班時間 · End</div><input type="time" class="fc" value="'+ef.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
+    html+='    </div>';
+    html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+ef.workDay+'" onchange="state.modalForm.workDay=this.value;"></div>';
+    html+='    <div class="modal-btns">';
+    html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
+    html+='      <button class="btn-sub primary" onclick="saveShiftEdit()">儲存</button>';
+    html+='    </div>';
+    html+='  </div>';
+    html+='</div>';
+  } else if(state.modal==='shift'){
     var sf=state.modalForm;
     html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
     html+='  <div class="modal">';
