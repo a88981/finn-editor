@@ -35,10 +35,10 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 /* 扁扁的待交件提醒列 */
 .todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .todo-tiny-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.18em;color:var(--ink-light);text-transform:uppercase;font-weight:500;white-space:nowrap}
-.todo-tiny-item{display:inline-flex;align-items:center;gap:4px;font-size:11px}
-.todo-tiny-item .due{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:500;color:var(--ink-soft)}
-.todo-tiny-item.urgent .due{color:var(--red)}
-.todo-tiny-item.soon .due{color:#d8903a}
+.todo-tiny-item{display:inline-flex;align-items:center;gap:5px;font-size:11px}
+.todo-tiny-item .due{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;font-weight:400;color:var(--ink-light)}
+.todo-tiny-item.urgent .due{color:var(--red);font-weight:500;font-style:normal}
+.todo-tiny-item.soon .due{color:#d8903a;font-weight:500;font-style:normal}
 .todo-tiny-item .nam{font-family:'Noto Serif TC',serif;color:var(--ink);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .todo-tiny-item .stage-mini{font-size:9px;color:var(--yellow-mid);background:#fff;padding:1px 4px;border-radius:2px;font-family:Inter,sans-serif;letter-spacing:0.08em;font-weight:500}
 .todo-tiny .dot{color:var(--ink-light);font-size:10px}
@@ -73,6 +73,18 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-proj{font-size:13.5px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Noto Serif TC',serif}
 .ac-meta{font-size:10.5px;color:var(--ink-light);margin-top:2px;font-family:'Cormorant Garamond',serif;font-style:italic}
 .ac-meta .stage{display:inline-block;font-family:'Inter',sans-serif;font-style:normal;font-size:9.5px;letter-spacing:0.12em;padding:1px 5px;border-radius:2px;background:var(--yellow-pale);color:var(--yellow-mid);font-weight:500;margin-right:6px;text-transform:uppercase}
+.ac-time-start{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--green);letter-spacing:0.04em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
+.ac-time-start.paused{color:#d8903a}
+.ac-time-start .ac-start-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.25em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-left:4px}
+.active-card.paused{border-left-color:#d8903a;background:var(--yellow-lightest)}
+.ac-btns{display:flex;flex-direction:column;gap:5px}
+.ac-btn-mini{padding:5px 11px;font-size:9.5px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid;background:#fff;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
+.ac-btn-mini.pause{border-color:#d8903a;color:#d8903a}
+.ac-btn-mini.pause:hover{background:var(--yellow-lightest)}
+.ac-btn-mini.resume{border-color:var(--green);background:var(--green);color:#fff}
+.ac-btn-mini.resume:hover{background:#487228}
+.ac-btn-mini.stop{border-color:var(--red);color:var(--red)}
+.ac-btn-mini.stop:hover{background:#fcebeb}
 .ac-stop{padding:6px 13px;font-size:10px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid var(--red);background:#fff;color:var(--red);cursor:pointer;font-family:'Inter',sans-serif}
 .ac-stop:hover{background:#fcebeb}
 
@@ -244,11 +256,35 @@ function startPunch(){
   render();
 }
 
+function pausePunch(id){
+  var item=state.active.find(function(x){return x.id===id;});
+  if(!item||item.pausedAt)return;
+  item.pausedAt=Date.now();
+  ls_set(ACTIVE_KEY,state.active);render();
+}
+function resumePunch(id){
+  var item=state.active.find(function(x){return x.id===id;});
+  if(!item||!item.pausedAt)return;
+  item.pauseTotal=(item.pauseTotal||0)+(Date.now()-item.pausedAt);
+  item.pausedAt=null;
+  ls_set(ACTIVE_KEY,state.active);render();
+}
 function stopPunch(id){
   var item=state.active.find(function(x){return x.id===id;});
   if(!item)return;
   var endAt=Date.now();
-  var entry={id:item.id,projectId:item.projectId,projectLabel:item.projectLabel,client:item.client,stage:item.stage,note:item.note,startAt:item.startAt,endAt:endAt,durMin:Math.round((endAt-item.startAt)/60000)};
+  // 若還在暫停中,先把暫停時段結算掉
+  var pauseTotal=item.pauseTotal||0;
+  if(item.pausedAt)pauseTotal+=(endAt-item.pausedAt);
+  // 工作毫秒數 = 結束 - 開始 - 暫停總和(A 方案:加總,扣除暫停)
+  var workMs=Math.max(0,endAt-item.startAt-pauseTotal);
+  var entry={
+    id:item.id,projectId:item.projectId,projectLabel:item.projectLabel,
+    client:item.client,stage:item.stage,note:item.note,
+    startAt:item.startAt,endAt:endAt,
+    durMin:Math.round(workMs/60000),
+    pauseTotal:pauseTotal // 紀錄暫停總時長以供顯示
+  };
   state.entries.unshift(entry);
   state.active=state.active.filter(function(x){return x.id!==id;});
   ls_set(ENTRIES_KEY,state.entries);ls_set(ACTIVE_KEY,state.active);
@@ -469,12 +505,21 @@ function render(){
       html+='<div class="active-section">';
       html+='  <div class="section-head"><div class="section-title">進行中 · <span class="section-en">Active ('+state.active.length+')</span></div></div>';
       state.active.forEach(function(item){
-        html+='  <div class="active-card">';
+        var isPaused=!!item.pausedAt;
+        html+='  <div class="active-card '+(isPaused?'paused':'')+'">';
         html+='    <div class="ac-info">';
+        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'">'+fmtTime(item.startAt)+' <span class="ac-start-label">'+(isPaused?'開始 · 暫停中':'開始')+'</span></div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+'</div>';
-        html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+fmtTime(item.startAt)+' 開始'+(item.note?' · '+item.note:'')+'</div>';
+        html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
         html+='    </div>';
-        html+='    <button class="ac-stop" onclick="stopPunch(\''+item.id+'\')">■ Stop</button>';
+        html+='    <div class="ac-btns">';
+        if(isPaused){
+          html+='      <button class="ac-btn-mini resume" onclick="resumePunch(\''+item.id+'\')">▸ 繼續</button>';
+        } else {
+          html+='      <button class="ac-btn-mini pause" onclick="pausePunch(\''+item.id+'\')">‖ 暫停</button>';
+        }
+        html+='      <button class="ac-btn-mini stop" onclick="stopPunch(\''+item.id+'\')">■ 結束</button>';
+        html+='    </div>';
         html+='  </div>';
       });
       html+='</div>';
