@@ -588,8 +588,12 @@ function saveModal(){
   if(endAt<=startAt){alert('結束時間要在開始之後');return;}
   var workDay=f.workDay||dateKey(startAt);
   var entry;
-  if(f.id){state.entries=state.entries.map(function(e){if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:Math.round((endAt-startAt)/60000),workDay:workDay});return entry;}return e;});}
-  else{entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:Math.round((endAt-startAt)/60000),workDay:workDay};state.entries.unshift(entry);}
+  var rangeMin=Math.round((endAt-startAt)/60000);
+  var finalDur=(typeof f.overrideDurMin==='number')?f.overrideDurMin:rangeMin;
+  // pauseTotal = 範圍時長 - 實工時(若小於 0 設 0)
+  var newPauseTotal=Math.max(0,(rangeMin-finalDur)*60000);
+  if(f.id){state.entries=state.entries.map(function(e){if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:finalDur,pauseTotal:newPauseTotal,workDay:workDay});return entry;}return e;});}
+  else{entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:finalDur,pauseTotal:newPauseTotal,workDay:workDay};state.entries.unshift(entry);}
   state.entries.sort(function(a,b){return b.startAt-a.startAt;});
   ls_set(ENTRIES_KEY,state.entries);closeModal();
   if(USE_API&&entry)apiSaveEntry(entry,function(err,notionId){if(err){console.warn('儲存失敗',err);return;}if(notionId){entry.notionId=notionId;state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});ls_set(ENTRIES_KEY,state.entries);render();}});
@@ -1229,6 +1233,16 @@ function render(){
     html+='      <div class="field"><div class="flabel">結束時間</div><input type="time" class="fc" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
     html+='    </div>';
     html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+(f.workDay||f.startDate)+'" onchange="state.modalForm.workDay=this.value;"></div>';
+    var calcDur='';
+    if(f.startDate&&f.startTime&&f.endDate&&f.endTime){
+      var stMs=new Date(f.startDate+'T'+f.startTime+':00').getTime();
+      var enMs=new Date(f.endDate+'T'+f.endTime+':00').getTime();
+      var rngMin=Math.max(0,Math.round((enMs-stMs)/60000));
+      if(typeof f.overrideDurMin==='number')calcDur=f.overrideDurMin;
+      else calcDur=Math.max(0,rngMin-(f.overridePauseMin||0));
+    }
+    html+='    <div class="field"><div class="flabel">實工時(分鐘) · Work Min <span style="color:var(--ink-light);font-family:Cormorant Garamond,serif;font-style:italic;font-size:10px">留空=自動算</span></div><input type="number" class="fc" placeholder="例:286 表示 4h 46m" value="'+(typeof f.overrideDurMin==='number'?f.overrideDurMin:'')+'" oninput="var v=this.value.trim();if(v===\'\')delete state.modalForm.overrideDurMin;else state.modalForm.overrideDurMin=parseInt(v)||0;"></div>';
+    if(calcDur!=='')html+='    <div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:11.5px;color:var(--yellow-mid);margin-top:-6px;margin-bottom:10px;text-align:right">→ '+fmtDur(calcDur*60000)+'</div>';
     html+='    <div class="modal-btns">';
     if(isEdit)html+='      <button class="btn-sub reopen" onclick="reopenEntry(state.modalForm.id)">↩ 復原</button>';
     if(isEdit)html+='      <button class="btn-sub danger" onclick="deleteFromModal()">刪除</button>';
