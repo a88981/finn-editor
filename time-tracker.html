@@ -137,8 +137,19 @@ function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMont
 function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
 function tsFromHM(hm){var d=new Date(),p=hm.split(':');d.setHours(parseInt(p[0])||0,parseInt(p[1])||0,0,0);return d.getTime();}
 
-function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){if(d.projects){var ps=d.projects.filter(function(p){return !p.closed;}).map(function(p){return {id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||''};});cb(null,ps);}else cb(d.error||'API error');}).catch(function(e){cb(e.message||'Network error');});}
-function apiListEntries(cb){fetch(API+'?action=time-list',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){if(d.entries)cb(null,d.entries);else cb(d.error||'API error');}).catch(function(e){cb(e.message||'Network error');});}
+function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+  var arr=null;
+  if(Array.isArray(d))arr=d;
+  else if(d&&Array.isArray(d.projects))arr=d.projects;
+  if(arr){var ps=arr.filter(function(p){return !p.closed;}).map(function(p){return {id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||''};});cb(null,ps);}
+  else cb((d&&d.error)||'API error');
+}).catch(function(e){cb(e.message||'Network error');});}
+function apiListEntries(cb){fetch(API+'?action=time-list',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+  var arr=null;
+  if(Array.isArray(d))arr=d;
+  else if(d&&Array.isArray(d.entries))arr=d.entries;
+  if(arr)cb(null,arr);else cb((d&&d.error)||'API error');
+}).catch(function(e){cb(e.message||'Network error');});}
 function apiSaveEntry(entry,cb){fetch(API+'?action=time-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry),cache:'no-store'}).then(function(r){return r.json();}).then(function(d){if(d.ok)cb(null,d.notionId);else cb(d.error||'Save error');}).catch(function(e){cb(e.message||'Network error');});}
 function apiDeleteEntry(notionId,cb){fetch(API+'?action=time-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({notionId:notionId}),cache:'no-store'}).then(function(r){return r.json();}).then(function(d){cb(d.ok?null:(d.error||'Delete error'));}).catch(function(e){cb(e.message||'Network error');});}
 
