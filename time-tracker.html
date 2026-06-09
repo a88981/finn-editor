@@ -36,9 +36,11 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .todo-tiny-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.18em;color:var(--ink-light);text-transform:uppercase;font-weight:500;white-space:nowrap}
 .todo-tiny-item{display:inline-flex;align-items:center;gap:5px;font-size:11px}
-.todo-tiny-item .due{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;font-weight:400;color:var(--ink-light)}
-.todo-tiny-item.urgent .due{color:var(--red);font-weight:500;font-style:normal}
-.todo-tiny-item.soon .due{color:#d8903a;font-weight:500;font-style:normal}
+.todo-tiny-item .due{font-family:'Noto Sans TC',sans-serif;font-size:11.5px;font-weight:500;color:var(--ink-soft);letter-spacing:0.02em}
+.todo-tiny-item.overdue .due{color:#7a1818;font-weight:600}
+.todo-tiny-item.urgent .due{color:var(--red);font-weight:600}
+.todo-tiny-item.soon .due{color:#d8903a;font-weight:500}
+.todo-tiny-item.later .due{color:#b8862a;font-weight:500}
 .todo-tiny-item .nam{font-family:'Noto Serif TC',serif;color:var(--ink);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .todo-tiny-item .stage-mini{font-size:9px;color:var(--yellow-mid);background:#fff;padding:1px 4px;border-radius:2px;font-family:Inter,sans-serif;letter-spacing:0.08em;font-weight:500}
 .todo-tiny .dot{color:var(--ink-light);font-size:10px}
@@ -466,7 +468,7 @@ function render(){
       var showCount=Math.min(todos.length,3);
       for(var i=0;i<showCount;i++){
         var t=todos[i];
-        var cls=t.days<=0?'urgent':(t.days<=2?'soon':'');
+        var cls=t.days<0?'overdue':(t.days<=1?'urgent':(t.days<=5?'soon':'later'));
         var lbl=t.days<0?Math.abs(t.days)+'天前':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
         if(i>0)html+='<span class="dot">·</span>';
         html+='  <span class="todo-tiny-item '+cls+'"><span class="due">'+lbl+'</span><span class="nam">'+t.name+'</span><span class="stage-mini">'+t.stage+'</span></span>';
