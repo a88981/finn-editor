@@ -608,7 +608,7 @@ function reopenEntry(id){
   }
 }
 
-function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt)};state.modal='edit';render();}
+function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt),overrideDurMin:e.durMin||0};state.modal='edit';render();}
 function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now),workDay:dateKey(start)};state.modal='manual';render();}
 function closeModal(){state.modal=null;render();}
 
