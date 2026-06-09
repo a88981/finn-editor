@@ -285,21 +285,17 @@ function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){retu
   if(Array.isArray(d))arr=d;
   else if(d&&Array.isArray(d.projects))arr=d.projects;
   if(arr){
-    var WAIT=['等待素材','待確認','暫緩'];
-    var ps=arr.filter(function(p){
-      if(p.closed)return false;
-      if(p.status==='Final完成')return false;
-      if(p.finalDone)return false;
-      if(WAIT.indexOf(p.status)>=0)return false;
-      return true;
-    }).map(function(p){return {
+    // 全部都拉下來(含已結案)· 由前端 select 過濾「進行中」
+    var ps=arr.map(function(p){return {
       id:p.id,notionId:p.notionId,client:p.client,name:p.name,type:p.type||'',
       cut1Due:p.cut1Due||'',cut1Done:!!p.cut1Done,noCut1:!!p.noCut1,
       v1Due:p.v1Due||'',v1Done:!!p.v1Done,
       bizDue:p.bizDue||'',bizDone:!!p.bizDone,noBiz:!!p.noBiz,
       finalDue:p.finalDue||'',finalDone:!!p.finalDone,
       fee:Number(p.fee)||0,
-      finalLen:p.finalLen||p.length||''
+      finalLen:p.finalLen||p.length||'',
+      status:p.status||'',
+      closed:!!p.closed
     };});
     cb(null,ps);
   }
@@ -854,7 +850,7 @@ function render(){
     html+='    <div><div class="flabel">Project / 專案</div>';
     html+='      <select id="proj-select" class="fc" '+(disabled?'disabled':'')+' onchange="state.newProjId=this.value;render();">';
     html+='        <option value="">— 請選 —</option>';
-    state.projects.forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
+    state.projects.filter(function(p){return !p.closed&&p.status!=='Final完成'&&!p.finalDone&&['等待素材','待確認','暫緩'].indexOf(p.status)<0;}).forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(state.newProjId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     if(state.newProjId==='__other__'){
@@ -1043,8 +1039,10 @@ function render(){
           var clientName=data.client?'<span class="client">·'+data.client+'</span>':'';
           html+='      <tr><td>'+p[0]+clientName+'</td>';
           STAGES.forEach(function(s){var v=data.stages[s]||0;html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
-          // 片長
+          // 片長 · 找專案(先用 projectId,fallback 用名字+客戶)
           var proj=state.projects.find(function(x){return x.id===data.projectId;});
+          if(!proj)proj=state.projects.find(function(x){return x.name===p[0]&&x.client===data.client;});
+          if(!proj)proj=state.projects.find(function(x){return x.name===p[0];});
           var finalLen=proj?(proj.finalLen||proj.length||''):'';
           html+='      <td '+(finalLen?'':'class="zero"')+'>'+(finalLen||'—')+'</td>';
           html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
@@ -1098,8 +1096,10 @@ function render(){
           projRows.forEach(function(r,i){
             var w=(r[1].total/maxProj)*100;
             var clientName=r[1].client?'<span class="client">·'+r[1].client+'</span>':'';
-            // 算時薪
+            // 算時薪 · 找專案(先用 projectId,fallback 用名字+客戶)
             var proj=state.projects.find(function(x){return x.id===r[1].projectId;});
+            if(!proj)proj=state.projects.find(function(x){return x.name===r[0]&&x.client===r[1].client;});
+            if(!proj)proj=state.projects.find(function(x){return x.name===r[0];});
             var fee=proj?(proj.fee||0):0;
             var hours=r[1].total/3600000;
             var rateHtml='';
