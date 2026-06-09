@@ -16,6 +16,7 @@
   --green:#5a8a3a;--red:#A32D2D;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+html{font-size:110%}
 html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter',sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
 .viewport{padding:32px 16px 60px;display:flex;justify-content:center}
 .a4{width:100%;max-width:680px;background:var(--paper);padding:32px 40px 28px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 20px 60px rgba(180,140,40,0.10),0 8px 20px rgba(180,140,40,0.05);display:flex;flex-direction:column}
@@ -24,7 +25,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .corner-r{position:absolute;top:22px;right:36px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light)}
 
 /* Settings gear menu */
-.gear-btn{position:absolute;top:18px;right:80px;width:28px;height:28px;border:none;background:transparent;cursor:pointer;color:var(--ink-light);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;border-radius:3px}
+.gear-btn{position:absolute;top:18px;right:130px;width:24px;height:24px;border:none;background:transparent;cursor:pointer;color:var(--ink-light);font-size:14px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;border-radius:3px}
 .gear-btn:hover{background:var(--yellow-lightest);color:var(--yellow-mid)}
 .gear-menu{position:absolute;top:50px;right:36px;background:#fff;border:1px solid var(--line);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.08);z-index:50;min-width:160px;padding:4px 0}
 .gear-item{display:block;width:100%;padding:9px 16px;background:transparent;border:none;text-align:left;font-family:'Noto Sans TC',sans-serif;font-size:13px;color:var(--ink);cursor:pointer}
@@ -171,19 +172,19 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .month-nav .month-label{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--yellow-mid);letter-spacing:0.04em}
 .nav-btn{background:transparent;border:1px solid var(--line);width:28px;height:28px;border-radius:3px;color:var(--ink-soft);cursor:pointer;font-family:Inter,sans-serif;font-size:13px;display:flex;align-items:center;justify-content:center;padding:0}
 .nav-btn:hover{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--yellow-mid)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px}
-.cal-head{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);text-align:center;padding:4px 0;font-weight:500}
-.cal-day{aspect-ratio:1;border:0.5px solid transparent;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-light);position:relative}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:0 0 14px}
+.cal-head{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-light);text-align:center;padding:4px 0;font-weight:500}
+.cal-day{aspect-ratio:1.6/1;border:0.5px solid transparent;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-light);position:relative;line-height:1}
+.cal-day.has-data .h{font-family:Inter,sans-serif;font-size:8.5px;letter-spacing:0.02em;color:var(--yellow-mid);font-weight:500;margin-top:5px}
 .cal-day.blank{border:none}
 .cal-day.has-data{background:var(--yellow-lightest);color:var(--ink);border-color:var(--yellow-pale);font-weight:500}
-.cal-day.has-data .h{font-family:Inter,sans-serif;font-size:8px;letter-spacing:0.04em;color:var(--yellow-mid);font-weight:500;margin-top:1px}
 .cal-day.empty-day{color:#c8c8c0}
 .cal-day.today{outline:1px solid var(--yellow-mid);outline-offset:-2px}
 .cal-day.selected{background:var(--yellow);color:#fff;border-color:var(--yellow-mid)}
 .cal-day.selected .h{color:#fff}
 
 /* 日詳細卡片 */
-.day-detail{background:#fff;border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-top:10px}
+.day-detail{background:#fff;border:1px solid var(--line);border-radius:4px;padding:11px 14px;margin-top:8px}
 .day-d-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
 .day-d-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500}
 .day-d-tot{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--yellow-mid);font-weight:500}
@@ -192,9 +193,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .day-d-shift .tm{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;font-weight:500}
 
 /* 今日報表 · 時間軸 */
-.tl{display:grid;grid-template-columns:50px 1fr;gap:10px;padding:5px 0;font-size:12px;align-items:flex-start}
-.tl .t{font-family:'Cormorant Garamond',serif;color:var(--ink-soft);font-size:12px;font-variant-numeric:tabular-nums;padding-top:6px}
-.tl .b{display:flex;justify-content:space-between;align-items:center;background:var(--yellow-lightest);border-left:2px solid var(--yellow);padding:6px 10px;border-radius:0 3px 3px 0;gap:8px}
+.tl{display:grid;grid-template-columns:46px 1fr;gap:8px;padding:2px 0;font-size:11.5px;align-items:flex-start}
+.tl .t{font-family:'Cormorant Garamond',serif;color:var(--ink-soft);font-size:11.5px;font-variant-numeric:tabular-nums;padding-top:4px}
+.tl .b{display:flex;justify-content:space-between;align-items:center;background:var(--yellow-lightest);border-left:2px solid var(--yellow);padding:4px 8px;border-radius:0 3px 3px 0;gap:8px}
 .tl .b.rest{background:transparent;border-left:2px dashed var(--line)}
 .tl .b .nam{font-family:'Noto Serif TC',serif;font-weight:500;font-size:12.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;overflow:hidden}
 .tl .b .nam .cli{font-size:10px;color:var(--ink-light);font-family:Inter,sans-serif;font-weight:400;letter-spacing:0.04em}
