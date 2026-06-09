@@ -801,16 +801,16 @@ function render(){
     }
     if(todayEntries.length>0||state.active.length>0||state.shift||todayShifts.length>0){
       html+='<div class="summary">';
-      html+='  <div class="summary-block"><div class="summary-label">今日工時 · Working</div><div class="summary-value work">'+fmtDur(workMs)+'</div></div>';
       if(state.shift){
         var shiftMs2=Date.now()-state.shift.startAt-(state.shift.breakTotal||0);
         if(state.shift.breakAt)shiftMs2-=(Date.now()-state.shift.breakAt);
-        html+='  <div class="summary-block"><div class="summary-label">上班 · Shift</div><div class="summary-value span">'+fmtDur(Math.max(0,shiftMs2))+'</div><div class="summary-range">since '+fmtTime(state.shift.startAt)+'</div></div>';
+        html+='  <div class="summary-block"><div class="summary-label">上班 · Shift</div><div class="summary-value work">'+fmtDur(Math.max(0,shiftMs2))+'</div><div class="summary-range">since '+fmtTime(state.shift.startAt)+'</div></div>';
       } else if(todayEntries.length>0){
         var fStart=Math.min.apply(null,todayEntries.map(function(e){return e.startAt;}));
         var lEnd=Math.max.apply(null,todayEntries.map(function(e){return e.endAt;}));
-        html+='  <div class="summary-block"><div class="summary-label">時間 · Span</div><div class="summary-value span">'+fmtDur(lEnd-fStart)+'</div><div class="summary-range">'+fmtTime(fStart)+' → '+fmtTime(lEnd)+'</div></div>';
+        html+='  <div class="summary-block"><div class="summary-label">時間 · Span</div><div class="summary-value work">'+fmtDur(lEnd-fStart)+'</div><div class="summary-range">'+fmtTime(fStart)+' → '+fmtTime(lEnd)+'</div></div>';
       }
+      html+='  <div class="summary-block"><div class="summary-label">今日工時 · Working</div><div class="summary-value span">'+fmtDur(workMs)+'</div></div>';
       html+='</div>';
     }
 
