@@ -807,10 +807,11 @@ function render(){
       html+='</div>';
     }
 
-    // 待交件提醒列(扁扁的金黃條)
+    // 待交件提醒列(扁扁的金黃條)· 只看進行中專案
     var todos=[];
     var todayD=new Date();todayD.setHours(0,0,0,0);
-    state.projects.forEach(function(p){
+    var WAIT=['等待素材','待確認','暫緩'];
+    state.projects.filter(function(p){return !p.closed&&p.status!=='Final完成'&&!p.finalDone&&WAIT.indexOf(p.status)<0;}).forEach(function(p){
       var stages=[
         {key:'cut1',done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
         {key:'v1',done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
@@ -954,31 +955,7 @@ function render(){
           html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(entryDur(e))+'</span></div></div>';
         }
       });
-      // 按案拆區
-      html+='<div class="section-head" style="margin-top:18px"><div class="section-title">今日專案明細 · <span class="section-en">By Project</span></div></div>';
-      // 聚合:依專案 → 各階段
-      var dayMap={};
-      todayEntries.forEach(function(e){
-        var key=e.projectLabel||'(無)';
-        if(!dayMap[key])dayMap[key]={total:0,client:e.client||'',stages:{}};
-        var dur=entryDur(e);
-        dayMap[key].total+=dur;
-        var st=isOtherWork(e)?'其他工作':(e.stage||'其他');
-        if(!dayMap[key].stages[st])dayMap[key].stages[st]={dur:0,notes:[]};
-        dayMap[key].stages[st].dur+=dur;
-        if(e.note)dayMap[key].stages[st].notes.push(e.note);
-      });
-      Object.entries(dayMap).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(p){
-        var name=p[0],d=p[1];
-        var clientHtml=d.client?'<span class="pb-client">·'+d.client+'</span>':'';
-        html+='<div class="proj-block">';
-        html+='  <div class="pb-head"><div><span class="pb-name">'+name+'</span>'+clientHtml+'</div><div class="pb-tot">'+fmtDur(d.total)+'</div></div>';
-        Object.entries(d.stages).sort(function(a,b){return b[1].dur-a[1].dur;}).forEach(function(s){
-          var noteText=s[1].notes.length>0?s[1].notes.slice(0,2).join(', '):'';
-          html+='  <div class="pb-stage"><span class="s">'+s[0]+'</span><span class="note">'+noteText+'</span><span class="d">'+fmtDur(s[1].dur)+'</span></div>';
-        });
-        html+='</div>';
-      });
+      // 今日專案明細已拿掉(跟時間軸重複)
     }
   }
 
@@ -1003,10 +980,13 @@ function render(){
       } else {
         if(!projMonthMap[ym])projMonthMap[ym]={};
         var key=e.projectLabel||'(無)';
-        if(!projMonthMap[ym][key])projMonthMap[ym][key]={stages:{},total:0,client:e.client||'',projectId:e.projectId||''};
+        if(!projMonthMap[ym][key])projMonthMap[ym][key]={stages:{},total:0,client:e.client||'',projectId:e.projectId||'',workDaysSet:{}};
         var st=e.stage||'其他';
         projMonthMap[ym][key].stages[st]=(projMonthMap[ym][key].stages[st]||0)+dur;
         projMonthMap[ym][key].total+=dur;
+        // 工作天統計:用 workDay,沒有就用 startAt 推
+        var wd=e.workDay||dateKey(e.startAt);
+        projMonthMap[ym][key].workDaysSet[wd]=true;
         if(!projMonthMap[ym][key].client&&e.client)projMonthMap[ym][key].client=e.client;
         if(!projMonthMap[ym][key].projectId&&e.projectId)projMonthMap[ym][key].projectId=e.projectId;
       }
@@ -1032,20 +1012,23 @@ function render(){
         html+='  <table class="report-table">';
         html+='    <thead><tr><th>專案</th>';
         STAGES.forEach(function(s){html+='<th>'+s+'</th>';});
-        html+='    <th>片長</th><th>合計</th><th>時薪</th></tr></thead>';
+        html+='    <th>合計</th><th>天</th><th>片長</th><th>時薪</th></tr></thead>';
         html+='    <tbody>';
         projects.forEach(function(p){
           var data=p[1];
           var clientName=data.client?'<span class="client">·'+data.client+'</span>':'';
           html+='      <tr><td>'+p[0]+clientName+'</td>';
           STAGES.forEach(function(s){var v=data.stages[s]||0;html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
+          html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
+          // 工作天
+          var workDays=Object.keys(data.workDaysSet||{}).length;
+          html+='      <td '+(workDays===0?'class="zero"':'')+'>'+(workDays>0?workDays:'—')+'</td>';
           // 片長 · 找專案(先用 projectId,fallback 用名字+客戶)
           var proj=state.projects.find(function(x){return x.id===data.projectId;});
           if(!proj)proj=state.projects.find(function(x){return x.name===p[0]&&x.client===data.client;});
           if(!proj)proj=state.projects.find(function(x){return x.name===p[0];});
           var finalLen=proj?(proj.finalLen||proj.length||''):'';
           html+='      <td '+(finalLen?'':'class="zero"')+'>'+(finalLen||'—')+'</td>';
-          html+='      <td class="proj-total">'+fmtDur(data.total)+'</td>';
           // 時薪
           var fee=proj?(proj.fee||0):0;
           var hours=data.total/3600000;
@@ -1059,9 +1042,13 @@ function render(){
           html+='      </tr>';
         });
         html+='    </tbody>';
+        // tfoot:合計 / 月總工作天 / — / —
+        var monthAllDays={};
+        projects.forEach(function(p){Object.keys(p[1].workDaysSet||{}).forEach(function(d){monthAllDays[d]=true;});});
+        var monthDayCount=Object.keys(monthAllDays).length;
         html+='    <tfoot><tr><td>小計</td>';
         STAGES.forEach(function(s){var v=stageTotals[s];html+='<td '+(v===0?'class="zero"':'')+'>'+(v===0?'—':fmtDur(v))+'</td>';});
-        html+='    <td class="zero">—</td><td>'+fmtDur(monthTotal)+'</td><td class="zero">—</td></tr></tfoot>';
+        html+='    <td>'+fmtDur(monthTotal)+'</td><td>'+(monthDayCount>0?monthDayCount:'—')+'</td><td class="zero">—</td><td class="zero">—</td></tr></tfoot>';
         html+='  </table>';
         html+='</div>';
       });
