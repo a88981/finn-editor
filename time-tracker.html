@@ -114,6 +114,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-btn-mini.pause:hover{background:var(--yellow-lightest)}
 .ac-btn-mini.resume{border-color:var(--yellow);background:var(--yellow);color:#fff}
 .ac-btn-mini.resume:hover{background:var(--yellow-mid);border-color:var(--yellow-mid)}
+.ac-btn-mini:disabled{background:#e8e8e2!important;color:#a8a8a0!important;border-color:#d0d0c8!important;cursor:not-allowed;opacity:0.7}
 .ac-btn-mini.stop{border-color:var(--red);color:var(--red)}
 .ac-btn-mini.stop:hover{background:#fcebeb}
 .ac-stop{padding:6px 13px;font-size:10px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid var(--red);background:#fff;color:var(--red);cursor:pointer;font-family:'Inter',sans-serif}
@@ -471,6 +472,7 @@ function pausePunch(id){
   ls_set(ACTIVE_KEY,state.active);render();
 }
 function resumePunch(id){
+  if(state.shift&&state.shift.breakAt){alert('休息中,請先按「▸ 回來」');return;}
   var item=state.active.find(function(x){return x.id===id;});
   if(!item||!item.pausedAt)return;
   item.pauseTotal=(item.pauseTotal||0)+(Date.now()-item.pausedAt);
@@ -792,8 +794,9 @@ function render(){
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
         html+='    </div>';
         html+='    <div class="ac-btns">';
+        var onBreak=!!(state.shift&&state.shift.breakAt);
         if(isPaused){
-          html+='      <button class="ac-btn-mini resume" onclick="resumePunch(\''+item.id+'\')">▸ 繼續</button>';
+          html+='      <button class="ac-btn-mini resume" '+(onBreak?'disabled title="休息中,先按 ▸ 回來"':'')+' onclick="resumePunch(\''+item.id+'\')">▸ 繼續</button>';
         } else {
           html+='      <button class="ac-btn-mini pause" onclick="pausePunch(\''+item.id+'\')">‖ 暫停</button>';
         }
