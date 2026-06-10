@@ -108,6 +108,8 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-time-start{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--green);letter-spacing:0.04em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
 .ac-time-start.paused{color:var(--red)}
 .ac-time-start .ac-start-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.25em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-left:4px}
+.ac-time-start .ac-elapsed{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--yellow-mid);font-weight:500;margin-left:6px;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+.ac-time-start.paused .ac-elapsed{color:var(--ink-light)}
 .active-card.paused{border-left-color:var(--red);background:#fcecec}
 .ac-btns{display:flex;flex-direction:column;gap:5px}
 .ac-btn-mini{padding:5px 11px;font-size:9.5px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid;background:#fff;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
@@ -330,7 +332,7 @@ var state={
 };
 
 // 每分鐘重繪一次上班時長
-setInterval(function(){if(state.shift)render();},60000);
+setInterval(function(){if(state.shift||state.active.length>0)render();},60000);
 
 // (進行中卡片改成靜態顯示「14:30 開始」,不需要每秒重繪)
 
@@ -889,7 +891,12 @@ function render(){
         var isPaused=!!item.pausedAt;
         html+='  <div class="active-card '+(isPaused?'paused':'')+'">';
         html+='    <div class="ac-info">';
-        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'" onclick="editActiveStart(\''+item.id+'\')" style="cursor:pointer" title="點擊修改開始時間">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span></div>';
+        // 算已執行時長(扣暫停)
+        var nowMs=Date.now();
+        var elapsed=nowMs-item.startAt-(item.pauseTotal||0);
+        if(item.pausedAt)elapsed-=(nowMs-item.pausedAt);
+        elapsed=Math.max(0,elapsed);
+        html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'" onclick="editActiveStart(\''+item.id+'\')" style="cursor:pointer" title="點擊修改開始時間">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span> <span class="ac-elapsed">· '+fmtDur(elapsed)+'</span></div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+(item.client?'<span class="ac-client">·'+item.client+'</span>':'')+'</div>';
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
         html+='    </div>';
@@ -1268,7 +1275,21 @@ function render(){
     html+='    <div class="field"><div class="flabel">Project / 專案</div>';
     html+='      <select class="fc" onchange="var v=this.value;var p=state.projects.find(function(x){return x.id===v;});state.modalForm.projectId=v;if(v===\'__other__\'){state.modalForm.stage=\'其他工作\';if(!state.modalForm.projectLabel||state.projects.find(function(x){return x.name===state.modalForm.projectLabel;}))state.modalForm.projectLabel=\'\';}else if(p){state.modalForm.projectLabel=p.name;state.modalForm.client=p.client;if(state.modalForm.stage===\'其他工作\')state.modalForm.stage=\'初剪\';}else{state.modalForm.projectLabel=this.options[this.selectedIndex].text;}render();">';
     html+='        <option value="">— 請選 —</option>';
-    state.projects.forEach(function(p){html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
+    // 限近兩月有打過卡 + 進行中專案
+    var thisYM=todayKey().slice(0,7);
+    var prevD=new Date();prevD.setDate(1);prevD.setMonth(prevD.getMonth()-1);
+    var prevYM=prevD.getFullYear()+'-'+pad(prevD.getMonth()+1);
+    var recentNames={};
+    state.entries.forEach(function(e){
+      var ym=(e.workDay||dateKey(e.startAt)).slice(0,7);
+      if(ym===thisYM||ym===prevYM)recentNames[e.projectLabel]=true;
+    });
+    var WAIT2=['等待素材','待確認','暫緩'];
+    var visibleProjects=state.projects.filter(function(p){
+      if(!p.closed&&p.status!=='Final完成'&&!p.finalDone&&WAIT2.indexOf(p.status)<0)return true;
+      return !!recentNames[p.name];
+    });
+    visibleProjects.forEach(function(p){html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     html+='    <div class="row">';
