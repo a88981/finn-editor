@@ -1625,6 +1625,13 @@ function ListView(props){
       var fa=a.finalDue||a.month||"0000",fb=b.finalDue||b.month||"0000";
       return fb.localeCompare(fa);
     }
+    if(filter==="unpaid"){
+      // 未結案:按月份小→大,同月按 finalDue
+      var ma=a.month||"9999",mb=b.month||"9999";
+      if(ma!==mb)return ma.localeCompare(mb);
+      var fa=a.finalDue||"9999",fb=b.finalDue||"9999";
+      return fa.localeCompare(fb);
+    }
     return nextDue(a).localeCompare(nextDue(b));
   });
 
