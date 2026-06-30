@@ -2285,22 +2285,24 @@ function App(){
   var sss=useState(false);var showSettings=sss[0],setShowSettings=sss[1];
 
   function copyForAISchedule(){
-    // 排除:已結案 / Final完成 / 暫緩 / 初剪相關(初剪審核中、初剪製作中、初剪修改)
-    var EXCLUDE_STATUS=["Final\u5b8c\u6210","\u66ab\u7de9","\u521d\u526a\u88fd\u4f5c\u4e2d","\u521d\u526a\u5be9\u6838\u4e2d","\u521d\u526a\u4fee\u6539"];
+    // 排除:已結案 / Final完成 / 暫緩 / 初剪相關
+    var EXCLUDE_STATUS=["Final\u5b8c\u6210","\u66ab\u7de9","\u521d\u526a\u4e2d","\u521d\u526a\u88fd\u4f5c\u4e2d","\u521d\u526a\u5be9\u6838\u4e2d","\u521d\u526a\u4fee\u6539"];
     var todo=projects.filter(function(p){return !p.closed&&!p.finalDone&&EXCLUDE_STATUS.indexOf(p.status)<0;});
     if(todo.length===0){showT("\u274c \u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u5c08\u6848");return;}
     var today=new Date().toISOString().slice(0,10);
     var lines=[];
     lines.push("# \u5e6b\u6211\u898f\u5283\u4ee5\u4e0b\u526a\u8f2f\u6848\u7684\u5de5\u4f5c\u6392\u7a0b");
     lines.push("");
-    lines.push("\u4eca\u5929\u662f " + today + "\u3002\u4ee5\u4e0b\u662f\u6211\u624b\u4e0a\u672a\u5b8c\u6210\u7684\u5269\u63a5\u6848\uff0c\u8acb\u5e6b\u6211\u6392\u51fa\u6bcf\u4e00\u500b\u968e\u6bb5\u7684\u4f5c\u696d\u65e5\u7a0b\u3002");
+    lines.push("\u4eca\u5929\u662f " + today + "\u3002\u4ee5\u4e0b\u662f\u6211\u624b\u4e0a\u672a\u5b8c\u6210\u7684\u526a\u63a5\u6848\u3002");
+    lines.push("\u6211\u6703\u5728\u6bcf\u500b\u6848\u63d0\u4f9b\u300c\u958b\u59cb\u65e5\u671f(\u62ff\u5230\u6bdb\u7247)\u300d\u8ddf\u300c\u4ea4 V1 \u65e5\u671f\u300d\uff0c\u8acb\u4ee5\u9019\u5169\u500b\u65e5\u671f\u70ba\u4e3b\uff0c\u5728\u5340\u9593\u5167\u5e6b\u6211\u898f\u5283\u521d\u526a\u3001V1(ES)\u3001\u696d\u914d\u3001Final \u7b49\u968e\u6bb5\u7684\u4f5c\u696d\u65e5\u7a0b\u3002");
     lines.push("");
     lines.push("## \u6392\u7a0b\u898f\u5247");
     lines.push("- \u4e00\u5929\u540c\u6642\u9032\u884c 2\u20133 \u500b\u9577\u7247\u6848(\u4ee5 2 \u500b\u70ba\u4e3b\uff0c\u6700\u591a 3 \u500b)");
     lines.push("- \u521d\u526a\u7d04 3\u20137 \u500b\u5de5\u4f5c\u5929");
-    lines.push("- ES (V1) \u7d04 5\u201310 \u500b\u5de5\u4f5c\u5929");
-    lines.push("- \u696d\u914d(\u5982\u679c\u6709)\u5728 V1 \u5b8c\u6210\u5f8c\u9032\u884c");
-    lines.push("- Final \u9700\u8981\u5728\u4e0a\u7247\u65e5\u524d\u4e00\u5929\u4ea4\u4ef6");
+    lines.push("- ES (V1) \u7d04 3\u201310 \u500b\u5de5\u4f5c\u5929");
+    lines.push("- \u521d\u526a + V1 \u5fc5\u9808\u843d\u5728\u300c\u958b\u59cb\u65e5\u671f \u2192 \u4ea4 V1 \u65e5\u671f\u300d\u9019\u500b\u5340\u9593\u5167\u5b8c\u6210");
+    lines.push("- **\u696d\u914d\u5982\u679c\u6709\u63d0\u4f9b\u300c\u696d\u914d\u958b\u59cb\u300d\u8ddf\u300c\u696d\u914d\u7d50\u675f\u300d\u65e5\u671f\uff0c\u9019\u662f\u5ee0\u5546\u5b9a\u7684\u56fa\u5b9a\u671f\u9650\u4e0d\u80fd\u8abf\u6574**");
+    lines.push("- **Final \u53ea\u9700 1 \u5929\u4ea4\u4ef6**(\u4e0a\u7247\u65e5\u524d 1 \u6216 2 \u5929\u90fd\u53ef\u4ee5\uff0c**\u4ee5\u63d0\u524d 2 \u5929\u70ba\u4f73**)\u3002\u4f8b\uff1a6/30 \u4e0a\u7247 \u2192 6/28 Final \u6700\u4f73\uff0c6/29 \u4e5f\u53ef");
     lines.push("- \u9035\u671f\u7684\u8981\u512a\u5148\u8655\u7406");
     lines.push("- **\u77ed\u5f71\u512a\u5148\u00b7\u77ed\u5f71\u6c92\u6709\u500b\u6578\u9650\u5236\uff0c\u53ef\u4ee5\u76f4\u63a5\u5b89\u6392\u9032\u53bb\uff0c\u4e0d\u8a08\u5165 2\u20133 \u500b\u540c\u6642\u9032\u884c\u7684\u989d\u5ea6**");
     lines.push("");
@@ -2315,19 +2317,37 @@ function App(){
       if(p.airDate)info.push("\u4e0a\u7247\u65e5: "+p.airDate);
       if(p.status)info.push("\u72c0\u614b: "+p.status);
       if(info.length)lines.push("- "+info.join(" / "));
-      if(p.editS||p.editE)lines.push("- \u53ef\u5de5\u4f5c\u671f\u9593: "+(p.editS||"?")+" \u2192 "+(p.editE||"?"));
-      // 各階段現況
-      var stages=[];
-      if(!p.noCut1)stages.push("\u521d\u526a: "+(p.cut1Done?"\u2713":"\u672a\u4ea4")+(p.cut1Due?" (\u539f\u8a02 "+p.cut1Due+")":""));
-      stages.push("V1/ES: "+(p.v1Done?"\u2713":"\u672a\u4ea4")+(p.v1Due?" (\u539f\u8a02 "+p.v1Due+")":""));
-      if(!p.noBiz)stages.push("\u696d\u914d: "+(p.bizDone?"\u2713":"\u672a\u4ea4")+(p.bizDue?" (\u539f\u8a02 "+p.bizDue+")":""));
-      stages.push("Final: "+(p.finalDone?"\u2713":"\u672a\u4ea4")+(p.finalDue?" (\u539f\u8a02 "+p.finalDue+")":""));
-      lines.push("- \u9032\u5ea6: "+stages.join(" \u00b7 "));
+      // 開始日期 + 交 V1 日期(關鍵)
+      lines.push("- **\u958b\u59cb\u65e5\u671f(\u6bdb\u7247): "+(p.editS||p.cut1S||"?")+"**");
+      lines.push("- **\u4ea4 V1 \u65e5\u671f: "+(p.v1Due||"?")+"**");
+      // 業配固定期間
+      if(!p.noBiz&&(p.bizS||p.bizE)){
+        lines.push("- **\u696d\u914d\u671f\u9593(\u5ee0\u5546\u5b9a\u00b7\u4e0d\u80fd\u6539): "+(p.bizS||"?")+" \u2192 "+(p.bizE||"?")+"**");
+      }
+      if(p.finalDue)lines.push("- Final \u4ea4\u4ef6\u65e5: "+p.finalDue);
+      // 已完成的階段
+      var doneStages=[];
+      if(!p.noCut1&&p.cut1Done)doneStages.push("\u521d\u526a");
+      if(p.v1Done)doneStages.push("V1");
+      if(!p.noBiz&&p.bizDone)doneStages.push("\u696d\u914d");
+      if(doneStages.length)lines.push("- \u5df2\u5b8c\u6210: "+doneStages.join(" \u00b7 "));
+      var skipStages=[];
+      if(p.noCut1)skipStages.push("\u4e0d\u9700\u521d\u526a");
+      if(p.noBiz)skipStages.push("\u4e0d\u9700\u696d\u914d");
+      if(skipStages.length)lines.push("- \u8df3\u904e: "+skipStages.join(" \u00b7 "));
       lines.push("");
     });
     lines.push("---");
     lines.push("");
-    lines.push("\u8acb\u4ee5\u8868\u683c\u6216\u6e05\u55ae\u683c\u5f0f\u8f38\u51fa\u6bcf\u4e00\u5929(YYYY-MM-DD)\u6211\u8a72\u9032\u884c\u54ea\u4e9b\u968e\u6bb5\uff0c\u4e26\u8aaa\u660e\u6392\u7a0b\u6982\u5ff5\u3002\u9047\u9035\u671f\u7684\u6848\u8acb\u91cd\u9ede\u6a19\u8a18\u3002");
+    lines.push("\u8acb\u4ee5\u8868\u683c\u6216\u6e05\u55ae\u683c\u5f0f\u8f38\u51fa\u6bcf\u4e00\u5929(YYYY-MM-DD)\u6211\u8a72\u9032\u884c\u54ea\u4e9b\u968e\u6bb5\u3002");
+    lines.push("");
+    lines.push("**\u6bcf\u500b\u6848\u8acb\u660e\u78ba\u8aaa\u660e\u5b89\u6392\u51e0\u5929**\uff0c\u4f8b\u5982\uff1a");
+    lines.push("- \u521d\u526a 4 \u5929(\u65e5\u671f A \u2192 \u65e5\u671f B)");
+    lines.push("- V1 6 \u5929(\u65e5\u671f C \u2192 \u65e5\u671f D)");
+    lines.push("- \u696d\u914d 2 \u5929(\u65e5\u671f E \u2192 \u65e5\u671f F)");
+    lines.push("- Final 1 \u5929(\u65e5\u671f G)");
+    lines.push("");
+    lines.push("\u4e26\u8aaa\u660e\u70ba\u4ec0\u9ebc\u9019\u6a23\u6392(\u4f8b\u5982\uff1a\u65e5\u671f\u7dca\u3001\u9035\u671f\u3001\u540c\u6642\u8981\u8e22 2 \u500b\u6848\u7b49)\u3002\u9047\u9577\u7247\u985e\u578b\u540c\u6642 3 \u500b\u4ee5\u4e0a\u8acb\u91cd\u9ede\u6a19\u8a18\uff0c\u4e26\u63d0\u51fa\u8abf\u6574\u5efa\u8b70\u3002");
     var text=lines.join("\n");
     try{
       navigator.clipboard.writeText(text).then(function(){
