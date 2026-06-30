@@ -178,10 +178,12 @@ function saveAll(){
   if(btn){btn.disabled=true;btn.textContent="存入中…";}
   var promises=ids.map(function(pid){
     var e=state.edits[pid];
+    var orig=state.projects.find(function(x){return x.id===pid;});
+    var full=Object.assign({},orig,e);
     return fetch(API+"?action=update",{
       method:"PATCH",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(e)
+      body:JSON.stringify(full)
     }).then(function(r){return r.json();}).then(function(d){
       if(d.error)throw new Error(d.error);
       return{pid:pid,ok:true};
