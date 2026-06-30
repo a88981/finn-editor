@@ -154,12 +154,12 @@ function ProjectCard(props){
   var STAGE_COLORS={
     "\u521d\u526a":"#7BA3D9",      // 淺藍
     "ES":"#4A6FA8",                  // 中藍（同 C.blueMid）
-    "\u696d\u914d":"#B89642",      // 暖金
+    "\u4e2d\u63d2":"#B89642",      // 暖金
     "Final":"#1E3A6F"                // 深藍（同 C.blue）
   };
   function calcProgress(){
     var stages=[];
-    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u696d\u914d",due:p.bizDue,color:STAGE_COLORS["\u696d\u914d"]});
+    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u4e2d\u63d2",due:p.bizDue,color:STAGE_COLORS["\u4e2d\u63d2"]});
     if(!p.noCut1)stages.push({done:!!p.cut1Done,label:"\u521d\u526a",due:p.cut1Due,color:STAGE_COLORS["\u521d\u526a"]});
     stages.push({done:!!p.v1Done,label:"ES",due:p.v1Due,color:STAGE_COLORS["ES"]});
     stages.push({done:!!p.finalDone,label:"Final",due:p.finalDue,color:STAGE_COLORS["Final"]});
@@ -236,7 +236,7 @@ function ProjectCard(props){
     !showProgress&&!p.closed&&h("div",{style:{display:"flex",flexDirection:"column",gap:7,marginTop:10,paddingTop:10,borderTop:"1px dashed "+C.line}},
       h(DueTag,{date:!p.noCut1?p.cut1Due:null,done:p.cut1Done,icon:"\u2702",label:"\u521d\u526a"}),
       h(DueTag,{date:p.v1Due,done:p.v1Done,icon:"\u2726",label:"ES"}),
-      h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\u25c6",label:"\u696d\u914d"}),
+      h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\u25c6",label:"\u4e2d\u63d2"}),
       h(DueTag,{date:p.finalDue,done:p.finalDone,icon:"\u25cf",label:"Final"})
     ),
     p.note&&h("div",{style:{marginTop:10,fontSize:11.5,color:C.inkSoft,paddingTop:10,borderTop:"1px dashed "+C.line,lineHeight:1.55,letterSpacing:"0.02em"}},
@@ -263,7 +263,7 @@ function WaitingRow(props){
   var sc=statusColor(p.status);
   // 4 個里程碑（含日期）
   var stages=[];
-  if(!p.noBiz)stages.push({label:"\u696d\u914d",due:p.bizDue});
+  if(!p.noBiz)stages.push({label:"\u4e2d\u63d2",due:p.bizDue});
   if(!p.noCut1)stages.push({label:"\u521d\u526a",due:p.cut1Due});
   stages.push({label:"ES",due:p.v1Due});
   stages.push({label:"Final",due:p.finalDue});
