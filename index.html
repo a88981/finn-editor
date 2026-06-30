@@ -2290,8 +2290,8 @@ function App(){
   var sss=useState(false);var showSettings=sss[0],setShowSettings=sss[1];
 
   function copyForAISchedule(){
-    var EXCLUDE_STATUS=["Final\u5b8c\u6210","\u66ab\u7de9","\u521d\u526a\u4e2d","\u521d\u526a\u88fd\u4f5c\u4e2d","\u521d\u526a\u5be9\u6838\u4e2d","\u521d\u526a\u4fee\u6539"];
-    var todo=projects.filter(function(p){return !p.closed&&!p.finalDone&&EXCLUDE_STATUS.indexOf(p.status)<0;});
+    var INCLUDE_STATUS=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u521d\u526a\u5f85\u57f7\u884c"];
+    var todo=projects.filter(function(p){return !p.closed&&!p.finalDone&&INCLUDE_STATUS.indexOf(p.status)>=0;});
     if(todo.length===0){showT("\u274c \u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u5c08\u6848");return;}
     var today=new Date().toISOString().slice(0,10);
     var lines=[];
