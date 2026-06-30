@@ -2284,6 +2284,65 @@ function App(){
   var exps=useState(false);var showExport=exps[0],setShowExport=exps[1];
   var sss=useState(false);var showSettings=sss[0],setShowSettings=sss[1];
 
+  function copyForAISchedule(){
+    // 排除:已結案 / Final完成 / 暫緩 / 初剪相關(初剪審核中、初剪製作中、初剪修改)
+    var EXCLUDE_STATUS=["Final\u5b8c\u6210","\u66ab\u7de9","\u521d\u526a\u88fd\u4f5c\u4e2d","\u521d\u526a\u5be9\u6838\u4e2d","\u521d\u526a\u4fee\u6539"];
+    var todo=projects.filter(function(p){return !p.closed&&!p.finalDone&&EXCLUDE_STATUS.indexOf(p.status)<0;});
+    if(todo.length===0){showT("\u274c \u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u5c08\u6848");return;}
+    var today=new Date().toISOString().slice(0,10);
+    var lines=[];
+    lines.push("# \u5e6b\u6211\u898f\u5283\u4ee5\u4e0b\u526a\u8f2f\u6848\u7684\u5de5\u4f5c\u6392\u7a0b");
+    lines.push("");
+    lines.push("\u4eca\u5929\u662f " + today + "\u3002\u4ee5\u4e0b\u662f\u6211\u624b\u4e0a\u672a\u5b8c\u6210\u7684\u5269\u63a5\u6848\uff0c\u8acb\u5e6b\u6211\u6392\u51fa\u6bcf\u4e00\u500b\u968e\u6bb5\u7684\u4f5c\u696d\u65e5\u7a0b\u3002");
+    lines.push("");
+    lines.push("## \u6392\u7a0b\u898f\u5247");
+    lines.push("- \u4e00\u5929\u540c\u6642\u9032\u884c 2\u20133 \u500b\u9577\u7247\u6848(\u4ee5 2 \u500b\u70ba\u4e3b\uff0c\u6700\u591a 3 \u500b)");
+    lines.push("- \u521d\u526a\u7d04 3\u20137 \u500b\u5de5\u4f5c\u5929");
+    lines.push("- ES (V1) \u7d04 5\u201310 \u500b\u5de5\u4f5c\u5929");
+    lines.push("- \u696d\u914d(\u5982\u679c\u6709)\u5728 V1 \u5b8c\u6210\u5f8c\u9032\u884c");
+    lines.push("- Final \u9700\u8981\u5728\u4e0a\u7247\u65e5\u524d\u4e00\u5929\u4ea4\u4ef6");
+    lines.push("- \u9035\u671f\u7684\u8981\u512a\u5148\u8655\u7406");
+    lines.push("- **\u77ed\u5f71\u512a\u5148\u00b7\u77ed\u5f71\u6c92\u6709\u500b\u6578\u9650\u5236\uff0c\u53ef\u4ee5\u76f4\u63a5\u5b89\u6392\u9032\u53bb\uff0c\u4e0d\u8a08\u5165 2\u20133 \u500b\u540c\u6642\u9032\u884c\u7684\u989d\u5ea6**");
+    lines.push("");
+    lines.push("## \u5c08\u6848\u6e05\u55ae");
+    lines.push("");
+    todo.forEach(function(p,idx){
+      var num=idx+1;
+      lines.push("### "+num+". "+(p.name||"\u7121\u540d")+" \u00b7 "+(p.client||"-"));
+      var info=[];
+      if(p.type)info.push("\u985e\u578b: "+p.type);
+      if(p.length)info.push("\u9577\u5ea6: "+p.length);
+      if(p.airDate)info.push("\u4e0a\u7247\u65e5: "+p.airDate);
+      if(p.status)info.push("\u72c0\u614b: "+p.status);
+      if(info.length)lines.push("- "+info.join(" / "));
+      if(p.editS||p.editE)lines.push("- \u53ef\u5de5\u4f5c\u671f\u9593: "+(p.editS||"?")+" \u2192 "+(p.editE||"?"));
+      // 各階段現況
+      var stages=[];
+      if(!p.noCut1)stages.push("\u521d\u526a: "+(p.cut1Done?"\u2713":"\u672a\u4ea4")+(p.cut1Due?" (\u539f\u8a02 "+p.cut1Due+")":""));
+      stages.push("V1/ES: "+(p.v1Done?"\u2713":"\u672a\u4ea4")+(p.v1Due?" (\u539f\u8a02 "+p.v1Due+")":""));
+      if(!p.noBiz)stages.push("\u696d\u914d: "+(p.bizDone?"\u2713":"\u672a\u4ea4")+(p.bizDue?" (\u539f\u8a02 "+p.bizDue+")":""));
+      stages.push("Final: "+(p.finalDone?"\u2713":"\u672a\u4ea4")+(p.finalDue?" (\u539f\u8a02 "+p.finalDue+")":""));
+      lines.push("- \u9032\u5ea6: "+stages.join(" \u00b7 "));
+      lines.push("");
+    });
+    lines.push("---");
+    lines.push("");
+    lines.push("\u8acb\u4ee5\u8868\u683c\u6216\u6e05\u55ae\u683c\u5f0f\u8f38\u51fa\u6bcf\u4e00\u5929(YYYY-MM-DD)\u6211\u8a72\u9032\u884c\u54ea\u4e9b\u968e\u6bb5\uff0c\u4e26\u8aaa\u660e\u6392\u7a0b\u6982\u5ff5\u3002\u9047\u9035\u671f\u7684\u6848\u8acb\u91cd\u9ede\u6a19\u8a18\u3002");
+    var text=lines.join("\n");
+    try{
+      navigator.clipboard.writeText(text).then(function(){
+        showT("\u2705 \u5df2\u8907\u88fd "+todo.length+" \u500b\u6848 + \u63d0\u793a\u8a5e\u5230\u526a\u8cbc\u7c3f");
+      }).catch(function(){
+        // fallback
+        var ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+        showT("\u2705 \u5df2\u8907\u88fd "+todo.length+" \u500b\u6848");
+      });
+    }catch(e){
+      var ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+      showT("\u2705 \u5df2\u8907\u88fd");
+    }
+  }
+
   function doExport(yearFilter){
     try{
       var ps=yearFilter?projects.filter(function(p){return p.month&&p.month.startsWith(yearFilter);}):projects;
@@ -2377,6 +2436,7 @@ function App(){
             showSettings&&h("div",{onClick:function(e){e.stopPropagation();},style:{position:"absolute",top:"calc(100% + 6px)",right:0,background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:6,boxShadow:"0 4px 16px rgba(0,0,0,0.15)",zIndex:300,minWidth:170}},
               h("button",{onClick:function(){setShowCM(true);setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",border:"none",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},"\ud83d\udc65 \u5ba2\u6236\u7ba1\u7406"),
               h("button",{onClick:function(){setGhost(function(g){return!g;});setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:ghost?C.accBg:"transparent",border:"none",borderRadius:3,color:ghost?C.acc:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:ghost?700:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},(ghost?"\ud83d\udc7b ":"\u26ab ")+"\u9b3c\u5f71\u6a21\u5f0f"+(ghost?" \u00b7 ON":"")),
+              h("button",{onClick:function(){copyForAISchedule();setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",border:"none",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},"\ud83e\udd16 \u8907\u7d66 AI \u6392\u7a0b"),
               h("button",{onClick:function(){setShowExport(true);setShowSettings(false);},style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",border:"none",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap"}},"\u2b07 \u532f\u51fa\u8cc7\u6599"),
               h("label",{style:{display:"block",width:"100%",padding:"8px 12px",background:"transparent",borderRadius:3,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:12,textAlign:"left",whiteSpace:"nowrap",boxSizing:"border-box"}},"\u2b06 \u532f\u5165\u8cc7\u6599",h("input",{type:"file",accept:".json",onChange:function(e){setShowSettings(false);importFn(e);},style:{display:"none"}}))
             ),
