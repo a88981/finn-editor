@@ -398,8 +398,8 @@ function render(){
     html+='<div class="mfull">';
     html+='<div class="mfull-hd"><span class="mfull-icon">🎬</span><span class="mfull-title">完整時程</span>'+(fullDays?'<span class="mday-badge">'+fullDays+'天</span>':'')+'</div>';
     html+='<div class="row3">';
-    html+='<div><div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(fullS)+'" readonly></div>';
-    html+='<div><div class="flabel">結束</div><input type="date" class="fc" value="'+escAttr(fullE)+'" readonly></div>';
+    html+='<div><div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(fullS)+'"></div>';
+    html+='<div><div class="flabel">結束</div><input type="date" class="fc" value="'+escAttr(fullE)+'"></div>';
     html+='<div><div class="flabel">Final</div><input type="date" class="fc" value="'+escAttr(m.finalDue)+'" oninput="state.modal.finalDue=this.value"></div>';
     html+='</div>';
     html+='</div>';
@@ -409,10 +409,8 @@ function render(){
     var cd=daysBetween(m.cut1S,m.cut1Due||m.cut1E);
     html+='<div class="mstage stage-cut1'+(m.noCut1?' is-skip':'')+'">';
     html+='<div class="mstage-hd"><span class="mstage-icon" style="color:var(--c-cut1)">✂️</span><span class="mstage-title">初剪時程</span>'+(cd&&!m.noCut1?'<span class="mday-badge">'+cd+'天</span>':'')+'<label class="mstage-skip"><input type="checkbox" '+(m.noCut1?"checked":"")+' onchange="state.modal.noCut1=this.checked;render()">無此階段</label></div>';
-    if(!m.noCut1){
-      html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.cut1S)+'" oninput="state.modal.cut1S=this.value;render()">';
-      html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.cut1Due||m.cut1E)+'" oninput="state.modal.cut1Due=this.value;state.modal.cut1E=this.value;render()">';
-    }
+    html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.cut1S)+'" oninput="state.modal.cut1S=this.value;render()">';
+    html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.cut1Due||m.cut1E)+'" oninput="state.modal.cut1Due=this.value;state.modal.cut1E=this.value;render()">';
     html+='</div>';
     
     var v1d=daysBetween(m.v1S,m.v1Due||m.v1E);
@@ -425,10 +423,8 @@ function render(){
     var bd=daysBetween(m.bizS,m.bizDue||m.bizE);
     html+='<div class="mstage stage-biz'+(m.noBiz?' is-skip':'')+'">';
     html+='<div class="mstage-hd"><span class="mstage-icon" style="color:var(--c-biz)">💰</span><span class="mstage-title">業配時程</span>'+(bd&&!m.noBiz?'<span class="mday-badge">'+bd+'天</span>':'')+'<label class="mstage-skip"><input type="checkbox" '+(m.noBiz?"checked":"")+' onchange="state.modal.noBiz=this.checked;render()">無此階段</label></div>';
-    if(!m.noBiz){
-      html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.bizS)+'" oninput="state.modal.bizS=this.value;render()">';
-      html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.bizDue||m.bizE)+'" oninput="state.modal.bizDue=this.value;state.modal.bizE=this.value;render()">';
-    }
+    html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.bizS)+'" oninput="state.modal.bizS=this.value;render()">';
+    html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.bizDue||m.bizE)+'" oninput="state.modal.bizDue=this.value;state.modal.bizE=this.value;render()">';
     html+='</div>';
     
     html+='</div>';
