@@ -159,9 +159,9 @@ function ProjectCard(props){
   };
   function calcProgress(){
     var stages=[];
+    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u696d\u914d",due:p.bizDue,color:STAGE_COLORS["\u696d\u914d"]});
     if(!p.noCut1)stages.push({done:!!p.cut1Done,label:"\u521d\u526a",due:p.cut1Due,color:STAGE_COLORS["\u521d\u526a"]});
     stages.push({done:!!p.v1Done,label:"ES",due:p.v1Due,color:STAGE_COLORS["ES"]});
-    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u696d\u914d",due:p.bizDue,color:STAGE_COLORS["\u696d\u914d"]});
     stages.push({done:!!p.finalDone,label:"Final",due:p.finalDue,color:STAGE_COLORS["Final"]});
     return stages;
   }
@@ -263,9 +263,9 @@ function WaitingRow(props){
   var sc=statusColor(p.status);
   // 4 個里程碑（含日期）
   var stages=[];
+  if(!p.noBiz)stages.push({label:"\u696d\u914d",due:p.bizDue});
   if(!p.noCut1)stages.push({label:"\u521d\u526a",due:p.cut1Due});
   stages.push({label:"ES",due:p.v1Due});
-  if(!p.noBiz)stages.push({label:"\u696d\u914d",due:p.bizDue});
   stages.push({label:"Final",due:p.finalDue});
   // 找最近一個未完成的 due date
   function nearestDue(){
