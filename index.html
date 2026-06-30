@@ -2062,7 +2062,7 @@ function UrgentBanner(props){
   var projects=props.projects,onEdit=props.onEdit;
   var urgent=[];
   var TODO_ST=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
-  projects.filter(function(p){return!p.closed&&p.status!=="\u66ab\u7de9";}).forEach(function(p){
+  projects.filter(function(p){return!p.closed&&p.status!=="\u66ab\u7de9"&&p.status!=="\u5f85\u78ba\u8a8d";}).forEach(function(p){
     var checks=[
       {field:"cut1Done",date:!p.noCut1?p.cut1Due:null,label:"\u521d\u526a"},
       {field:"v1Done",date:p.v1Due,label:"V1"},
