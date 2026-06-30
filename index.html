@@ -1358,7 +1358,7 @@ function ProgressView(props){
       {key:"cut1",label:"\u521d\u526a",color:"#D89A3A",due:p.cut1Due,done:p.cut1Done,skip:p.noCut1},
       {key:"v1",label:"ES",color:"#C9A227",due:p.v1Due,done:p.v1Done,skip:false},
       {key:"fin",label:"Final",color:"#7A6432",due:p.finalDue,done:p.finalDone,skip:false}
-    ];
+    ].filter(function(s){return !s.skip;});
     // 判斷下一個未完成階段
     var nextStageIdx=-1;
     for(var i=0;i<stages.length;i++){if(!stages[i].skip&&!stages[i].done){nextStageIdx=i;break;}}
@@ -1493,7 +1493,7 @@ function TodoView(props){
       {color:"#D89A3A",done:p.cut1Done,skip:p.noCut1,label:"\u521d\u526a",due:p.cut1Due},
       {color:"#C9A227",done:p.v1Done,skip:false,label:"ES",due:p.v1Due},
       {color:"#7A6432",done:p.finalDone,skip:false,label:"Final",due:p.finalDue}
-    ];
+    ].filter(function(s){return !s.skip;});
     var nextIdx=-1;
     for(var i=0;i<stages.length;i++){if(!stages[i].skip&&!stages[i].done){nextIdx=i;break;}}
     return h("div",{onClick:function(){onEdit(p);},style:{display:"flex",flexDirection:"column",gap:6,padding:"10px 12px",borderRadius:4,cursor:"pointer",background:C.card,border:"1px solid "+C.brd,marginBottom:7,borderLeft:"2px solid "+cc}},
