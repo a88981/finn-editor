@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📋 排程預演 · Plan</title>
+<title>📋 排程規劃 · Plan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
@@ -43,7 +43,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .legend .swatch{width:12px;height:8px;border-radius:2px;flex-shrink:0;opacity:0.7}
 .legend .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
-.gantt{margin-top:6px}
+.gantt{margin-top:18px}
+.month-title{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:500;color:var(--ink);padding:8px 0;border-bottom:1px solid var(--yellow);margin-bottom:8px;display:flex;align-items:baseline;gap:8px}
+.month-title::after{content:"";flex:1}
 .gantt-head{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:end;font-size:9.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .gantt-head-days{display:flex;font-variant-numeric:tabular-nums}
 .gantt-head-days>div{flex:1;text-align:center}
@@ -254,61 +256,16 @@ function buildRow(p,yr,mo,dim){
   return{bars:bars,dots:dots};
 }
 
-function render(){
-  var root=document.getElementById("root");
-  if(state.loading){root.innerHTML='<div class="loading">讀取 Notion 資料中…</div>';return;}
-  if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
-  
-  var yr=state.ym[0],mo=state.ym[1];
+function renderGanttMonth(visible,yr,mo,now){
   var dim=new Date(yr,mo,0).getDate();
-  var now=new Date();
   var todayCol=(now.getFullYear()===yr&&now.getMonth()+1===mo)?now.getDate():null;
-  
-  var EXCLUDE=["Final完成","暫緩"];
-  var visible=state.projects.filter(function(p){
-    if(p.closed||p.finalDone)return false;
-    if(EXCLUDE.indexOf(p.status)>=0)return false;
-    return true;
-  });
-  
   var html='';
-  html+='<div class="eyebrow">Editing Schedule Planner</div>';
-  html+='<div class="title-row"><h1 class="title">📋 排程預演</h1><span class="title-sub">Plan & Preview</span></div>';
-  html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
-  
-  var dirty=dirtyCount();
-  html+='<div class="bar">';
-  html+='<div class="month-nav">';
-  html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
-  html+='<span class="month-label">'+yr+'年 '+mo+'月</span>';
-  html+='<button class="btn" onclick="changeYm(1)">›</button>';
-  html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
-  html+='</div>';
-  if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
-  html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
-  html+='<div class="legend">';
-  [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
-    html+='<div>'+(l.d?'<div class="dot" style="background:'+l.c+'"></div>':'<div class="swatch" style="background:'+l.c+'"></div>')+l.l+'</div>';
-  });
-  html+='</div>';
-  html+='</div>';
-  
-  if(visible.length===0){
-    html+='<div class="empty">沒有可預排的案(未結案 + 未交 Final + 非暫緩)</div>';
-    root.innerHTML=html;
-    return;
-  }
-  
-  // 甘特圖
-  html+='<div class="gantt">';
-  html+='<div class="gantt-head">';
-  html+='<div>專案</div>';
-  html+='<div class="gantt-head-days">';
+  html+='<div class="gantt"><div class="month-title">'+yr+'年 '+mo+'月</div>';
+  html+='<div class="gantt-head"><div>專案</div><div class="gantt-head-days">';
   for(var d=1;d<=dim;d++){
     html+='<div'+(isWeekend(yr,mo,d)?' class="we"':'')+'>'+d+'</div>';
   }
   html+='</div></div>';
-  
   var rowsHtml=visible.map(function(p){
     var rd=buildRow(p,yr,mo,dim);
     if(rd.bars.length===0&&rd.dots.length===0)return null;
@@ -334,13 +291,61 @@ function render(){
     row+='</div></div>';
     return row;
   }).filter(Boolean);
-  
   if(rowsHtml.length===0){
-    html+='<div class="empty">這個月份沒有排到任何案的階段</div>';
+    html+='<div class="empty" style="padding:20px;font-size:12px">這個月沒有排到任何案</div>';
   } else {
     html+=rowsHtml.join("");
   }
   html+='</div>';
+  return html;
+}
+
+function render(){
+  var root=document.getElementById("root");
+  if(state.loading){root.innerHTML='<div class="loading">讀取 Notion 資料中…</div>';return;}
+  if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
+  
+  var yr=state.ym[0],mo=state.ym[1];
+  var yr2=yr,mo2=mo+1;if(mo2>12){mo2=1;yr2++;}
+  var now=new Date();
+  
+  var EXCLUDE=["Final完成","暫緩"];
+  var visible=state.projects.filter(function(p){
+    if(p.closed||p.finalDone)return false;
+    if(EXCLUDE.indexOf(p.status)>=0)return false;
+    return true;
+  });
+  
+  var html='';
+  html+='<div class="eyebrow">Editing Schedule Planner</div>';
+  html+='<div class="title-row"><h1 class="title">📋 排程規劃</h1><span class="title-sub">Schedule Planning</span></div>';
+  html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
+  
+  var dirty=dirtyCount();
+  html+='<div class="bar">';
+  html+='<div class="month-nav">';
+  html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
+  html+='<span class="month-label">'+yr+'年 '+mo+'月 / '+mo2+'月</span>';
+  html+='<button class="btn" onclick="changeYm(1)">›</button>';
+  html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
+  html+='</div>';
+  if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
+  html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
+  html+='<div class="legend">';
+  [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
+    html+='<div>'+(l.d?'<div class="dot" style="background:'+l.c+'"></div>':'<div class="swatch" style="background:'+l.c+'"></div>')+l.l+'</div>';
+  });
+  html+='</div>';
+  html+='</div>';
+  
+  if(visible.length===0){
+    html+='<div class="empty">沒有可預排的案(未結案 + 未交 Final + 非暫緩)</div>';
+    root.innerHTML=html;
+    return;
+  }
+  
+  html+=renderGanttMonth(visible,yr,mo,now);
+  html+=renderGanttMonth(visible,yr2,mo2,now);
   
   // 存回 bar
   if(dirty>0){
@@ -355,10 +360,10 @@ function render(){
   // Modal
   if(state.modal){
     var m=state.modal;
-    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='<div class="modal-overlay">';
     html+='<div class="modal">';
     html+='<div class="modal-title">'+escapeHtml(m.name)+'</div>';
-    html+='<div class="modal-sub">'+escapeHtml(m.client||"")+' · 修改階段日期</div>';
+    html+='<div class="modal-sub">'+escapeHtml(m.client||"")+' · 修改階段日期(僅暫存,需點外部「存回 Notion」才會同步)</div>';
     if(!m.noCut1){
       html+='<div class="field"><div class="flabel">初剪 · Cut 1</div><div class="row2">';
       html+='<input type="date" class="fc" value="'+m.cut1S+'" oninput="state.modal.cut1S=this.value">';
@@ -387,7 +392,7 @@ function render(){
     html+='<div class="modal-btns">';
     if(state.edits[m.pid])html+='<button class="btn danger" onclick="discardEdit(\''+m.pid+'\');closeModal()">↺ 還原</button>';
     html+='<button class="btn" onclick="closeModal()">取消</button>';
-    html+='<button class="btn primary" onclick="saveModal()">儲存改動</button>';
+    html+='<button class="btn primary" onclick="saveModal()">儲存</button>';
     html+='</div></div></div>';
   }
   
