@@ -80,9 +80,30 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .save-bar .count{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--red);font-size:16px;font-weight:500}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(20,20,15,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
-.modal{background:#fff;border-radius:6px;padding:24px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+.modal{background:#fff;border-radius:6px;padding:24px;width:100%;max-width:840px;max-height:90vh;overflow:auto}
 .modal-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:4px}
 .modal-sub{font-size:11px;color:var(--ink-light);margin-bottom:16px}
+
+.mfull{background:var(--yellow-lightest);border:0.5px solid var(--yellow-pale);border-radius:6px;padding:14px 16px;margin-bottom:14px}
+.mfull-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.mfull-icon{font-size:15px}
+.mfull-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--yellow-mid)}
+.mday-badge{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.05em;background:var(--yellow);color:#fff;padding:2px 8px;border-radius:10px;font-weight:500}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+.mstage-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px}
+.mstage{border:0.5px solid var(--line);border-radius:6px;padding:12px 14px;background:#fff}
+.mstage.stage-cut1{border-color:#F5DEB3;background:#fdf6ea}
+.mstage.stage-v1{border-color:#E6D89A;background:#fbf6e0}
+.mstage.stage-biz{border-color:#D9C28C;background:#faf3d8}
+.mstage.is-skip{opacity:0.55}
+.mstage-hd{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.mstage-icon{font-size:14px}
+.mstage-title{font-family:'Noto Serif TC',serif;font-size:13px;font-weight:500;color:var(--ink)}
+.mstage-skip{font-size:10px;color:var(--ink-light);margin-left:auto;display:flex;align-items:center;gap:3px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.mstage-skip input{margin:0;cursor:pointer}
+
+@media(max-width:680px){.row3,.mstage-row{grid-template-columns:1fr}}
 .field{margin-bottom:14px}
 .flabel{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-light);font-weight:500;margin-bottom:4px}
 .fc{width:100%;padding:8px 10px;border:0.5px solid var(--line);border-radius:3px;font-family:inherit;font-size:13px;color:var(--ink);background:#fff;font-variant-numeric:tabular-nums}
@@ -211,6 +232,10 @@ function saveModal(){
   ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"].forEach(function(f){
     var orig=(p[f]==null?"":p[f]);
     var cur=(m[f]==null?"":m[f]);
+    if(orig!==cur){setField(p,f,cur);changed=true;}
+  });
+  ["noCut1","noBiz"].forEach(function(f){
+    var orig=!!p[f],cur=!!m[f];
     if(orig!==cur){setField(p,f,cur);changed=true;}
   });
   if(!changed)clearEdit(m.pid);
@@ -365,31 +390,49 @@ function render(){
     html+='<div class="modal">';
     html+='<div class="modal-title">'+escapeHtml(m.name)+'</div>';
     html+='<div class="modal-sub">'+escapeHtml(m.client||"")+' · 修改階段日期(僅暫存,需點外部「存回 Notion」才會同步)</div>';
+    
+    var fullS=earliest([m.cut1S,m.v1S,m.bizS,m.cut1Due,m.v1Due,m.bizDue,m.finalDue]);
+    var fullE=latest([m.cut1Due,m.v1Due,m.bizDue,m.cut1E,m.v1E,m.bizE,m.finalDue]);
+    var fullDays=daysBetween(fullS,fullE);
+    
+    html+='<div class="mfull">';
+    html+='<div class="mfull-hd"><span class="mfull-icon">🎬</span><span class="mfull-title">完整時程</span>'+(fullDays?'<span class="mday-badge">'+fullDays+'天</span>':'')+'</div>';
+    html+='<div class="row3">';
+    html+='<div><div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(fullS)+'" readonly></div>';
+    html+='<div><div class="flabel">結束</div><input type="date" class="fc" value="'+escAttr(fullE)+'" readonly></div>';
+    html+='<div><div class="flabel">Final</div><input type="date" class="fc" value="'+escAttr(m.finalDue)+'" oninput="state.modal.finalDue=this.value"></div>';
+    html+='</div>';
+    html+='</div>';
+    
+    html+='<div class="mstage-row">';
+    
+    var cd=daysBetween(m.cut1S,m.cut1Due||m.cut1E);
+    html+='<div class="mstage stage-cut1'+(m.noCut1?' is-skip':'')+'">';
+    html+='<div class="mstage-hd"><span class="mstage-icon" style="color:var(--c-cut1)">✂️</span><span class="mstage-title">初剪時程</span>'+(cd&&!m.noCut1?'<span class="mday-badge">'+cd+'天</span>':'')+'<label class="mstage-skip"><input type="checkbox" '+(m.noCut1?"checked":"")+' onchange="state.modal.noCut1=this.checked;render()">無此階段</label></div>';
     if(!m.noCut1){
-      html+='<div class="field"><div class="flabel">初剪 · Cut 1</div><div class="row2">';
-      html+='<input type="date" class="fc" value="'+m.cut1S+'" oninput="state.modal.cut1S=this.value">';
-      html+='<input type="date" class="fc" value="'+m.cut1E+'" oninput="state.modal.cut1E=this.value">';
-      html+='</div><div class="flabel" style="margin-top:6px">交件日</div>';
-      html+='<input type="date" class="fc" value="'+m.cut1Due+'" oninput="state.modal.cut1Due=this.value">';
-      html+='</div>';
+      html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.cut1S)+'" oninput="state.modal.cut1S=this.value;render()">';
+      html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.cut1Due||m.cut1E)+'" oninput="state.modal.cut1Due=this.value;state.modal.cut1E=this.value;render()">';
     }
-    html+='<div class="field"><div class="flabel">V1 / ES</div><div class="row2">';
-    html+='<input type="date" class="fc" value="'+m.v1S+'" oninput="state.modal.v1S=this.value">';
-    html+='<input type="date" class="fc" value="'+m.v1E+'" oninput="state.modal.v1E=this.value">';
-    html+='</div><div class="flabel" style="margin-top:6px">交件日</div>';
-    html+='<input type="date" class="fc" value="'+m.v1Due+'" oninput="state.modal.v1Due=this.value">';
     html+='</div>';
+    
+    var v1d=daysBetween(m.v1S,m.v1Due||m.v1E);
+    html+='<div class="mstage stage-v1">';
+    html+='<div class="mstage-hd"><span class="mstage-icon" style="color:var(--c-v1)">✨</span><span class="mstage-title">ES時程</span>'+(v1d?'<span class="mday-badge">'+v1d+'天</span>':'')+'</div>';
+    html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.v1S)+'" oninput="state.modal.v1S=this.value;render()">';
+    html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.v1Due||m.v1E)+'" oninput="state.modal.v1Due=this.value;state.modal.v1E=this.value;render()">';
+    html+='</div>';
+    
+    var bd=daysBetween(m.bizS,m.bizDue||m.bizE);
+    html+='<div class="mstage stage-biz'+(m.noBiz?' is-skip':'')+'">';
+    html+='<div class="mstage-hd"><span class="mstage-icon" style="color:var(--c-biz)">💰</span><span class="mstage-title">業配時程</span>'+(bd&&!m.noBiz?'<span class="mday-badge">'+bd+'天</span>':'')+'<label class="mstage-skip"><input type="checkbox" '+(m.noBiz?"checked":"")+' onchange="state.modal.noBiz=this.checked;render()">無此階段</label></div>';
     if(!m.noBiz){
-      html+='<div class="field"><div class="flabel">業配(廠商定 · 不能改 但可記錄)</div><div class="row2">';
-      html+='<input type="date" class="fc" value="'+m.bizS+'" oninput="state.modal.bizS=this.value">';
-      html+='<input type="date" class="fc" value="'+m.bizE+'" oninput="state.modal.bizE=this.value">';
-      html+='</div><div class="flabel" style="margin-top:6px">交件日</div>';
-      html+='<input type="date" class="fc" value="'+m.bizDue+'" oninput="state.modal.bizDue=this.value">';
-      html+='</div>';
+      html+='<div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(m.bizS)+'" oninput="state.modal.bizS=this.value;render()">';
+      html+='<div class="flabel" style="margin-top:8px">結束 · 交件</div><input type="date" class="fc" value="'+escAttr(m.bizDue||m.bizE)+'" oninput="state.modal.bizDue=this.value;state.modal.bizE=this.value;render()">';
     }
-    html+='<div class="field"><div class="flabel">Final 交件日</div>';
-    html+='<input type="date" class="fc" value="'+m.finalDue+'" oninput="state.modal.finalDue=this.value">';
     html+='</div>';
+    
+    html+='</div>';
+    
     html+='<div class="modal-btns">';
     if(state.edits[m.pid])html+='<button class="btn danger" onclick="discardEdit(\''+m.pid+'\');closeModal()">↺ 還原</button>';
     html+='<button class="btn" onclick="closeModal()">取消</button>';
@@ -401,6 +444,23 @@ function render(){
   if(state.toast){html+='<div class="toast">'+escapeHtml(state.toast)+'</div>';}
   
   root.innerHTML=html;
+}
+
+function escAttr(s){return (s||"").replace(/"/g,'&quot;');}
+function earliest(arr){
+  var v=arr.filter(function(x){return x;}).sort();
+  return v[0]||"";
+}
+function latest(arr){
+  var v=arr.filter(function(x){return x;}).sort();
+  return v[v.length-1]||"";
+}
+function daysBetween(a,b){
+  if(!a||!b)return null;
+  var da=toDate(a),db=toDate(b);
+  if(!da||!db)return null;
+  var d=Math.round((db-da)/86400000)+1;
+  return d>0?d:null;
 }
 
 load();
