@@ -385,7 +385,7 @@ function QuoteIframe(){
 // 已完成用：中間版 + 進度條
 function DoneRowPlus(props){
   var p=props.p;
-  var STAGE_COLORS=["#7BA3D9","#4A6FA8","#B89642","#1E3A6F"];
+  var STAGE_COLORS=["#B89642","#7BA3D9","#4A6FA8","#1E3A6F"];
   return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
     h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:14,marginBottom:8}},
       h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
