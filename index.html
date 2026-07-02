@@ -84,7 +84,17 @@ function saveProject(p){
 
 // 刪除案子
 function deleteProject(notionId){
-  return fetch(API+"?action=delete",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({notionId:notionId})}).catch(function(e){console.error("刪除失敗",e);});
+  return fetch(API+"?action=delete",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({notionId:notionId})}).then(function(r){
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(d){
+    if(d&&d.error)throw new Error(d.error);
+    return d;
+  }).catch(function(e){
+    console.error("刪除失敗",e);
+    alert("⚠ Notion 刪除失敗:"+e.message+"\n\n請重整後再試,或直接到 Notion 手動刪除");
+    throw e;
+  });
 }
 
 // 客戶設定從 Notion 讀取/儲存（不使用 localStorage）
