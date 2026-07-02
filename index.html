@@ -1131,7 +1131,7 @@ function CalView(props){
     if(!d)return[];
     var ds=toISO(year,month,d),ev=[];
     var GR="#c0bab0",GRbg="#c0bab018";
-    projects.filter(function(p){return!p.closed;}).forEach(function(p){
+    projects.filter(function(p){return!p.closed&&p.status!=="\u66ab\u7de9";}).forEach(function(p){
       var cc=cColors[p.client]||C.txt2,cf=cc+"22";
       // 全部剪輯時程 (客戶顏色)
       if(filters.edit&&p.editS&&inR(ds,p.editS,p.editE||p.editS))
@@ -2189,7 +2189,7 @@ function App(){
   function delHoliday(id){setHolidays(function(prev){var next=prev.filter(function(h){return h.id!==id;});saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
   function editHoliday(id,fields){setHolidays(function(prev){var next=prev.map(function(h){return h.id===id?Object.assign({},h,fields):h;});saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
   function saveFinnDays(list){setFinnDays(list);saveCalendarExtras(holidays,list,divinDays,nanaDays);}
-  function addFinn(s,e2,label,note){setFinnDays(function(prev){var next=prev.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]);saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
+  function addFinn(s,e2,label,note){setFinnDays(function(prev){var _e=e2||s;var filtered=prev.filter(function(f){return f.e<s||f.s>_e;});var next=filtered.concat([{id:uid(),s:s,e:_e,label:label||"",note:note||""}]);saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function delFinn(id){setFinnDays(function(prev){var next=prev.filter(function(f){return f.id!==id;});saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function editFinn(id,fields){setFinnDays(function(prev){var next=prev.map(function(f){return f.id===id?Object.assign({},f,fields):f;});saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function saveDivinDays(list){setDivinDays(list);try{localStorage.setItem("edit-tracker-divin",JSON.stringify(list));}catch(e){} saveCalendarExtras(holidays,finnDays,list,nanaDays);}
