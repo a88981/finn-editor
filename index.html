@@ -2178,21 +2178,21 @@ function App(){
   }
 
   function saveHolidays(list){setHolidays(list);saveCalendarExtras(list,finnDays,divinDays,nanaDays);}
-  function addHoliday(s,e2,label,note){saveHolidays(holidays.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]));}
-  function delHoliday(id){saveHolidays(holidays.filter(function(h){return h.id!==id;}));}
-  function editHoliday(id,fields){saveHolidays(holidays.map(function(h){return h.id===id?Object.assign({},h,fields):h;}));}
+  function addHoliday(s,e2,label,note){setHolidays(function(prev){var next=prev.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]);saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
+  function delHoliday(id){setHolidays(function(prev){var next=prev.filter(function(h){return h.id!==id;});saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
+  function editHoliday(id,fields){setHolidays(function(prev){var next=prev.map(function(h){return h.id===id?Object.assign({},h,fields):h;});saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
   function saveFinnDays(list){setFinnDays(list);saveCalendarExtras(holidays,list,divinDays,nanaDays);}
-  function addFinn(s,e2,label,note){saveFinnDays(finnDays.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]));}
-  function delFinn(id){saveFinnDays(finnDays.filter(function(f){return f.id!==id;}));}
-  function editFinn(id,fields){saveFinnDays(finnDays.map(function(f){return f.id===id?Object.assign({},f,fields):f;}));}
+  function addFinn(s,e2,label,note){setFinnDays(function(prev){var next=prev.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]);saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
+  function delFinn(id){setFinnDays(function(prev){var next=prev.filter(function(f){return f.id!==id;});saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
+  function editFinn(id,fields){setFinnDays(function(prev){var next=prev.map(function(f){return f.id===id?Object.assign({},f,fields):f;});saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function saveDivinDays(list){setDivinDays(list);try{localStorage.setItem("edit-tracker-divin",JSON.stringify(list));}catch(e){} saveCalendarExtras(holidays,finnDays,list,nanaDays);}
-  function addDivin(s,e2,label,note){saveDivinDays(divinDays.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]));}
-  function delDivin(id){saveDivinDays(divinDays.filter(function(f){return f.id!==id;}));}
-  function editDivin(id,fields){saveDivinDays(divinDays.map(function(f){return f.id===id?Object.assign({},f,fields):f;}));}
+  function addDivin(s,e2,label,note){setDivinDays(function(prev){var next=prev.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]);try{localStorage.setItem("edit-tracker-divin",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,next,nanaDays);return next;});}
+  function delDivin(id){setDivinDays(function(prev){var next=prev.filter(function(f){return f.id!==id;});try{localStorage.setItem("edit-tracker-divin",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,next,nanaDays);return next;});}
+  function editDivin(id,fields){setDivinDays(function(prev){var next=prev.map(function(f){return f.id===id?Object.assign({},f,fields):f;});try{localStorage.setItem("edit-tracker-divin",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,next,nanaDays);return next;});}
   function saveNanaDays(list){setNanaDays(list);try{localStorage.setItem("edit-tracker-nana",JSON.stringify(list));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,list);}
-  function addNana(s,e2,label,note){saveNanaDays(nanaDays.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]));}
-  function delNana(id){saveNanaDays(nanaDays.filter(function(f){return f.id!==id;}));}
-  function editNana(id,fields){saveNanaDays(nanaDays.map(function(f){return f.id===id?Object.assign({},f,fields):f;}));}
+  function addNana(s,e2,label,note){setNanaDays(function(prev){var next=prev.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]);try{localStorage.setItem("edit-tracker-nana",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,next);return next;});}
+  function delNana(id){setNanaDays(function(prev){var next=prev.filter(function(f){return f.id!==id;});try{localStorage.setItem("edit-tracker-nana",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,next);return next;});}
+  function editNana(id,fields){setNanaDays(function(prev){var next=prev.map(function(f){return f.id===id?Object.assign({},f,fields):f;});try{localStorage.setItem("edit-tracker-nana",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,next);return next;});}
   function showT(m){setToast(m);setTimeout(function(){setToast(null);},2500);}
 
   // 儲存案子（新增或更新）→ Notion
