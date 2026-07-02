@@ -126,10 +126,17 @@ function loadCalendarExtras(){
     .then(function(d){if(d&&(d.finnDays||d.holidays)){try{localStorage.setItem("edit-tracker-cal",JSON.stringify(d));}catch(e){}}return d;})
     .catch(function(){try{var v=localStorage.getItem("edit-tracker-cal");if(v)return JSON.parse(v);}catch(e){}return{holidays:[],finnDays:[],divinDays:[],nanaDays:[]};});
 }
+var _calSaveTimer=null;
+var _calSavePending=null;
 function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
   var data={holidays:holidays,finnDays:finnDays,divinDays:divinDays||[],nanaDays:nanaDays||[]};
   try{localStorage.setItem("edit-tracker-cal",JSON.stringify(data));}catch(e){}
-  fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}).catch(function(e){console.warn(e);});
+  _calSavePending=data;
+  if(_calSaveTimer)clearTimeout(_calSaveTimer);
+  _calSaveTimer=setTimeout(function(){
+    var payload=_calSavePending;_calSavePending=null;_calSaveTimer=null;
+    fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(function(e){console.warn(e);});
+  },500);
 }
 function saveClients(c){
   return fetch(API+"?action=save-clients",{
@@ -1204,7 +1211,7 @@ function CalView(props){
         var cellBg=d?((isHv&&filters.holiday)?"#fdf0f0":C.card):C.card2;
         var dsStr2=d?toISO(year,month,d):"";var isSelected=selectedDay===dsStr2&&d;
 var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1px solid "+C.acc:"0.5px solid "+C.brd;
-        return h("div",{key:i,onClick:function(){if(d){var ds2=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2?null:ds2;});}},style:{minHeight:"clamp(60px,12vw,100px)",background:cellBg,borderRadius:4,padding:"clamp(3px,1vw,6px)",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
+        return h("div",{key:i,onClick:function(){if(d){handleDayClick(d);var ds2=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2?null:ds2;});}},style:{minHeight:"clamp(60px,12vw,100px)",background:cellBg,borderRadius:4,padding:"clamp(3px,1vw,6px)",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
           (function(){
             if(!d)return null;
             // 找出所有未完成的交件日色(優先級高的在左)
