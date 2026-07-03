@@ -106,12 +106,18 @@ export default async function handler(req, res) {
     // ── 刪除案子（封存） ──────────────────────────────────────────
     if (req.method === "DELETE" && action === "delete") {
       const { notionId } = body;
-      await fetch(`${NOTION_API}/pages/${notionId}`, {
+      if (!notionId) return res.status(400).json({ error: "缺少 notionId" });
+      const nRes = await fetch(`${NOTION_API}/pages/${notionId}`, {
         method: "PATCH",
         headers: notionHeaders,
         body: JSON.stringify({ archived: true }),
       });
-      return res.status(200).json({ ok: true });
+      const nData = await nRes.json();
+      if (nData.object === "error" || !nData.archived) {
+        console.error("Notion archive failed:", nData);
+        return res.status(500).json({ error: nData.message || "Notion archive 失敗", detail: nData });
+      }
+      return res.status(200).json({ ok: true, archived: true });
     }
 
     // ── 讀取客戶設定 ──────────────────────────────────────────────
