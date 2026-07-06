@@ -1020,7 +1020,7 @@ function Kanban(props){
                     );
                   })()
                 ),
-                !p.finalDone&&h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginBottom:5}},
+                p.status!=="Final\u5b8c\u6210"&&h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginBottom:5}},
                   h(CheckRow,{p:p,field:"bizDone",date:!p.noBiz?p.bizDue:null,icon:"\ud83d\udcb0",label:"\u696d\u914d",onToggle:onToggle}),
                   h(CheckRow,{p:p,field:"cut1Done",date:!p.noCut1?p.cut1Due:null,icon:"\u2702\ufe0f",label:"\u521d\u526a",onToggle:onToggle}),
                   h(CheckRow,{p:p,field:"v1Done",date:p.v1Due,icon:"\u2728",label:"V1",onToggle:onToggle}),
