@@ -863,7 +863,7 @@ function render(){
     html+='    <div><div class="flabel">Project / 專案</div>';
     html+='      <select id="proj-select" class="fc" '+(disabled?'disabled':'')+' onchange="state.newProjId=this.value;render();">';
     html+='        <option value="">— 請選 —</option>';
-    state.projects.filter(function(p){return !p.closed&&p.status!=='Final完成'&&!p.finalDone&&['等待素材','待確認','暫緩'].indexOf(p.status)<0;}).forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
+    state.projects.filter(function(p){return !p.closed&&['等待素材','待確認','暫緩'].indexOf(p.status)<0;}).forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(state.newProjId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     if(state.newProjId==='__other__'){
@@ -1232,7 +1232,7 @@ function render(){
 
   if(state.modal==='editShift'){
     var ef=state.modalForm;
-    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='<div class="modal-overlay">';
     html+='  <div class="modal">';
     html+='    <div class="modal-title">修改上下班 · Edit Shift</div>';
     html+='    <div class="row">';
@@ -1252,7 +1252,7 @@ function render(){
     html+='</div>';
   } else if(state.modal==='shift'){
     var sf=state.modalForm;
-    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='<div class="modal-overlay">';
     html+='  <div class="modal">';
     html+='    <div class="modal-title">補上下班 · Add Past Shift</div>';
     html+='    <div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:12px;color:var(--ink-light);margin-bottom:14px">標記某天的上下班時間,讓報表知道你那天有工作</div>';
@@ -1269,7 +1269,7 @@ function render(){
     html+='</div>';
   } else if(state.modal){
     var f=state.modalForm,isEdit=state.modal==='edit';
-    html+='<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+    html+='<div class="modal-overlay">';
     html+='  <div class="modal">';
     html+='    <div class="modal-title">'+(isEdit?'編輯紀錄 · Edit':'手動補填 · Add Entry')+'</div>';
     html+='    <div class="field"><div class="flabel">Project / 專案</div>';
@@ -1286,8 +1286,9 @@ function render(){
     });
     var WAIT2=['等待素材','待確認','暫緩'];
     var visibleProjects=state.projects.filter(function(p){
-      if(!p.closed&&p.status!=='Final完成'&&!p.finalDone&&WAIT2.indexOf(p.status)<0)return true;
-      return !!recentNames[p.name];
+      if(p.closed)return !!recentNames[p.name];
+      if(WAIT2.indexOf(p.status)>=0)return !!recentNames[p.name];
+      return true;
     });
     visibleProjects.forEach(function(p){html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
     html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
