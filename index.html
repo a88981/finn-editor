@@ -1020,7 +1020,7 @@ function Kanban(props){
                     );
                   })()
                 ),
-                h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginBottom:5}},
+                !p.finalDone&&h("div",{style:{display:"flex",flexDirection:"column",gap:4,marginBottom:5}},
                   h(CheckRow,{p:p,field:"bizDone",date:!p.noBiz?p.bizDue:null,icon:"\ud83d\udcb0",label:"\u696d\u914d",onToggle:onToggle}),
                   h(CheckRow,{p:p,field:"cut1Done",date:!p.noCut1?p.cut1Due:null,icon:"\u2702\ufe0f",label:"\u521d\u526a",onToggle:onToggle}),
                   h(CheckRow,{p:p,field:"v1Done",date:p.v1Due,icon:"\u2728",label:"V1",onToggle:onToggle}),
@@ -1117,14 +1117,6 @@ function CalView(props){
       else{if(onEditHoliday)onEditHoliday(hReschedule.id,{s:s,e:e2});setHReschedule(null);}
       setHClick(null);return;
     }
-    var fhit=finnDays.find(function(f){return ds>=f.s&&ds<=f.e;});
-    if(fhit&&filters.finn){setFnMenu(fhit);return;}
-    var dvhit=divinDays.find(function(f){return ds>=f.s&&ds<=f.e;});
-    if(dvhit&&filters.divination){setDvMenu(dvhit);return;}
-    var nnhit=nanaDays.find(function(f){return ds>=f.s&&ds<=f.e;});
-    if(nnhit&&filters.nana){setNnMenu(nnhit);return;}
-    var hit=holidays.find(function(h){return ds>=h.s&&ds<=h.e;});
-    if(hit&&filters.holiday){setHvMenu(hit);return;}
     setHvModal({s:ds,e:ds,label:"",note:"",type:"hv"});
   }
   function togF(k){setFilters(function(f){var n=Object.assign({},f);n[k]=!f[k];return n;});}
@@ -1240,17 +1232,17 @@ var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1
 
             !isMob&&h("div",{style:{fontSize:11,color:tod?C.acc:(isHv&&filters.holiday)?"#e07070":(isFn&&filters.finn)?"#e6ac00":(isDv&&filters.divination)?"#d87098":(isNn&&filters.nana)?"#8b6bbf":C.txt2,fontWeight:tod||(isHv&&filters.holiday)||(isFn&&filters.finn)||(isDv&&filters.divination)||(isNn&&filters.nana)?800:400,marginBottom:3,display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2}},
               d,
-              (!isMob&&isHv&&filters.holiday)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setHvMenu(hvSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e07070",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🏝️【休假】"+(hvSpans[0].label?" "+hvSpans[0].label:"")),
-              (!isMob&&isFn&&filters.finn)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setFnMenu(fnSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e6ac00",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"💛【小玩】"+(fnSpans[0].label?" "+fnSpans[0].label:"")),
-              (!isMob&&isDv&&filters.divination)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setDvMenu(dvSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:8,background:"#d87098",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🔮【占卜】"+(dvSpans[0].label?" "+dvSpans[0].label:"")),
-              (!isMob&&isNn&&filters.nana)&&h("span",{onClick:function(ev2){ev2.stopPropagation();setNnMenu(nnSpans[0]);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#8b6bbf",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🐈‍⬛【暖暖】"+(nnSpans[0].label?" "+nnSpans[0].label:""))
+              (!isMob&&isHv&&filters.holiday)&&hvSpans.map(function(sp,si){return h("span",{key:"hv"+si,onClick:function(ev2){ev2.stopPropagation();setHvMenu(sp);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e07070",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🏝️【休假】"+(sp.label?" "+sp.label:""));}),
+              (!isMob&&isFn&&filters.finn)&&fnSpans.map(function(sp,si){return h("span",{key:"fn"+si,onClick:function(ev2){ev2.stopPropagation();setFnMenu(sp);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e6ac00",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"💛【小玩】"+(sp.label?" "+sp.label:""));}),
+              (!isMob&&isDv&&filters.divination)&&dvSpans.map(function(sp,si){return h("span",{key:"dv"+si,onClick:function(ev2){ev2.stopPropagation();setDvMenu(sp);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:8,background:"#d87098",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🔮【占卜】"+(sp.label?" "+sp.label:""));}),
+              (!isMob&&isNn&&filters.nana)&&nnSpans.map(function(sp,si){return h("span",{key:"nn"+si,onClick:function(ev2){ev2.stopPropagation();setNnMenu(sp);if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#8b6bbf",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🐈‍⬛【暖暖】"+(sp.label?" "+sp.label:""));})
             ),
             isMob&&h("div",{style:{fontSize:10,color:tod?C.acc:(isHv&&filters.holiday)?"#e07070":(isFn&&filters.finn)?"#e6ac00":(isDv&&filters.divination)?"#d87098":(isNn&&filters.nana)?"#8b6bbf":C.txt2,fontWeight:tod||isHv||isFn||isDv||isNn?700:400,marginBottom:1,lineHeight:1.2}},d),
             h("div",{style:{display:"flex",flexDirection:"row",flexWrap:"wrap",gap:1}},
-              isMob&&(isHv&&filters.holiday)&&h("div",{style:{width:6,height:6,borderRadius:"50%",background:"#e07070",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setHvMenu(hvSpans[0]);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}}),
-              isMob&&(isFn&&filters.finn)&&h("div",{style:{width:6,height:6,borderRadius:"50%",background:"#e6ac00",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setFnMenu(fnSpans[0]);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}}),
-              isMob&&(isDv&&filters.divination)&&h("div",{style:{width:6,height:6,borderRadius:"50%",background:"#d87098",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setDvMenu(dvSpans[0]);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}}),
-              isMob&&(isNn&&filters.nana)&&h("div",{style:{width:6,height:6,borderRadius:"50%",background:"#8b6bbf",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setNnMenu(nnSpans[0]);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}}),
+              isMob&&(isHv&&filters.holiday)&&hvSpans.map(function(sp,si){return h("div",{key:"mhv"+si,style:{width:6,height:6,borderRadius:"50%",background:"#e07070",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setHvMenu(sp);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}});}),
+              isMob&&(isFn&&filters.finn)&&fnSpans.map(function(sp,si){return h("div",{key:"mfn"+si,style:{width:6,height:6,borderRadius:"50%",background:"#e6ac00",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setFnMenu(sp);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}});}),
+              isMob&&(isDv&&filters.divination)&&dvSpans.map(function(sp,si){return h("div",{key:"mdv"+si,style:{width:6,height:6,borderRadius:"50%",background:"#d87098",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setDvMenu(sp);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}});}),
+              isMob&&(isNn&&filters.nana)&&nnSpans.map(function(sp,si){return h("div",{key:"mnn"+si,style:{width:6,height:6,borderRadius:"50%",background:"#8b6bbf",display:"inline-block",margin:"1px 2px 0",cursor:"pointer"},onClick:function(ev2){ev2.stopPropagation();setNnMenu(sp);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}}});}),
               evDs.map(function(e,j){var done=e.color==="#c0bab0";var mob=isMob;return h("div",{key:"d"+j,onClick:function(ev2){ev2.stopPropagation();if(!mob&&e.p)onEdit(e.p);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}},title:e.p?(e.p.client+" "+e.p.name):e.label,style:mob?{width:6,height:6,borderRadius:"50%",background:done?"#c0bab0":e.color,display:"inline-block",margin:"1px 2px 0",flexShrink:0,cursor:"pointer"}:{fontSize:8,color:e.color,fontWeight:700,lineHeight:1.8,display:"flex",alignItems:"center",whiteSpace:"nowrap",overflow:"hidden",cursor:"pointer"}},mob?"":e.p?(e.label+"\u3010"+e.p.client+"\u3011 "+e.p.name):e.label)}),
               rs.slice(0,3).map(function(e,j){var done=e.color==="#c0bab0";var mob=isMob;return h("div",{key:j,onClick:function(ev2){ev2.stopPropagation();if(!mob&&e.p)onEdit(e.p);if(d){var _d=toISO(year,month,d);setSelectedDay(function(p){return p===_d?null:_d;});}},title:e.p?(e.p.client+" "+e.p.name):e.label,style:mob?{width:6,height:6,borderRadius:"50%",background:done?"#c0bab0":e.color,display:"inline-block",margin:"1px 2px 0",flexShrink:0,cursor:"pointer"}:{fontSize:8,background:e.bg,borderLeft:"2px solid "+e.color,paddingLeft:3,color:e.color,fontWeight:700,lineHeight:1.8,borderRadius:"0 3px 3px 0",whiteSpace:"nowrap",overflow:"hidden",cursor:"pointer",textDecoration:done?"line-through":"none",opacity:done?0.7:1}},mob?"":e.p?(e.label+(e.iS?" ▸":e.iE?" ◂":"")+"\u3010"+e.p.client+"\u3011 "+e.p.name):e.label)})
             )
@@ -1708,9 +1700,9 @@ function ListView(props){
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"10px 12px",background:C.card2,fontSize:12,alignItems:"center",borderTop:"1px solid "+C.brd2}},
           h("div",{style:{gridColumn:"1 / 5",fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},"\u5408\u8a08"),
           h("div",{style:{fontSize:10,color:C.txt3}},"\u5171 "+filtered.length+" \u4ef6"),
-          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.txt2}},totals.net>0?"NT$ "+Math.round(totals.net).toLocaleString():"\u2014"),
+          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.txt2}},totals.inc>0?"NT$ "+Math.round(totals.inc).toLocaleString():"\u2014"),
           h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.cost>0?C.err:C.txt3}},totals.cost>0?"NT$ "+Math.round(totals.cost).toLocaleString():"\u2014"),
-          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.inc>=0?C.ok:C.err}},"NT$ "+Math.round(totals.inc).toLocaleString())
+          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.net>=0?C.ok:C.err}},"NT$ "+Math.round(totals.net).toLocaleString())
         )
       );
     })()
@@ -2209,7 +2201,7 @@ function App(){
   function delHoliday(id){setHolidays(function(prev){var next=prev.filter(function(h){return h.id!==id;});saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
   function editHoliday(id,fields){setHolidays(function(prev){var next=prev.map(function(h){return h.id===id?Object.assign({},h,fields):h;});saveCalendarExtras(next,finnDays,divinDays,nanaDays);return next;});}
   function saveFinnDays(list){setFinnDays(list);saveCalendarExtras(holidays,list,divinDays,nanaDays);}
-  function addFinn(s,e2,label,note){setFinnDays(function(prev){var _e=e2||s;var filtered=prev.filter(function(f){return f.e<s||f.s>_e;});var next=filtered.concat([{id:uid(),s:s,e:_e,label:label||"",note:note||""}]);saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
+  function addFinn(s,e2,label,note){setFinnDays(function(prev){var next=prev.concat([{id:uid(),s:s,e:e2||s,label:label||"",note:note||""}]);saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function delFinn(id){setFinnDays(function(prev){var next=prev.filter(function(f){return f.id!==id;});saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function editFinn(id,fields){setFinnDays(function(prev){var next=prev.map(function(f){return f.id===id?Object.assign({},f,fields):f;});saveCalendarExtras(holidays,next,divinDays,nanaDays);return next;});}
   function saveDivinDays(list){setDivinDays(list);try{localStorage.setItem("edit-tracker-divin",JSON.stringify(list));}catch(e){} saveCalendarExtras(holidays,finnDays,list,nanaDays);}
