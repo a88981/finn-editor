@@ -863,7 +863,12 @@ function render(){
     html+='    <div><div class="flabel">Project / 專案</div>';
     html+='      <select id="proj-select" class="fc" '+(disabled?'disabled':'')+' onchange="state.newProjId=this.value;render();">';
     html+='        <option value="">— 請選 —</option>';
-    state.projects.filter(function(p){return !p.closed&&['等待素材','待確認','暫緩'].indexOf(p.status)<0;}).forEach(function(p){html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
+    state.projects.filter(function(p){return !p.closed&&['等待素材','待確認','暫緩'].indexOf(p.status)<0;}).forEach(function(p){
+      var isDone=p.status==='Final完成'||p.finalDone;
+      var label='【'+p.client+'】'+p.name+(isDone?' · ✓已完成':'');
+      var style=isDone?' style="color:#999"':'';
+      html+='        <option value="'+p.id+'" '+(state.newProjId===p.id?'selected':'')+style+'>'+label+'</option>';
+    });
     html+='        <option value="__other__" '+(state.newProjId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     if(state.newProjId==='__other__'){
@@ -1290,7 +1295,12 @@ function render(){
       if(WAIT2.indexOf(p.status)>=0)return !!recentNames[p.name];
       return true;
     });
-    visibleProjects.forEach(function(p){html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+'>【'+p.client+'】'+p.name+'</option>';});
+    visibleProjects.forEach(function(p){
+      var isDone=p.status==='Final完成'||p.finalDone;
+      var label='【'+p.client+'】'+p.name+(isDone?' · ✓已完成':'');
+      var style=isDone?' style="color:#999"':'';
+      html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+style+'>'+label+'</option>';
+    });
     html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     html+='    <div class="row">';
