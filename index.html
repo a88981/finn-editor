@@ -1213,7 +1213,12 @@ function CalView(props){
         var cellBg=d?((isHv&&filters.holiday)?"#fdf0f0":C.card):C.card2;
         var dsStr2=d?toISO(year,month,d):"";var isSelected=selectedDay===dsStr2&&d;
 var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1px solid "+C.acc:"0.5px solid "+C.brd;
-        return h("div",{key:i,onClick:function(){if(d){handleDayClick(d);var ds2=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2?null:ds2;});}},style:{minHeight:"clamp(60px,12vw,100px)",background:cellBg,borderRadius:4,padding:"clamp(3px,1vw,6px)",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
+        return h("div",{key:i,
+          onClick:function(){if(!d)return;if(isMob){var ds2=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2?null:ds2;});return;}handleDayClick(d);var ds2b=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds2b?null:ds2b;});},
+          onTouchStart:isMob?function(){if(!d)return;window._cellHold=setTimeout(function(){handleDayClick(d);var _ds=toISO(year,month,d);setSelectedDay(function(prev){return prev===_ds?null:_ds;});},500);}:undefined,
+          onTouchEnd:isMob?function(){if(window._cellHold){clearTimeout(window._cellHold);window._cellHold=null;}}:undefined,
+          onTouchMove:isMob?function(){if(window._cellHold){clearTimeout(window._cellHold);window._cellHold=null;}}:undefined,
+          style:{minHeight:"clamp(60px,12vw,100px)",background:cellBg,borderRadius:4,padding:"clamp(3px,1vw,6px)",border:cellBorder,overflow:"hidden",cursor:d?"pointer":"default",position:"relative"}},
           (function(){
             if(!d)return null;
             // 找出所有未完成的交件日色(優先級高的在左)
