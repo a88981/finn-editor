@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>📅 玩ㄉ行事曆</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💛</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -142,7 +142,23 @@ function loadGCal(key){
         var eDay=(e.end||e.start).slice(0,10);
         var title=e.title||"";
         var isHoliday=/休假|假日|休息|放假/.test(title);
-        return {id:key+"_"+i,s:s,e:eDay,label:title,note:e.desc||e.description||"",isHoliday:isHoliday};
+        var startTime="",endTime="";
+        if(/T/.test(e.start)){
+          var dt=new Date(e.start);
+          startTime=String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0");
+        }
+        if(e.end&&/T/.test(e.end)){
+          var dt2=new Date(e.end);
+          endTime=String(dt2.getHours()).padStart(2,"0")+":"+String(dt2.getMinutes()).padStart(2,"0");
+        }
+        var noteExtra="";
+        if(startTime){
+          noteExtra="⏰ "+startTime+(endTime?"–"+endTime:"");
+        }
+        if(e.location){noteExtra+=(noteExtra?"\n":"")+"📍 "+e.location;}
+        var origNote=e.desc||e.description||"";
+        var fullNote=(noteExtra?noteExtra+(origNote?"\n":""):"")+origNote;
+        return {id:key+"_"+i,s:s,e:eDay,label:title,note:fullNote,isHoliday:isHoliday,startTime:startTime,endTime:endTime,location:e.location||""};
       });
     })
     .catch(function(err){console.warn("gcal "+key+" failed",err);return [];});
@@ -1248,9 +1264,9 @@ var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1
             !isMob&&h("div",{style:{fontSize:11,color:tod?C.acc:(isHv&&filters.holiday)?"#e07070":(isFn&&filters.finn)?"#e6ac00":(isDv&&filters.divination)?"#d87098":(isNn&&filters.nana)?"#8b6bbf":C.txt2,fontWeight:tod||(isHv&&filters.holiday)||(isFn&&filters.finn)||(isDv&&filters.divination)||(isNn&&filters.nana)?800:400,marginBottom:3,display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2}},
               d,
               (!isMob&&isHv&&filters.holiday)&&hvSpans.map(function(sp,si){return h("span",{key:"hv"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:"#e07070",color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},"🏝️【休假】"+(sp.label?" "+sp.label:""));}),
-              (!isMob&&isFn&&filters.finn)&&fnSpans.map(function(sp,si){var bg=sp.isHoliday?"#e07070":"#e6ac00";var ic=sp.isHoliday?"🏝️【休假】":"💛【小玩】";return h("span",{key:"fn"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:bg,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},ic+(sp.label?" "+sp.label:""));}),
-              (!isMob&&isDv&&filters.divination)&&dvSpans.map(function(sp,si){var bg=sp.isHoliday?"#e07070":"#d87098";var ic=sp.isHoliday?"🏝️【休假】":"🔮【占卜】";return h("span",{key:"dv"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:8,background:bg,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},ic+(sp.label?" "+sp.label:""));}),
-              (!isMob&&isNn&&filters.nana)&&nnSpans.map(function(sp,si){var bg=sp.isHoliday?"#e07070":"#8b6bbf";var ic=sp.isHoliday?"🏝️【休假】":"🐈‍⬛【暖暖】";return h("span",{key:"nn"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:bg,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},ic+(sp.label?" "+sp.label:""));})
+              (!isMob&&isFn&&filters.finn)&&fnSpans.map(function(sp,si){var bg=sp.isHoliday?"#e07070":"#e6ac00";var ic=sp.isHoliday?"🏝️":"💛";var tm=sp.startTime?" "+sp.startTime:"";return h("span",{key:"fn"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:bg,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},ic+tm+(sp.label?" "+sp.label:""));}),
+              (!isMob&&isDv&&filters.divination)&&dvSpans.map(function(sp,si){var bg=sp.isHoliday?"#e07070":"#d87098";var ic=sp.isHoliday?"🏝️":"🔮";var tm=sp.startTime?" "+sp.startTime:"";return h("span",{key:"dv"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:8,background:bg,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},ic+tm+(sp.label?" "+sp.label:""));}),
+              (!isMob&&isNn&&filters.nana)&&nnSpans.map(function(sp,si){var bg=sp.isHoliday?"#e07070":"#8b6bbf";var ic=sp.isHoliday?"🏝️":"🐈‍⬛";var tm=sp.startTime?" "+sp.startTime:"";return h("span",{key:"nn"+si,onClick:function(ev2){ev2.stopPropagation();/*noop*/if(d){var ds4=toISO(year,month,d);setSelectedDay(function(prev){return prev===ds4?null:ds4;});}},style:{fontSize:"clamp(6px,1.5vw,8px)",background:bg,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700,cursor:"pointer"}},ic+tm+(sp.label?" "+sp.label:""));})
             ),
             isMob&&h("div",{style:{fontSize:10,color:tod?C.acc:(isHv&&filters.holiday)?"#e07070":(isFn&&filters.finn)?"#e6ac00":(isDv&&filters.divination)?"#d87098":(isNn&&filters.nana)?"#8b6bbf":C.txt2,fontWeight:tod||isHv||isFn||isDv||isNn?700:400,marginBottom:1,lineHeight:1.2}},d),
             h("div",{style:{display:"flex",flexDirection:"row",flexWrap:"wrap",gap:1}},
@@ -1278,10 +1294,10 @@ var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1
         var dvs=getDivinSpans(d2);
         var nns=getNanaSpans(d2);
         var items=[];
-        hvs.forEach(function(h2){items.push({label:"🏝️ 【休假】"+(h2.label?"  "+h2.label:""),color:"#e07070",note:h2.note||"",editId:h2.id,s:h2.s,e:h2.e,rawLabel:h2.label||"",type:"hv"});});
-        fns.forEach(function(f){items.push({label:"💛 【小玩】"+(f.label?"  "+f.label:""),color:"#e6ac00",note:f.note||"",editId:f.id,s:f.s,e:f.e,rawLabel:f.label||"",type:"finn"});});
-        dvs.forEach(function(d3){items.push({label:"🔮 【占卜】"+(d3.label?"  "+d3.label:""),color:"#d87098",note:d3.note||"",editId:d3.id,s:d3.s,e:d3.e,rawLabel:d3.label||"",type:"divination"});});
-        nns.forEach(function(n2){items.push({label:"🐈‍⬛ 【暖暖】"+(n2.label?"  "+n2.label:""),color:"#8b6bbf",note:n2.note||"",editId:n2.id,s:n2.s,e:n2.e,rawLabel:n2.label||"",type:"nana"});});
+        hvs.forEach(function(h2){items.push({label:"🏝️ "+(h2.label?h2.label:"休假"),color:"#e07070",note:h2.note||"",editId:h2.id,s:h2.s,e:h2.e,rawLabel:h2.label||"",type:"hv"});});
+        fns.forEach(function(f){items.push({label:(f.isHoliday?"🏝️ ":"💛 ")+(f.label?f.label:"小玩"),color:f.isHoliday?"#e07070":"#e6ac00",note:f.note||"",editId:f.id,s:f.s,e:f.e,rawLabel:f.label||"",type:"finn"});});
+        dvs.forEach(function(d3){items.push({label:(d3.isHoliday?"🏝️ ":"🔮 ")+(d3.label?d3.label:"占卜"),color:d3.isHoliday?"#e07070":"#d87098",note:d3.note||"",editId:d3.id,s:d3.s,e:d3.e,rawLabel:d3.label||"",type:"divination"});});
+        nns.forEach(function(n2){items.push({label:(n2.isHoliday?"🏝️ ":"🐈‍⬛ ")+(n2.label?n2.label:"暖暖"),color:n2.isHoliday?"#e07070":"#8b6bbf",note:n2.note||"",editId:n2.id,s:n2.s,e:n2.e,rawLabel:n2.label||"",type:"nana"});});
         ev.filter(function(e){return (e.k==="d"||e.k==="r")&&e.p;}).forEach(function(e){
           items.push({label:e.label+(e.desc?" "+e.desc:"")+"\u3000"+e.p.client+" "+e.p.name,color:e.color,noBg:!!e.noBg,project:e.p});
         });
@@ -2414,7 +2430,7 @@ function App(){
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}},
         h("div",{style:{display:"flex",alignItems:"baseline",gap:14}},
           h("div",{className:"label-en",style:{fontSize:9.5,color:C.acc,fontWeight:500}},"My Calendar"),
-          h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"📅 玩ㄉ行事曆"),
+          h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"玩ㄉ行事曆"),
           h("span",{className:"italic-en",style:{fontSize:14,color:C.txt3,fontWeight:300}},"read-only")
         )
       )
