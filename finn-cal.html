@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📅 我的行事曆</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAFAF7;--ink:#1A1F2E;--ink-soft:#5A6275;--ink-light:#9BA1B0;
+  --line:#E5E7ED;--line-soft:#F0F2F6;
+  --yellow:#E8B340;--yellow-mid:#B8862A;--yellow-pale:#FFF8DC;--yellow-lightest:#FFFBEC;
+  --red:#C0504D;--red-soft:#FDF0EF;
+  --blue:#5C7CBA;--blue-soft:#E8EEF7;
+  --purple:#8b6bbf;--pink:#d87098;--gold:#e6ac00;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter',sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
+.viewport{padding:24px 16px 60px;display:flex;justify-content:center}
+.page{width:100%;max-width:960px;background:var(--paper);padding:28px 32px 32px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06)}
+
+.eyebrow{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.35em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:8px}
+.title-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px;flex-wrap:wrap}
+.title{font-family:'Noto Serif TC',serif;font-size:22px;font-weight:500;color:var(--ink)}
+.title-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-light)}
+.subtitle{font-size:12px;color:var(--ink-soft);margin-bottom:18px}
+
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.btn{background:transparent;border:0.5px solid var(--line);border-radius:3px;padding:6px 11px;color:var(--ink-soft);font-family:inherit;font-size:11.5px;cursor:pointer;letter-spacing:0.05em;font-weight:500}
+.btn:hover{background:var(--yellow-lightest);color:var(--yellow-mid);border-color:var(--yellow)}
+.month-nav{display:flex;align-items:center;gap:8px}
+.month-label{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:500;color:var(--ink);min-width:110px;text-align:center}
+
+.setup{background:#fff;border:0.5px solid var(--line);border-radius:6px;padding:16px 18px;margin-bottom:14px}
+.setup-title{font-family:'Noto Serif TC',serif;font-size:13px;font-weight:500;color:var(--ink);margin-bottom:8px;display:flex;align-items:baseline;gap:6px}
+.setup-sub{font-size:11px;color:var(--ink-light);margin-bottom:12px}
+.setup-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.setup-field{flex:1;min-width:220px}
+.setup-field .flabel{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.15em;color:var(--ink-light);font-weight:500;margin-bottom:4px;text-transform:uppercase}
+.setup-field input, .setup-field select{width:100%;padding:6px 8px;border:0.5px solid var(--line);border-radius:3px;font-family:inherit;font-size:12px;background:#fff}
+.setup-field input:focus, .setup-field select:focus{outline:none;border-color:var(--yellow)}
+
+.cal-list{margin-bottom:14px;display:flex;flex-direction:column;gap:6px}
+.cal-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border:0.5px solid var(--line);border-radius:4px;font-size:12px}
+.cal-item .swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.cal-item .cal-name{font-weight:500;color:var(--ink)}
+.cal-item .cal-url{color:var(--ink-light);font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Inter',monospace}
+.cal-item .del{color:var(--red);cursor:pointer;font-size:14px;padding:0 4px}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto;font-size:10px;color:var(--ink-light)}
+.legend>div{display:flex;align-items:center;gap:4px}
+.legend .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.cal-head{background:var(--paper);padding:8px 6px;text-align:center;font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.15em;color:var(--ink-light);font-weight:500}
+.cal-head.we{color:var(--red);opacity:0.7}
+.cal-cell{background:var(--paper);min-height:90px;padding:6px 6px 8px;position:relative;display:flex;flex-direction:column;gap:3px}
+.cal-cell.other{background:#F5F5F1;opacity:0.5}
+.cal-cell.today{background:var(--yellow-lightest)}
+.cal-day{font-family:Inter,sans-serif;font-size:12px;font-weight:500;color:var(--ink-soft);align-self:flex-start;font-variant-numeric:tabular-nums}
+.cal-day.we{color:var(--red)}
+.cal-cell.today .cal-day{background:var(--yellow);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.event{font-size:10px;padding:2px 5px;border-radius:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff}
+
+.loading{padding:60px;text-align:center;color:var(--ink-light);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px}
+.error{padding:12px;color:var(--red);font-size:12px;background:var(--red-soft);border-radius:4px;margin-bottom:12px}
+
+@media (max-width:640px){
+  .page{padding:16px 8px 24px}
+  .cal-cell{min-height:60px;padding:3px}
+  .event{font-size:8.5px;padding:1px 3px}
+}
+</style>
+</head>
+<body>
+<div class="viewport"><div class="page" id="root">
+<div class="loading">初始化…</div>
+</div></div>
+
+<script>
+var API="/api/ical";
+var NOTION_API="/api/notion";
+function icalUrl(id){return "https://calendar.google.com/calendar/ical/"+encodeURIComponent(id)+"/public/basic.ics";}
+var CALS=[
+  {id:"finn",name:"小玩",color:"#e6ac00",url:icalUrl("maru149owo@gmail.com")},
+  {id:"divin",name:"占卜",color:"#d87098",url:icalUrl("b4121cc0090fc1840216a34c86602536c3818df526aec1fce1bd39c0c33f0bba@group.calendar.google.com")},
+  {id:"nana",name:"暖暖",color:"#8b6bbf",url:icalUrl("ooniau.nuannuan@gmail.com")}
+];
+var HOLIDAY_KEYWORDS=["休假","假日","休息","放假"];
+var HOLIDAY_COLOR="#e07070";
+function isHoliday(title){
+  if(!title)return false;
+  for(var i=0;i<HOLIDAY_KEYWORDS.length;i++){
+    if(title.indexOf(HOLIDAY_KEYWORDS[i])>=0)return true;
+  }
+  return false;
+}
+
+var AIR_COLOR="#4A6FA8";
+var state={
+  events:{},
+  projects:[],
+  ym:[new Date().getFullYear(),new Date().getMonth()+1],
+  loading:false,
+  error:null,
+  showAir:true,
+  visible:{finn:true,divin:true,nana:true}
+};
+
+function fetchProjects(){
+  return fetch(NOTION_API+"?action=list").then(function(r){return r.json();}).then(function(d){
+    var arr=Array.isArray(d)?d:(d.projects||[]);
+    state.projects=arr;
+  }).catch(function(e){console.warn("Notion 讀取失敗",e);});
+}
+
+function fetchAll(){
+  state.loading=true;state.error=null;render();
+  var tasks=[fetchProjects()];
+  CALS.forEach(function(c){
+    tasks.push(fetch(API+"?url="+encodeURIComponent(c.url)).then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.json();
+    }).then(function(d){
+      state.events[c.id]=d.events||[];
+    }).catch(function(e){
+      state.events[c.id]=[];
+      console.warn(c.name+" 讀取失敗",e);
+    }));
+  });
+  Promise.all(tasks).then(function(){
+    state.loading=false;render();
+  });
+}
+
+function changeYm(delta){
+  var yr=state.ym[0],mo=state.ym[1];
+  mo+=delta;if(mo<1){mo=12;yr--;}if(mo>12){mo=1;yr++;}
+  state.ym=[yr,mo];render();
+}
+function thisMonth(){var n=new Date();state.ym=[n.getFullYear(),n.getMonth()+1];render();}
+
+function ymd(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
+function isWeekend(dt){var d=dt.getDay();return d===0||d===6;}
+function escapeHtml(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+function render(){
+  var root=document.getElementById("root");
+  var yr=state.ym[0],mo=state.ym[1];
+  var today=ymd(new Date());
+  var first=new Date(yr,mo-1,1);
+  var firstDay=first.getDay();
+  var dim=new Date(yr,mo,0).getDate();
+  var prevDim=new Date(yr,mo-1,0).getDate();
+  
+  var html='';
+  html+='<div class="eyebrow">My Calendar</div>';
+  html+='<div class="title-row"><h1 class="title">📅 我的行事曆</h1><span class="title-sub">Notion + Google Sync</span></div>';
+  html+='<div class="subtitle">上片日從 Notion 讀 · 其他行程從 Google Calendar 讀 · 都是唯讀,要改請回原本工具</div>';
+  
+  // 錯誤
+  if(state.error){html+='<div class="error">⚠ '+escapeHtml(state.error)+'</div>';}
+  
+  // (無設定區,3 個日曆寫死)
+  
+  // 導航列
+  html+='<div class="bar">';
+  html+='<div class="month-nav">';
+  html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
+  html+='<span class="month-label">'+yr+'年 '+mo+'月</span>';
+  html+='<button class="btn" onclick="changeYm(1)">›</button>';
+  html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
+  html+='</div>';
+  html+='<button class="btn" onclick="fetchAll()" style="margin-left:8px">⟲ 同步'+(state.loading?"中...":"")+'</button>';
+  html+='<div class="legend">';
+  html+='<div><label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(state.showAir?'checked':'')+' onchange="state.showAir=this.checked;render()"><div class="dot" style="background:'+AIR_COLOR+'"></div>上片日</label></div>';
+  CALS.forEach(function(c){
+    html+='<div><label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(state.visible[c.id]?'checked':'')+' onchange="state.visible[\''+c.id+'\']=this.checked;render()"><div class="dot" style="background:'+c.color+'"></div>'+escapeHtml(c.name)+'</label></div>';
+  });
+  html+='<div><div class="dot" style="background:'+HOLIDAY_COLOR+'"></div>休假 <span style="opacity:0.5">(標題含「休假」)</span></div>';
+  html+='</div>';
+  html+='</div>';
+  
+  // 不 early return · 就算沒連 Google 日曆,也顯示上片日
+  
+  // 事件分類到日期
+  var eventsByDate={};
+  // 上片日(Notion)
+  if(state.showAir){
+    state.projects.forEach(function(p){
+      if(p.closed||!p.airDate)return;
+      if(p.status==="暫緩")return;
+      var k=p.airDate;
+      (eventsByDate[k]=eventsByDate[k]||[]).push({label:"🎬 "+(p.name||""),color:AIR_COLOR,name:"上片"});
+    });
+  }
+  CALS.forEach(function(c){
+    if(!state.visible[c.id])return;
+    var evs=state.events[c.id]||[];
+    evs.forEach(function(e){
+      var s=new Date(e.start),ee=e.end?new Date(e.end):s;
+      var color=c.color,name=c.name;
+      if(isHoliday(e.title)){color=HOLIDAY_COLOR;name="休假";}
+      for(var dt=new Date(s);dt<=ee;dt.setDate(dt.getDate()+1)){
+        var k=ymd(dt);
+        (eventsByDate[k]=eventsByDate[k]||[]).push({label:e.title,color:color,name:name});
+      }
+    });
+  });
+  
+  // 日曆
+  html+='<div class="cal">';
+  ["日","一","二","三","四","五","六"].forEach(function(w,i){
+    html+='<div class="cal-head'+(i===0||i===6?" we":"")+'">'+w+'</div>';
+  });
+  var cellCount=Math.ceil((firstDay+dim)/7)*7;
+  for(var i=0;i<cellCount;i++){
+    var dayNum,cellYr,cellMo,other=false;
+    if(i<firstDay){
+      dayNum=prevDim-firstDay+i+1;
+      var pm=mo-1,py=yr;if(pm<1){pm=12;py--;}
+      cellYr=py;cellMo=pm;other=true;
+    } else if(i>=firstDay+dim){
+      dayNum=i-firstDay-dim+1;
+      var nm=mo+1,ny=yr;if(nm>12){nm=1;ny++;}
+      cellYr=ny;cellMo=nm;other=true;
+    } else {
+      dayNum=i-firstDay+1;cellYr=yr;cellMo=mo;
+    }
+    var dt=new Date(cellYr,cellMo-1,dayNum);
+    var key=ymd(dt);
+    var we=isWeekend(dt);
+    var isToday=(key===today);
+    var evs=eventsByDate[key]||[];
+    var classes="cal-cell";
+    if(other)classes+=" other";
+    if(isToday)classes+=" today";
+    html+='<div class="'+classes+'">';
+    html+='<span class="cal-day'+(we?" we":"")+'">'+dayNum+'</span>';
+    if(!other){
+      evs.slice(0,4).forEach(function(e){
+        html+='<div class="event" style="background:'+e.color+'" title="'+escapeHtml(e.name+"·"+e.label)+'">'+escapeHtml(e.label)+'</div>';
+      });
+      if(evs.length>4){
+        html+='<div style="font-size:9px;color:var(--ink-light)">+'+(evs.length-4)+'</div>';
+      }
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  
+  root.innerHTML=html;
+}
+
+render();
+fetchAll();
+</script>
+</body>
+</html>
