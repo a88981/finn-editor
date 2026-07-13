@@ -2142,7 +2142,7 @@ function App(){
   var fls=useState({edit:false,cut1:true,v1:true,biz:true,due:true,holiday:true,finn:true,divination:true,nana:true});var filters=fls[0],setFilters=fls[1];
   var mobs=useState(function(){return window.innerWidth<600;});var isMob=mobs[0],setIsMob=mobs[1];
   useEffect(function(){var fn=function(){setIsMob(window.innerWidth<600);};window.addEventListener("resize",fn);return function(){window.removeEventListener("resize",fn);};},[]);
-  var FTABS=[{key:"edit",label:"全部",color:"#6a5e40"},{key:"cut1",label:"✂️ 初剪",color:"#D89A3A"},{key:"v1",label:"✨ ES",color:"#C9A227"},{key:"biz",label:"💰 業配",color:"#B8860B"},{key:"due",label:"🎬 交件日",color:"#7A6432"},{key:"finn",label:"💛 小玩",color:"#D4A017"},{key:"divination",label:"🔮 占卜",color:"#A85F7A"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#6E5A8B"}];
+  var FTABS=[{key:"cut1",label:"✂️ 初剪",color:"#D89A3A"},{key:"v1",label:"✨ ES",color:"#C9A227"},{key:"biz",label:"💰 業配",color:"#B8860B"},{key:"due",label:"🎬 交件日",color:"#7A6432"},{key:"finn",label:"💛 小玩",color:"#D4A017"},{key:"divination",label:"🔮 占卜",color:"#A85F7A"},{key:"nana",label:"🐈‍⬛ 暖暖",color:"#6E5A8B"}];
   var EDIT_KEYS=["cut1","v1","biz"];
   var SCHED_KEYS=["due","finn","divination","nana","holiday"];
   function togF(k){setFilters(function(f){var n=Object.assign({},f);n[k]=!f[k];return n;});}
@@ -2410,15 +2410,14 @@ function App(){
   return h("div",{style:{minHeight:"100vh",background:C.bg}},
     h("div",{style:{background:"#fdfcf7",padding:"16px 28px",borderBottom:"1px solid "+C.brd,boxShadow:"0 1px 2px rgba(0,0,0,0.03)",position:"sticky",top:0,zIndex:100}},
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}},
-        h("div",{style:{display:"flex",alignItems:"baseline",gap:10,flexShrink:0,width:isMob?"100%":"auto"}},
+        h("div",{style:{display:"flex",alignItems:"baseline",gap:10,flexShrink:0,width:isMob?"100%":"auto",justifyContent:isMob?"center":"flex-start"}},
           h("div",{className:"label-en",style:{fontSize:9.5,color:C.acc,fontWeight:500,letterSpacing:"0.08em"}},"MY CALENDAR"),
           h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"📅 玩ㄉ行事曆")
         ),
         h("div",{style:{display:"flex",alignItems:"center",flexWrap:"wrap",gap:4,justifyContent:isMob?"center":"flex-end",minWidth:0}},
-          (function(){var ft=FTABS[0];var on=filters[ft.key];return h("button",{onClick:function(){togF(ft.key);},style:{padding:"3px 9px",borderRadius:4,border:"0.5px solid "+(on?ft.color:C.brd),background:on?ft.color+"18":"transparent",color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?600:400,whiteSpace:"nowrap"}},ft.label);}()),
           h("button",{onClick:function(){togGroup(EDIT_KEYS);},style:{padding:"3px 10px",borderRadius:4,border:"1px solid "+(EDIT_KEYS.some(function(k){return filters[k];})?"#D89A3A":C.brd),background:EDIT_KEYS.some(function(k){return filters[k];})?"#D89A3A18":"transparent",color:EDIT_KEYS.some(function(k){return filters[k];})?"#D89A3A":C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:500}},"剪輯"),
           h("button",{onClick:function(){togGroup(SCHED_KEYS);},style:{padding:"3px 10px",borderRadius:4,border:"1px solid "+(SCHED_KEYS.some(function(k){return filters[k];})?"#C9A227":C.brd),background:SCHED_KEYS.some(function(k){return filters[k];})?"#C9A22718":"transparent",color:SCHED_KEYS.some(function(k){return filters[k];})?"#C9A227":C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:500}},"行程"),
-          FTABS.slice(1).map(function(ft){var on=filters[ft.key];return h("button",{key:ft.key,onClick:function(){togF(ft.key);},style:{padding:"3px 9px",borderRadius:4,border:"0.5px solid "+(on?ft.color:C.brd),background:on?ft.color+"18":"transparent",color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?600:400,whiteSpace:"nowrap"}},ft.label);})
+          FTABS.map(function(ft){var on=filters[ft.key];return h("button",{key:ft.key,onClick:function(){togF(ft.key);},style:{padding:"3px 9px",borderRadius:4,border:"0.5px solid "+(on?ft.color:C.brd),background:on?ft.color+"18":"transparent",color:on?ft.color:C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?600:400,whiteSpace:"nowrap"}},ft.label);})
         )
       )
     ),
