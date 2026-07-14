@@ -2246,7 +2246,7 @@ function App(){
       p=ps.find(function(x){return x.id===id;});
       return ps.filter(function(x){return x.id!==id;});
     });
-    if(p&&p.notionId)deleteProject(p.notionId);
+    if(p&&p.notionId){deleteProject(p.notionId);}else{console.warn("del skip: no notionId",p&&p.id,p&&p.notionId);alert("\u26a0\ufe0f 沒有 notionId\uff0c無法刪除 Notion 資料\nid="+(p&&p.id));}
     setModal(null);showT("\ud83d\uddd1 \u5df2\u522a\u9664");
   },[]);
 
