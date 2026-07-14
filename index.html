@@ -2241,12 +2241,11 @@ function App(){
 
   // 刪除案子 → Notion
   var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){console.log("[dup] saved=",JSON.stringify(saved));var final=saved&&saved.notionId?Object.assign({},newP,{notionId:saved.notionId}):newP;console.log("[dup] final.notionId=",final.notionId);setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");});},[]); var delP=useCallback(function(id){
-    var p=null;
     setProjects(function(ps){
-      p=ps.find(function(x){return x.id===id;});
+      var p=ps.find(function(x){return x.id===id;});
+      if(p&&p.notionId){deleteProject(p.notionId);}else{console.warn("del skip",id,p&&p.notionId);}
       return ps.filter(function(x){return x.id!==id;});
     });
-    if(p&&p.notionId){deleteProject(p.notionId);}else{console.warn("del skip: no notionId",p&&p.id,p&&p.notionId);alert("\u26a0\ufe0f 沒有 notionId\uff0c無法刪除 Notion 資料\nid="+(p&&p.id));}
     setModal(null);showT("\ud83d\uddd1 \u5df2\u522a\u9664");
   },[]);
 
