@@ -1611,6 +1611,8 @@ function TodoView(props){
 // ── LIST VIEW ─────────────────────────────────────────────────────────────────
 function ListView(props){
   var projects=props.projects,onEdit=props.onEdit,onToggle=props.onToggle,clients=props.clients,cColors=props.cColors;
+  var mobs=useState(function(){return window.innerWidth<640;});var isMob=mobs[0],setIsMob=mobs[1];
+  useEffect(function(){var fn=function(){setIsMob(window.innerWidth<640);};window.addEventListener("resize",fn);return function(){window.removeEventListener("resize",fn);};  },[]);
   var fs=useState("active");var filter=fs[0],setFilter=fs[1];
   var cf=useState("all");var clientFilter=cf[0],setClientFilter=cf[1];
   var mf=useState("all");var monthFilter=mf[0],setMonthFilter=mf[1];
@@ -1675,18 +1677,35 @@ function ListView(props){
       )
     ),
     filtered.length===0?h("div",{style:{textAlign:"center",padding:"48px 0",color:C.txt3}},"\u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u6848\u5b50"):
-    (function(){
+    isMob
+    ? h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+        filtered.map(function(p){
+          var f=calcP(p),cc=cColors[p.client]||C.txt2;
+          var col=null;for(var i=0;i<KCOLS.length;i++){if(KCOLS[i].st.indexOf(p.status)>=0){col=KCOLS[i];break;}}
+          var ca=p.closed?C.txt3:(col?col.acc:C.txt3);
+          return h("div",{key:p.id,onClick:function(){onEdit(p);},style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,padding:"11px 14px",cursor:"pointer",opacity:p.closed?0.6:1}},
+            h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}},
+              h("span",{style:{fontSize:11.5,fontWeight:700,color:cc}},p.client),
+              h("div",{style:{display:"flex",gap:6,alignItems:"center"}},
+                p.airDate&&h("span",{style:{fontSize:10.5,color:C.acc,fontWeight:700}},fmtAir(p.airDate)),
+                p.month&&h("span",{style:{fontSize:10,color:C.txt3}},p.month.slice(5)+"\u6708")
+              )
+            ),
+            h("div",{style:{fontSize:13,fontWeight:500,color:C.txt,marginBottom:7,textDecoration:p.closed?"line-through":"none",lineHeight:1.4}},p.name),
+            h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+              h("span",{style:{fontSize:10,background:ca+"18",color:ca,borderRadius:3,padding:"2px 8px",fontWeight:600,border:"0.5px solid "+ca+"44"}},p.closed?"\u5df2\u7d50\u6848":p.status),
+              f.total>0&&h("span",{style:{fontSize:12,fontWeight:700,color:f.net>=0?C.ok:C.err}},"NT$ "+Math.round(f.net).toLocaleString())
+            )
+          );
+        }),
+        h("div",{style:{fontSize:11,color:C.txt3,textAlign:"right",marginTop:4}},"\u5171 "+filtered.length+" \u4ef6\uff0c\u7e3d\u984d NT$ "+Math.round(totals.net).toLocaleString())
+      )
+    : (function(){
       var GC="0.7fr 1.2fr 0.8fr 1.1fr 2fr 1.1fr 1.1fr 1.2fr";
       return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:4,overflow:"hidden"}},
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"8px 12px",background:C.card2,borderBottom:"1px solid "+C.brd2,fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},
-          h("div",null,"\u6708\u4efd"),
-          h("div",null,"\u5ba2\u6236"),
-          h("div",null,"\u4e0a\u7247\u65e5"),
-          h("div",null,"\u72c0\u614b"),
-          h("div",null,"\u5c08\u6848\u540d"),
-          h("div",{style:{textAlign:"right"}},"\u6536\u5165"),
-          h("div",{style:{textAlign:"right"}},"\u652f\u51fa"),
-          h("div",{style:{textAlign:"right"}},"\u7e3d\u984d")
+          h("div",null,"\u6708\u4efd"),h("div",null,"\u5ba2\u6236"),h("div",null,"\u4e0a\u7247\u65e5"),h("div",null,"\u72c0\u614b"),h("div",null,"\u5c08\u6848\u540d"),
+          h("div",{style:{textAlign:"right"}},"\u6536\u5165"),h("div",{style:{textAlign:"right"}},"\u652f\u51fa"),h("div",{style:{textAlign:"right"}},"\u7e3d\u984d")
         ),
         filtered.map(function(p,idx){
           var f=calcP(p),cc=cColors[p.client]||C.txt2;
@@ -1696,18 +1715,13 @@ function ListView(props){
             h("div",{style:{fontSize:11,color:C.txt2}},p.month?p.month.slice(5)+"\u6708":"\u2014"),
             h("div",{style:{fontSize:11.5,fontWeight:700,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},p.client),
             h("div",{style:{fontSize:10.5,color:p.airDate?C.acc:C.txt3,fontWeight:p.airDate?700:400}},p.airDate?fmtAir(p.airDate):"\u2014"),
-            h("div",{style:{minWidth:0}},
-              p.closed
-                ?h("span",{style:{fontSize:10,background:C.card2,color:C.txt3,borderRadius:3,padding:"2px 7px",fontWeight:600,border:"0.5px solid "+C.brd,whiteSpace:"nowrap"}},"\u5df2\u7d50\u6848")
-                :h("span",{style:{fontSize:10,background:ca+"15",color:ca,borderRadius:3,padding:"2px 7px",fontWeight:600,whiteSpace:"nowrap"}},p.status)
-            ),
+            h("div",{style:{minWidth:0}},p.closed?h("span",{style:{fontSize:10,background:C.card2,color:C.txt3,borderRadius:3,padding:"2px 7px",fontWeight:600,border:"0.5px solid "+C.brd,whiteSpace:"nowrap"}},"\u5df2\u7d50\u6848"):h("span",{style:{fontSize:10,background:ca+"15",color:ca,borderRadius:3,padding:"2px 7px",fontWeight:600,whiteSpace:"nowrap"}},p.status)),
             h("div",{style:{fontFamily:"'Noto Serif TC',serif",fontSize:13,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:p.closed?"line-through":"none"}},p.name),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:500,color:f.total>0?C.txt2:C.txt3}},f.total>0?"NT$ "+Math.round(f.total).toLocaleString():"\u2014"),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:500,color:f.totalCost>0?C.err:C.txt3}},f.totalCost>0?"NT$ "+Math.round(f.totalCost).toLocaleString():"\u2014"),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:700,color:f.net>0?C.ok:C.txt3}},f.total>0?"NT$ "+Math.round(f.net).toLocaleString():"\u2014")
           );
         }),
-        // 合計列
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"10px 12px",background:C.card2,fontSize:12,alignItems:"center",borderTop:"1px solid "+C.brd2}},
           h("div",{style:{gridColumn:"1 / 5",fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},"\u5408\u8a08"),
           h("div",{style:{fontSize:10,color:C.txt3}},"\u5171 "+filtered.length+" \u4ef6"),
