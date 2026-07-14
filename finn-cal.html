@@ -2425,7 +2425,7 @@ function App(){
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",flexDirection:isMob?"column":"row",alignItems:isMob?"center":"center",justifyContent:"space-between",gap:8}},
         h("div",{style:{display:"flex",alignItems:"baseline",gap:10,flexShrink:0}},
           h("div",{className:"label-en",style:{fontSize:9.5,color:C.acc,fontWeight:500,letterSpacing:"0.08em"}},"MY CALENDAR"),
-          h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"\ud83d\udcc5 玩ㄉ行事曆")
+          h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"\ud83d\udcc5 玩ㄉ行事曆"),h("a",{href:"https://finn-editor.vercel.app/",title:"回到主追蹤器",style:{fontSize:18,textDecoration:"none",lineHeight:1,marginLeft:6}},"\ud83c\udfe0")
         ),
         h("div",{style:{display:"flex",alignItems:"center",flexWrap:"wrap",gap:4,justifyContent:isMob?"center":"flex-end",width:isMob?"100%":"auto"}},
           h("button",{onClick:function(){togGroup(EDIT_KEYS);},style:{padding:"3px 10px",borderRadius:4,border:"1px solid "+(EDIT_KEYS.some(function(k){return filters[k];})?"#D89A3A":C.brd),background:EDIT_KEYS.some(function(k){return filters[k];})?"#D89A3A18":"transparent",color:EDIT_KEYS.some(function(k){return filters[k];})?"#D89A3A":C.txt3,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:500}},"剪輯"),
