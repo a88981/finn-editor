@@ -1870,7 +1870,7 @@ function GanttView(props){
 
 // ── MONTH REPORT ──────────────────────────────────────────────────────────────
 function MonthReport(props){
-  var projects=props.projects;
+  var projects=props.projects,cColors=props.cColors||{};
   var es=useState(null);var expanded=es[0],setExpanded=es[1];
   // 年份切換:預設這一年
   var thisYr=String(new Date().getFullYear());
@@ -1968,7 +1968,7 @@ function MonthReport(props){
           h("thead",null,h("tr",null,h("th",{style:thL},"\u5ba2\u6236"),h("th",{style:th},"\u9577\u5f71"),h("th",{style:th},"\u77ed\u5f71"),h("th",{style:th},"\u6848\u4ef6"),h("th",{style:th},"\u6536\u5165"),h("th",{style:th},"\u652f\u51fa"),h("th",{style:th},"\u7e3d\u984d"))),
           h("tbody",null,clientRows.map(function(c){
             return h("tr",{key:c.client,style:{background:C.card}},
-              h("td",{style:Object.assign({},tdL,{color:C.txt,fontWeight:700})},c.client),
+              h("td",{style:Object.assign({},tdL,{color:cColors[c.client]||C.txt,fontWeight:700})},c.client),
               h("td",{style:Object.assign({},td,{color:C.txt2})},c.long),
               h("td",{style:Object.assign({},td,{color:C.txt2})},c.short),
               h("td",{style:Object.assign({},td,{color:C.txt,fontWeight:700})},c.count),
@@ -2560,7 +2560,7 @@ function App(){
       view==="list"&&h(ListView,{projects:displayProjects,onEdit:setModal,onToggle:togP,clients:displayClients,cColors:displayColors}),
       false&&view==="calendar"&&h(CalView,{projects:displayProjects,onEdit:setModal,cColors:displayColors,holidays:holidays,onAddHoliday:addHoliday,onDelHoliday:delHoliday,onEditHoliday:editHoliday,finnDays:finnDays,onAddFinn:addFinn,onDelFinn:delFinn,onEditFinn:editFinn,divinDays:divinDays,onAddDivin:addDivin,onDelDivin:delDivin,onEditDivin:editDivin,nanaDays:nanaDays,onAddNana:addNana,onDelNana:delNana,onEditNana:editNana}),
       view==="gantt"&&h(GanttView,{projects:displayProjects,cColors:displayColors}),
-      view==="report"&&h(MonthReport,{projects:displayProjects})
+      view==="report"&&h(MonthReport,{projects:displayProjects,cColors:displayColors})
     ),
     modal&&!ghost&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},onDuplicate:function(p){setModal(null);dupP(p);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:4,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
