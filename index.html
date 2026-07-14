@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>小玩工作進度</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>玩ㄉ工作助理(•̀ω•́)⸝ި ʕᦏ</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💛</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1445,9 +1445,9 @@ function ProgressView(props){
   if(active.length===0)return h("div",{style:{textAlign:"center",padding:"60px 0",color:C.txt3,fontSize:12}},"\u76ee\u524d\u6c92\u6709\u9032\u884c\u4e2d\u7684\u6848\u5b50");
 
   return h("div",null,
-    Section("\ud83d\udd25 \u7dca\u6025 \u00b7 \u4e09\u5929\u5167",urgent),
-    Section("\ud83d\udcc5 \u672c\u9031 \u00b7 \u4e00\u9031\u5167",thisWeek),
-    Section("\ud83d\udcdc \u672a\u4f86 \u00b7 \u4e00\u9031\u5f8c",future)
+    Section("\ud83d\udd25 好想放假 ( ;ω; ) \u00b7 \u4e09\u5929\u5167",urgent),
+    Section("\u2702\ufe0f 偷偷放假 (´ω`) \u00b7 \u4e00\u9031\u5167",thisWeek),
+    Section("\u2615 想放就放 (ᴗ ̫ ᴗ) \u00b7 \u4e00\u9031\u5f8c",future)
   );
 }
 
@@ -1593,16 +1593,16 @@ function TodoView(props){
   var waitRows=waiting.map(function(p,i){return h(WaitRow,{key:p.id,p:p,n:i+1});});
 
   return h("div",{style:{display:"flex",flexDirection:"column",gap:16}},
-      h(Col,{icon:"\ud83d\udd25",title:"\u7dca\u6025",sub:"\u4eca\u5929/\u660e\u5929\u8981\u4ea4",color:"#e08080",count:urgent.length},
+      h(Col,{icon:"\ud83d\udd25",title:"好想放假 ( ;ω; )",sub:"\u4eca\u5929/\u660e\u5929\u8981\u4ea4",color:"#e08080",count:urgent.length},
         urgentRows.length?urgentRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7dca\u6025\u4ea4\u4ef6 \ud83c\udf89")
       ),
-      h(Col,{icon:"\u2702\ufe0f",title:"\u9032\u884c\u4e2d",sub:"2-7\u5929\u5167\u8981\u4ea4",color:"#d8903a",count:thisWeek.length},
+      h(Col,{icon:"\u2702\ufe0f",title:"偷偷放假 (´ω`)",sub:"2-7\u5929\u5167\u8981\u4ea4",color:"#d8903a",count:thisWeek.length},
         weekRows.length?weekRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u9032\u884c\u4e2d\u6c92\u6709\u4ea4\u4ef6")
       ),
-      h(Col,{icon:"\u2615",title:"\u4e4b\u5f8c",sub:"8\u5929\u4ee5\u4e0a",color:C.txt3,count:later.length},
+      h(Col,{icon:"\u2615",title:"想放就放 (ᴗ ̫ ᴗ)",sub:"8\u5929\u4ee5\u4e0a",color:C.txt3,count:later.length},
         laterRows.length?laterRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u4ea4\u4ef6")
       ),
-      h(Col,{icon:"\u2601\ufe0f",title:"\u7b49\u7d20\u6750",sub:"\u53ef\u50ac\u5ba2\u6236\u6a94\u6848",color:"#83afb0",count:waiting.length},
+      h(Col,{icon:"\u2601\ufe0f",title:"等著還債 (¬ ̫¬)",sub:"\u53ef\u50ac\u5ba2\u6236\u6a94\u6848",color:"#83afb0",count:waiting.length},
         waitRows.length?waitRows:h("div",{style:{fontSize:11,color:C.txt3,padding:"8px 0"}},"\u6c92\u6709\u7b49\u5f85\u7d20\u6750")
       )
   );
@@ -2150,7 +2150,7 @@ function UrgentBanner(props){
   if(!urgent.length)return null;
   urgent.sort(function(a,b){return a.d-b.d;});
   return h("div",{style:{background:C.errBg,border:"1px solid #f0a8a8",borderRadius:4,padding:"8px 14px",marginBottom:10,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}},
-    h("span",{style:{color:C.err,fontWeight:800,fontSize:12}},"\u26a0\ufe0f \u4ea4\u4ef6\u63d0\u9192"),
+    h("span",{style:{color:C.err,fontWeight:800,fontSize:12}},"\u26a0\ufe0f \u6ce8\u610f\u63d0\u9192"),
     urgent.map(function(u,i){
       var color=u.d<0?C.err:u.d===0?C.wrn:C.acc;
       var text=u.d<0?"\u903e\u671f"+Math.abs(u.d)+"\u5929":u.d===0?"\u4eca\u5929":(u.d===1?"\u660e\u5929":u.d+"\u5929\u5f8c");
@@ -2514,7 +2514,7 @@ function App(){
       h("div",{style:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}},
         h("div",{style:{display:"flex",alignItems:"baseline",gap:14}},
           h("div",{className:"label-en",style:{fontSize:9.5,color:C.acc,fontWeight:500}},"Editing Tracker"),
-          h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"小玩工作進度"),
+          h("div",{className:"serif",style:{fontSize:20,fontWeight:500,color:C.txt,letterSpacing:"-0.005em"}},"玩ㄉ工作助理٩(*•ᗜ•)و✨"),
           h("span",{className:"italic-en",style:{fontSize:14,color:C.txt3,fontWeight:300}},"studio log")
         ),
         h("div",{style:{display:"flex",gap:6,alignItems:"center",flexWrap:"nowrap",justifyContent:"center"}},
