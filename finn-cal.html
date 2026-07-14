@@ -1215,7 +1215,7 @@ function CalView(props){
         var nnSpans=getNanaSpans(d);var isNn=nnSpans.length>0;
         var dsStr=d?toISO(year,month,d):"";
         var isPick1=hClick&&hClick.ds===dsStr;
-        var cellBg=d?(isHv?"#fdf0f0":C.card):C.card2;
+        var cellBg=d?(isHv?"#fce8e8":C.card):C.card2;
         var dsStr2=d?toISO(year,month,d):"";var isSelected=selectedDay===dsStr2&&d;
 var cellBorder=isPick1?"2px dashed #e07070":isSelected?"2px solid "+C.acc:tod?"1px solid "+C.acc:"0.5px solid "+C.brd;
         return h("div",{key:i,
