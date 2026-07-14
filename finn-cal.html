@@ -1209,7 +1209,7 @@ function CalView(props){
       cells.map(function(d,i){
         var ev=getEv(d),evDs=ev.filter(function(e){return e.k==="d";}),rs=ev.filter(function(e){return e.k==="r";});
         var tod=isToday(d);
-        var hvSpans=getHolidaySpans(d);var isHv=hvSpans.length>0;
+        var hvSpans=getHolidaySpans(d);var fnHvSpans=getFinnSpans(d).filter(function(f){return f.isHoliday;});var isHv=hvSpans.length>0||fnHvSpans.length>0;
         var fnSpans=getFinnSpans(d);var isFn=fnSpans.length>0;
         var dvSpans=getDivinSpans(d);var isDv=dvSpans.length>0;
         var nnSpans=getNanaSpans(d);var isNn=nnSpans.length>0;
