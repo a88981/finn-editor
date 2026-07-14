@@ -175,7 +175,7 @@ var DEF_COLORS={};
 var SG=[
   {label:"\u5f85\u57f7\u884c",items:["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"]},
   {label:"\u521d\u526a",items:["\u521d\u526a\u5f85\u57f7\u884c","\u521d\u526a\u4e2d","\u521d\u526a\u4fee\u6539\u4e2d"]},
-  {label:"\u5f8c\u88fd",items:["\u5f8c\u88fd\u5f85\u57f7\u884c","V1\u88fd\u4f5c\u4e2d","V1\u4fee\u6539\u4e2d","\u767c\u5305\u5b57\u5e55"]},
+  {label:"\u5f8c\u88fd",items:["\u5f8c\u88fd\u5f85\u57f7\u884c","V1\u88fd\u4f5c\u4e2d","V1\u4fee\u6539\u4e2d","\u5b57\u5e55\u9032\u884c\u4e2d"]},
   {label:"\u5be9\u6838",items:["\u521d\u526a\u5be9\u6838\u4e2d","V1\u5be9\u6838\u4e2d","V2\u5be9\u6838\u4e2d","Final\u5be9\u6838\u4e2d","\u5ee0\u5546\u5be9\u6838\u4e2d"]},
   {label:"\u5b8c\u6210",items:["Final\u5b8c\u6210"]}
 ];
@@ -2113,7 +2113,7 @@ function UrgentBanner(props){
   if(!urgent.length)return null;
   urgent.sort(function(a,b){return a.d-b.d;});
   return h("div",{style:{background:C.errBg,border:"1px solid #f0a8a8",borderRadius:4,padding:"8px 14px",marginBottom:10,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}},
-    h("span",{style:{color:C.err,fontWeight:800,fontSize:12}},"\u26a0\ufe0f \u4ea4\u4ef6\u63d0\u9192"),
+    h("span",{style:{color:C.err,fontWeight:800,fontSize:12}},"\u26a0\ufe0f \u6ce8\u610f\u63d0\u9192"),
     urgent.map(function(u,i){
       var color=u.d<0?C.err:u.d===0?C.wrn:C.acc;
       var text=u.d<0?"\u903e\u671f"+Math.abs(u.d)+"\u5929":u.d===0?"\u4eca\u5929":(u.d===1?"\u660e\u5929":u.d+"\u5929\u5f8c");
