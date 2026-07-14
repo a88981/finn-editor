@@ -2240,7 +2240,7 @@ function App(){
   },[]);
 
   // 刪除案子 → Notion
-  var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){var final=saved&&saved.notionId?Object.assign({},newP,{notionId:saved.notionId}):newP;setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");});},[]); var delP=useCallback(function(id){
+  var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){console.log("[dup] saved=",JSON.stringify(saved));var final=saved&&saved.notionId?Object.assign({},newP,{notionId:saved.notionId}):newP;console.log("[dup] final.notionId=",final.notionId);setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");});},[]); var delP=useCallback(function(id){
     var p=null;
     setProjects(function(ps){
       p=ps.find(function(x){return x.id===id;});
