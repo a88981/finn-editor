@@ -1993,53 +1993,76 @@ function MonthReport(props){
   );
 }
 
-// ── CLIENT MANAGER ─────────────────────────────────────────────────────────────
+// ── CLIENT MANAGER ─────────────────────────────────────────────
 function ClientMgr(props){
   var clients=props.clients,setClients=props.setClients,cColors=props.cColors,setCColors=props.setCColors,onSave=props.onSave,onClose=props.onClose;
   var ns=useState("");var newName=ns[0],setNewName=ns[1];
   var drag=useState(null);var dragI=drag[0],setDragI=drag[1];
   var over=useState(null);var overI=over[0],setOverI=over[1];
   var openPicker=useState(null);var pickerFor=openPicker[0],setPickerFor=openPicker[1];
-  // editing state moved OUT of map - store which client name is being edited
   var editSt=useState(null);var editingClient=editSt[0],setEditingClient=editSt[1];
   var editSt2=useState("");var editVal=editSt2[0],setEditVal=editSt2[1];
+  var sst=useState("idle");var saveState=sst[0],setSaveState=sst[1];
+  var cnf=useState(null);var confirmDel=cnf[0],setConfirmDel=cnf[1];
 
-  function add(){var n=newName.trim();if(n&&clients.indexOf(n)<0){setClients(function(c){return c.concat([n]);});setNewName("");};}
-  function remove(name){
-    setPickerFor(null);
-    setEditingClient(null);
-    setClients(function(c){return c.filter(function(x){return x!==name;});});
+  function autoSave(newClients,newColors){
+    setSaveState("saving");
+    Promise.resolve(onSave&&onSave(newClients||clients,newColors||cColors)).then(function(){
+      setSaveState("done");setTimeout(function(){setSaveState("idle");},1500);
+    }).catch(function(){setSaveState("idle");});
   }
-  function onDrop(i){if(dragI===null||dragI===i)return;setClients(function(c){var a=c.slice();var item=a.splice(dragI,1)[0];a.splice(i,0,item);return a;});setDragI(null);setOverI(null);}
+
+  function add(){
+    var n=newName.trim();
+    if(n&&clients.indexOf(n)<0){
+      var nc=clients.concat([n]);
+      setClients(nc);setNewName("");
+      autoSave(nc,null);
+    }
+  }
+  function remove(name){
+    setPickerFor(null);setEditingClient(null);
+    var nc=clients.filter(function(x){return x!==name;});
+    setClients(nc);
+    var ncc=Object.assign({},cColors);delete ncc[name];setCColors(ncc);
+    autoSave(nc,ncc);
+  }
+  function onDrop(i){
+    if(dragI===null||dragI===i)return;
+    var a=clients.slice();var item=a.splice(dragI,1)[0];a.splice(i,0,item);
+    setClients(a);setDragI(null);setOverI(null);
+    autoSave(a,null);
+  }
   function startEdit(name,e){e.stopPropagation();setEditingClient(name);setEditVal(name);}
   function saveEdit(oldName){
     var n=editVal.trim();
     if(n&&n!==oldName){
-      setClients(function(c){return c.map(function(x){return x===oldName?n:x;});});
-      var nc=Object.assign({},cColors);if(nc[oldName]){nc[n]=nc[oldName];delete nc[oldName];}setCColors(nc);
+      var nc=clients.map(function(x){return x===oldName?n:x;});
+      setClients(nc);
+      var ncc=Object.assign({},cColors);if(ncc[oldName]){ncc[n]=ncc[oldName];delete ncc[oldName];}setCColors(ncc);
       if(props.onRenameClient)props.onRenameClient(oldName,n);
+      autoSave(nc,ncc);
     }
     setEditingClient(null);
   }
-  var PALETTE=["#f9cbd5","#e491b4","#d26c99","#eaa9a6","#db7f7b","#c75e5b","#f8be73","#f0a14e","#e28735","#fee087","#fbcc54","#edb02d","#cbd6b2","#99ba89","#6e9962","#b2d0d0","#83afb0","#619394","#b0c2d2","#87a4b9","#66889f","#c7b8d4","#a091b9","#82729d","#e6d0bf","#cead94","#ad8970","#ccccce","#9c9da1","#76787d"];
-  // 儲存狀態
-  var sst=useState("idle");var saveState=sst[0],setSaveState=sst[1]; // idle / saving / done
-  var cnf=useState(null);var confirmDel=cnf[0],setConfirmDel=cnf[1];
-  function handleSave(){
-    setSaveState("saving");
-    Promise.resolve(onSave&&onSave(clients,cColors)).then(function(){
-      setSaveState("done");
-      setTimeout(function(){setSaveState("idle");},2200);
-    }).catch(function(){setSaveState("idle");});
+  function setColor(clientName,col){
+    var ncc=Object.assign({},cColors);ncc[clientName]=col;setCColors(ncc);setPickerFor(null);
+    autoSave(null,ncc);
   }
+
+  var PALETTE=["#f9cbd5","#e491b4","#d26c99","#eaa9a6","#db7f7b","#c75e5b","#f8be73","#f0a14e","#e28735","#fee087","#fbcc54","#edb02d","#cbd6b2","#99ba89","#6e9962","#b2d0d0","#83afb0","#619394","#b0c2d2","#87a4b9","#66889f","#c7b8d4","#a091b9","#82729d","#e6d0bf","#cead94","#ad8970","#ccccce","#9c9da1","#76787d"];
+
   return h("div",{style:{position:"fixed",inset:0,background:"rgba(44,40,37,0.45)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center",padding:16},onClick:function(){if(onClose)onClose();}},
     h("div",{style:{background:C.bg,border:"1px solid "+C.brd,borderRadius:4,padding:22,width:"100%",maxWidth:520,boxShadow:"0 16px 48px rgba(0,0,0,0.18)",maxHeight:"94vh",overflowY:"auto"},onClick:function(e){e.stopPropagation();setPickerFor(null);}},
       h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
         h("div",{style:{fontSize:15,fontWeight:800,color:C.txt}},"\ud83d\udc65 \u5ba2\u6236\u7ba1\u7406"),
-        h("button",{onClick:onClose,style:{background:"none",border:"none",color:C.txt3,fontSize:20,cursor:"pointer"}},"\xd7")
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+          saveState==="saving"&&h("span",{style:{fontSize:11,color:C.txt3}},"\u23f3 \u540c\u6b65\u4e2d\u2026"),
+          saveState==="done"&&h("span",{style:{fontSize:11,color:C.ok}},"\u2714 \u5df2\u540c\u6b65"),
+          h("button",{onClick:onClose,style:{background:"none",border:"none",color:C.txt3,fontSize:20,cursor:"pointer"}}," ")
+        )
       ),
-      h("div",{style:{fontSize:10,color:C.txt3,marginBottom:14,letterSpacing:"0.04em"}},"\u62d6\u62c9 \u22ee\u22ee \u8abf\u5e8f \u00b7 \u9ede\u540d\u7a31\u53ef\u7de8\u8f2f \u00b7 \u9ede\u8272\u584a\u9078\u984f\u8272"),
-      // ── 客戶列表(2 欄)─────────────────────────
+      h("div",{style:{fontSize:10,color:C.txt3,marginBottom:14,letterSpacing:"0.04em"}},"\u62d6\u62c9 \u22ee\u22ee \u8abf\u5e8f \u00b7 \u9ede\u540d\u7a31\u53ef\u7de8\u8f2f \u00b7 \u9ede\u8272\u584a\u9078\u984f\u8272 \u00b7 \u8b8a\u66f4\u81ea\u52d5\u540c\u6b65"),
       h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 8px",marginBottom:14}},
         clients.map(function(c,i){
           var isDragging=dragI===i,isOver=overI===i&&dragI!==i;
@@ -2070,33 +2093,27 @@ function ClientMgr(props){
                     h("button",{onClick:function(e){e.stopPropagation();remove(c);setConfirmDel(null);},style:{background:C.err,color:"#fff",border:"none",borderRadius:2,padding:"2px 7px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},"\u522a"),
                     h("button",{onClick:function(e){e.stopPropagation();setConfirmDel(null);},style:{background:"transparent",color:C.txt3,border:"0.5px solid "+C.brd,borderRadius:2,padding:"2px 7px",fontSize:10,cursor:"pointer",fontFamily:"inherit"}},"\u53d6")
                   )
-                : h("button",{onClick:function(e){e.stopPropagation();setConfirmDel(c);},style:{background:"transparent",border:"none",color:C.txt3,cursor:"pointer",fontSize:13,padding:"0 4px",lineHeight:1,fontFamily:"inherit",borderRadius:3,flexShrink:0},title:"\u522a\u9664"},"\xd7")
+                : h("button",{onClick:function(e){e.stopPropagation();setConfirmDel(c);},style:{background:"transparent",border:"none",color:C.txt3,cursor:"pointer",fontSize:13,padding:"0 4px",lineHeight:1,fontFamily:"inherit",borderRadius:3,flexShrink:0},title:"\u522a\u9664"}," ")
             )
           );
         })
       ),
-      // ── 新增客戶 ─────────────────────────────
       h("div",{style:{display:"flex",gap:7,marginBottom:10,paddingTop:10,borderTop:"1px solid "+C.brd}},
         h("input",{value:newName,onChange:function(e){setNewName(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"\u65b0\u589e\u5ba2\u6236\u540d\u7a31\u2026",style:Object.assign({},INP,{flex:1})}),
         h("button",{onClick:add,style:{background:C.acc,border:"none",color:"#fff",borderRadius:4,padding:"7px 16px",cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12,whiteSpace:"nowrap"}},"\uff0b \u65b0\u589e")
       ),
-      // ── 底部色盤(選了某客戶才出現)──────────
       pickerFor&&(function(){
         var currColor=cColors[pickerFor]||DEF_COLORS[pickerFor]||C.txt2;
         return h("div",{onClick:function(e){e.stopPropagation();},style:{marginBottom:10}},
           h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10,color:C.txt3,marginBottom:6,padding:"0 2px",letterSpacing:"0.04em"}},
             h("span",null,"\u8272\u76e4 \u2190 \u70ba ",h("span",{style:{color:C.txt,fontWeight:700}},pickerFor)," \u6311\u9078"),
-            h("span",{onClick:function(){setPickerFor(null);},style:{cursor:"pointer",fontSize:13}},"\xd7")
+            h("span",{onClick:function(){setPickerFor(null);},style:{cursor:"pointer",fontSize:13}}," ")
           ),
           h("div",{style:{background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:10,boxShadow:"0 4px 12px rgba(0,0,0,0.05)",display:"grid",gridTemplateColumns:"repeat(15,1fr)",gap:5}},
-            PALETTE.map(function(col){return h("div",{key:col,onClick:function(){var nc=Object.assign({},cColors);nc[pickerFor]=col;setCColors(nc);setPickerFor(null);},title:col,style:{aspectRatio:"1",borderRadius:"50%",background:col,cursor:"pointer",border:currColor===col?"3px solid "+C.txt:"2px solid transparent",boxSizing:"border-box",transition:"transform 0.1s"},onMouseEnter:function(e){e.currentTarget.style.transform="scale(1.2)";},onMouseLeave:function(e){e.currentTarget.style.transform="none";}});})
+            PALETTE.map(function(col){return h("div",{key:col,onClick:function(){setColor(pickerFor,col);},title:col,style:{aspectRatio:"1",borderRadius:"50%",background:col,cursor:"pointer",border:currColor===col?"3px solid "+C.txt:"2px solid transparent",boxSizing:"border-box",transition:"transform 0.1s"},onMouseEnter:function(e){e.currentTarget.style.transform="scale(1.2)";},onMouseLeave:function(e){e.currentTarget.style.transform="none";}});})
           )
         );
-      })(),
-      // ── 儲存按鈕 ─────────────────────────────
-      h("button",{onClick:handleSave,disabled:saveState==="saving",style:{width:"100%",background:saveState==="done"?C.ok:(saveState==="saving"?C.txt3:C.acc),border:"none",color:"#fff",borderRadius:4,padding:"10px 14px",cursor:saveState==="saving"?"wait":"pointer",fontFamily:"inherit",fontWeight:700,fontSize:13,opacity:saveState==="saving"?0.7:1,transition:"background 0.2s"}},
-        saveState==="saving"?"\u23f3 \u5132\u5b58\u4e2d\u2026":(saveState==="done"?"\u2705 \u5df2\u5132\u5b58\u5230 Notion":"\u2601\ufe0f \u5132\u5b58\u5230 Notion")
-      )
+      })()
     )
   );
 }
