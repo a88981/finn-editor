@@ -1881,7 +1881,7 @@ function MonthReport(props){
     if(!p.month)return;
     if(!mMap[p.month])mMap[p.month]={month:p.month,projects:[],total:0,tc:0,net:0,long:0,short:0,closed:0,unpaid:0};
     var f=calcP(p);mMap[p.month].projects.push(p);mMap[p.month].total+=f.total;mMap[p.month].tc+=f.totalCost;mMap[p.month].net+=f.net;
-    if(p.type==="\u9577\u7247")mMap[p.month].long++;else mMap[p.month].short++;
+    if(p.type==="\u9577\u7247")mMap[p.month].long++;else if(p.type==="\u77ed\u7247")mMap[p.month].short++;
     if(p.closed)mMap[p.month].closed++;else mMap[p.month].unpaid++;
   });
   var rows=Object.values(mMap).sort(function(a,b){return a.month.localeCompare(b.month);});
@@ -1910,7 +1910,7 @@ function MonthReport(props){
     clientStats[p.client].total+=f.total;
     clientStats[p.client].tc+=f.totalCost;
     clientStats[p.client].net+=f.net;
-    if(p.type==="\u9577\u7247")clientStats[p.client].long++;else clientStats[p.client].short++;
+    if(p.type==="\u9577\u7247")clientStats[p.client].long++;else if(p.type==="\u77ed\u7247")clientStats[p.client].short++;
   });
   var clientRows=Object.values(clientStats).sort(function(a,b){return b.net-a.net;});
   var clientAll=clientRows.reduce(function(a,r){return{long:a.long+r.long,short:a.short+r.short,count:a.count+r.count,total:a.total+r.total,tc:a.tc+r.tc,net:a.net+r.net};},{long:0,short:0,count:0,total:0,tc:0,net:0});
