@@ -121,7 +121,6 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .pstep-n{font-family:Inter,sans-serif;font-size:9.5px;font-weight:500;background:var(--yellow);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .pstep-t{font-family:'Noto Serif TC',serif;font-size:12.5px;font-weight:500;color:var(--ink)}
 .pstep-h{font-size:10.5px;color:var(--ink-light);margin-left:auto}
-
 .off-row{display:grid;grid-template-columns:1fr 1fr 1.1fr 26px;gap:7px;align-items:center;margin-bottom:6px}
 .off-row .fc{padding:6px 8px;font-size:12px}
 .off-x{border:0.5px solid var(--line);background:transparent;border-radius:3px;color:var(--ink-light);cursor:pointer;font-size:12px;height:29px;font-family:inherit}
@@ -129,7 +128,6 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .off-add{font-size:11px;color:var(--yellow-mid);background:transparent;border:0.5px dashed var(--yellow);border-radius:3px;padding:6px 10px;cursor:pointer;font-family:inherit;width:100%;margin-top:2px}
 .off-add:hover{background:var(--yellow-lightest)}
 .off-empty{font-size:11px;color:var(--ink-light);padding:2px 0 6px}
-
 .imp-item{display:grid;grid-template-columns:22px 1fr;gap:8px;border:0.5px solid var(--line);border-radius:5px;padding:11px 13px;margin-bottom:8px;background:#fff}
 .imp-item.miss{background:#fdf6f5;border-color:#EDC9C7}
 .imp-check{padding-top:2px}
@@ -147,7 +145,6 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .imp-d .old{color:var(--ink-light);text-decoration:line-through}
 .imp-d .new{color:var(--acc);font-weight:500}
 .imp-err{background:#fdf0ef;border:0.5px solid #EDC9C7;color:var(--red);font-size:11.5px;border-radius:4px;padding:10px 12px;margin-bottom:12px;line-height:1.6}
-
 .sum{border:0.5px solid var(--yellow-pale);background:var(--yellow-lightest);border-radius:6px;padding:14px 16px;margin:14px 0 4px}
 .sum-hd{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .sum-title{font-family:'Noto Serif TC',serif;font-size:13.5px;font-weight:500;color:var(--yellow-mid)}
@@ -160,6 +157,14 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .sum-v{color:var(--ink-soft);white-space:pre-wrap}
 .row-label .name .flag{font-size:11px;margin-left:1px}
 .row-label .pnote-s{font-size:9.5px;color:var(--yellow-mid);line-height:1.35;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lock-row{display:grid;grid-template-columns:22px 1fr;gap:9px;align-items:start;border:0.5px solid var(--line);border-radius:5px;padding:9px 11px;margin-bottom:6px;background:#fff}
+.lock-row.on{background:var(--yellow-lightest);border-color:var(--yellow-pale)}
+.lock-row input{cursor:pointer;margin:2px 0 0}
+.lock-nm{font-size:12.5px;font-weight:500;font-family:'Noto Serif TC',serif;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lock-meta{font-size:10.5px;color:var(--ink-light);margin-top:2px;font-variant-numeric:tabular-nums}
+.lock-tag{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.06em;padding:1.5px 7px;border-radius:9px;font-weight:500;background:var(--line-soft);color:var(--ink-light)}
+.lock-tag.stale{background:#fdece9;color:var(--red)}
+.lock-sum{font-size:11px;color:var(--ink-soft);margin:2px 0 10px}
 
 .loading{padding:60px;text-align:center;color:var(--ink-light);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px}
 .error{padding:30px;text-align:center;color:var(--red);font-size:13px}
@@ -541,7 +546,7 @@ var PLAN_RULES =
 "- 排程時優先處理上片日較近的案件，等待素材/等待回饋的空檔可用來插入其他案件或短影";
 
 // 這一份設定在分頁關掉前都留著，不用每次重填
-var PLAN_PREFS = {start:"", off:[], extra:""};
+var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}};
 
 var STAGE_FIELDS = ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"];
 var KNOWN_KEYS = ["id","notionId","name","client","status","airDate","closed",
@@ -566,6 +571,39 @@ function pendingProjects(){
     var x=a.airDate||"9999-99-99", y=b.airDate||"9999-99-99";
     return x<y?-1:(x>y?1:0);
   });
+}
+
+/* ─── 已排好的案：略過不重排，但要算進額度 ─────────────────── */
+
+function schedDates(p){
+  return [p.cut1S,p.cut1E,p.cut1Due,p.v1S,p.v1E,p.v1Due,p.bizS,p.bizE,p.bizDue]
+         .filter(function(x){return !!x;}).sort();
+}
+function schedEnd(p){var d=schedDates(p);return d.length?d[d.length-1]:"";}
+function hasSchedule(p){return schedDates(p).length>0;}
+function isStale(p){
+  var e=schedEnd(p);
+  if(!e)return false;
+  return e < (PLAN_PREFS.start||todayStr());
+}
+function autoLock(p){return hasSchedule(p)&&!isStale(p);}
+function isLocked(p){
+  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.lock,p.id))return !!PLAN_PREFS.lock[p.id];
+  return autoLock(p);
+}
+function setLock(pid,v){PLAN_PREFS.lock[pid]=v;render();}
+function schedSummary(p){
+  var bits=[];
+  if(!p.noCut1&&(p.cut1S||p.cut1Due))bits.push("初剪 "+(p.cut1S||p.cut1Due)+(p.cut1Due&&p.cut1Due!==p.cut1S?" → "+p.cut1Due:""));
+  if(p.v1S||p.v1Due)bits.push("V1/ES "+(p.v1S||p.v1Due)+(p.v1Due&&p.v1Due!==p.v1S?" → "+p.v1Due:""));
+  if(!p.noBiz&&(p.bizS||p.bizDue))bits.push("業配 "+(p.bizS||p.bizDue)+(p.bizDue&&p.bizDue!==p.bizS?" → "+p.bizDue:""));
+  if(p.finalDue)bits.push("Final "+p.finalDue);
+  return bits.length?bits.join(" · "):"(沒有已排定的日期)";
+}
+function splitProjects(){
+  var all=pendingProjects(), locked=[], open=[];
+  all.forEach(function(p){(isLocked(p)?locked:open).push(p);});
+  return {all:all,locked:locked,open:open};
 }
 
 /* ─── 休假設定 ─────────────────────────────────────────────── */
@@ -615,8 +653,25 @@ function projType(p){
   return p.type||p.kind||p["類型"]||"長片";
 }
 
+function projBlock(p,i){
+  var t="";
+  t+="\n### "+(i+1)+". "+p.name+(p.client?" · "+p.client:"")+"\n";
+  t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
+  t+="- 可工作期間: "+workWindow(p)+"\n";
+  t+="- 進度: "+progressLine(p)+"\n";
+  t+="- id: `"+p.id+"`\n";
+  var extras=Object.keys(p).filter(function(k){
+    if(KNOWN_KEYS.indexOf(k)>=0)return false;
+    if(["type","kind","類型","workStart","workEnd","availStart","availEnd","workS","workE"].indexOf(k)>=0)return false;
+    var v=p[k];
+    return v!==null&&v!==undefined&&v!==""&&typeof v!=="object";
+  });
+  if(extras.length)t+="- 其他: "+extras.map(function(k){return k+"="+p[k];}).join(" / ")+"\n";
+  return t;
+}
+
 function buildPrompt(){
-  var list=pendingProjects();
+  var sp=splitProjects();
   var offs=offLines();
   var t="剪輯案工作排程規劃\n";
   t+="今天是 "+todayStr()+"。以下是我手上未完成的剪接案，請依照規則排出每個專案的工作日程。\n\n";
@@ -633,36 +688,39 @@ function buildPrompt(){
   }
   t+="\n## 排程規則\n"+PLAN_RULES+"\n\n";
 
-  t+="## 專案清單\n";
-  if(!list.length)t+="(目前沒有待執行的案)\n";
-  list.forEach(function(p,i){
-    t+="\n### "+(i+1)+". "+p.name+(p.client?" · "+p.client:"")+"\n";
-    t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
-    t+="- 可工作期間: "+workWindow(p)+"\n";
-    t+="- 進度: "+progressLine(p)+"\n";
-    t+="- id: `"+p.id+"`\n";
-    var extras=Object.keys(p).filter(function(k){
-      if(KNOWN_KEYS.indexOf(k)>=0)return false;
-      if(["type","kind","類型","workStart","workEnd","availStart","availEnd","workS","workE"].indexOf(k)>=0)return false;
-      var v=p[k];
-      return v!==null&&v!==undefined&&v!==""&&typeof v!=="object";
+  if(sp.locked.length){
+    t+="## A. 已經排好的案（不要重排）\n";
+    t+="這些案的日期已經定了，**請原封不動，不要更改，也不要放進最後的 JSON**。\n";
+    t+="但它們佔用的工作日必須算進「一天同時 2–3 個長片案」的額度，排 B 區的案子時要一併考慮，不能撞到上限。\n";
+    sp.locked.forEach(function(p,i){
+      t+=projBlock(p,i);
+      t+="- 已排定: "+schedSummary(p)+"\n";
     });
-    if(extras.length)t+="- 其他: "+extras.map(function(k){return k+"="+p[k];}).join(" / ")+"\n";
-  });
+    t+="\n";
+  }
+
+  t+="## "+(sp.locked.length?"B. 這次要排的案":"專案清單")+"\n";
+  if(!sp.open.length){
+    t+="(沒有需要排的案，全部都已經排好了)\n";
+  }
+  sp.open.forEach(function(p,i){t+=projBlock(p,i);});
 
   t+="\n---\n\n## 輸出格式要求\n";
   t+="請依照以下格式，**逐一專案列出**(不要用大表格)：\n\n";
   t+="```\n專案名稱\n工作時間  開始日期-結束日期 (天數)\n初剪     開始日期-結束日期 (天數)\nV1       開始日期-結束日期 (天數)\nFINAL    日期\n```\n\n";
   t+="「初剪」這欄只有在專案進度是「初剪未交」時才列出，已交或不需的專案跳過。\n";
-  t+="逾期風險案件請在專案名稱旁標記 🚨。\n\n";
-  t+="最後請附上「排程概念說明」，用條列式簡短說明：\n";
+  t+="逾期風險案件請在專案名稱旁標記 🚨。\n";
+  if(sp.locked.length)t+="A 區的案不用列工作時間，但如果它們造成額度吃緊，請在說明裡點出來。\n";
+  t+="\n最後請附上「排程概念說明」，用條列式簡短說明：\n";
   t+="1. 為什麼這樣排序(哪個案件優先、為什麼)\n";
-  t+="2. 哪幾天長片同時量達到上限\n";
+  t+="2. 哪幾天長片同時量達到上限"+(sp.locked.length?"(含 A 區已排好的案)":"")+"\n";
   t+="3. 等待素材/等待回饋空檔如何被短影或其他案件填補\n";
   t+="4. 業配如有，排在哪個時間點\n\n";
 
   t+="## 最後請附上 JSON(我的排程網站要一鍵匯入用)\n";
-  t+="在回覆的**最末**放一個 ```json 區塊。日期一律 YYYY-MM-DD，沒有的階段填 null，`id` 原封不動照抄上面的值(這是匯入的依據，不能改)：\n\n";
+  t+="在回覆的**最末**放一個 ```json 區塊";
+  t+=(sp.locked.length?"，**只放 B 區的 "+sp.open.length+" 個案**，A 區的不要放進去":"");
+  t+="。日期一律 YYYY-MM-DD，沒有的階段填 null，`id` 原封不動照抄上面的值(這是匯入的依據，不能改)：\n\n";
   t+="```json\n";
   t+="{\n";
   t+='  "summary": {\n';
@@ -717,13 +775,13 @@ function copyPrompt(){
 }
 
 function renderExport(){
-  var list=pendingProjects();
+  var sp=splitProjects();
   var h='<div class="modal-overlay" onclick="if(event.target===this)closeExport()">';
   h+='<div class="modal" style="max-width:780px">';
   h+='<div class="modal-title">📋 產生 Prompt</div>';
-  h+='<div class="modal-sub">把目前待執行的 '+list.length+' 個案整理成一段文字，複製給 Claude 排</div>';
+  h+='<div class="modal-sub">待執行共 '+sp.all.length+' 案 · 這次要排 '+sp.open.length+' 案，'+sp.locked.length+' 案已排好只列入考量</div>';
 
-  if(!list.length){
+  if(!sp.all.length){
     h+='<div class="imp-err">目前沒有狀態為「等待素材 / 待確認 / 初剪待執行」的案，沒東西可以排。</div>';
     h+='<div class="modal-btns"><button class="btn" onclick="closeExport()">關閉</button></div></div></div>';
     return h;
@@ -731,7 +789,7 @@ function renderExport(){
 
   h+='<div class="pstep"><span class="pstep-n">1</span><span class="pstep-t">開工日</span></div>';
   h+='<div class="row2">';
-  h+='<div><div class="flabel">最早可以開工</div><input type="date" class="fc" value="'+escAttr(PLAN_PREFS.start)+'" onchange="PLAN_PREFS.start=this.value;refreshPrompt()"></div>';
+  h+='<div><div class="flabel">最早可以開工</div><input type="date" class="fc" value="'+escAttr(PLAN_PREFS.start)+'" onchange="PLAN_PREFS.start=this.value;render()"></div>';
   h+='<div><div class="flabel">額外狀況(選填)</div><input type="text" class="fc" placeholder="例如：這批素材畫質很差，剪起來會慢" value="'+escAttr(PLAN_PREFS.extra)+'" oninput="PLAN_PREFS.extra=this.value;refreshPrompt()"></div>';
   h+='</div>';
 
@@ -749,14 +807,32 @@ function renderExport(){
   });
   h+='<button class="off-add" onclick="addOff()">＋ 新增休假期間</button>';
 
-  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">複製這段，貼給 Claude</span><span class="pstep-h" id="exp-count">'+buildPrompt().length+' 字</span></div>';
+  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">哪些已經排好了</span><span class="pstep-h">打勾＝不重排，但仍佔用同時進行的額度</span></div>';
+  h+='<div class="lock-sum">已自動判斷：有排定日期、而且還沒過期的案會先打勾。不對就自己改。</div>';
+  sp.all.forEach(function(p){
+    var on=isLocked(p), stale=isStale(p), has=hasSchedule(p);
+    h+='<div class="lock-row'+(on?' on':'')+'">';
+    h+='<input type="checkbox"'+(on?' checked':'')+' onchange="setLock(\''+p.id+'\',this.checked)">';
+    h+='<div>';
+    h+='<div class="lock-nm">'+escapeHtml(p.name);
+    if(!has)h+=' <span class="lock-tag">還沒排</span>';
+    else if(stale)h+=' <span class="lock-tag stale">排程已過期</span>';
+    h+='</div>';
+    h+='<div class="lock-meta">'+(p.airDate?p.airDate+' 上片 · ':'')+escapeHtml(has?schedSummary(p):"沒有已排定的工作日期")+'</div>';
+    h+='</div></div>';
+  });
+
+  h+='<div class="pstep"><span class="pstep-n">4</span><span class="pstep-t">複製這段，貼給 Claude</span><span class="pstep-h" id="exp-count">'+buildPrompt().length+' 字</span></div>';
+  if(!sp.open.length){
+    h+='<div class="imp-err">全部的案都被標成「已排好」，這次沒有東西要排。取消幾個勾選再複製。</div>';
+  }
   h+='<textarea class="pta" id="exp-out" rows="12" readonly onclick="this.select()">'+escapeHtml(buildPrompt())+'</textarea>';
 
-  h+='<div class="pnote" style="margin-top:12px">Claude 回覆的最後會有一段 <b>```json</b>，把那段(或整則回覆)複製起來，回到這裡按 <b>📥 貼上排程</b> 就能一鍵填入，排程說明和 🚨 也會一起帶回甘特圖。</div>';
+  h+='<div class="pnote" style="margin-top:12px">Claude 回覆的最後會有一段 <b>```json</b>，只包含要排的案。把那段(或整則回覆)複製起來，回到這裡按 <b>📥 貼上排程</b> 就能一鍵填入，排程說明和 🚨 也會一起帶回甘特圖。</div>';
 
   h+='<div class="modal-btns">';
   h+='<button class="btn" onclick="closeExport()">關閉</button>';
-  h+='<button class="btn primary" onclick="copyPrompt()">📋 複製 Prompt</button>';
+  h+='<button class="btn primary" onclick="copyPrompt()"'+(sp.open.length?'':' disabled')+'>📋 複製 Prompt</button>';
   h+='</div></div></div>';
   return h;
 }
