@@ -113,23 +113,53 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 .toast{position:fixed;top:30px;right:30px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:4px;font-size:12px;z-index:300;font-family:inherit;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
 
-.imp-note{font-size:11.5px;color:var(--ink-soft);background:var(--yellow-lightest);border:0.5px solid var(--yellow-pale);border-radius:4px;padding:10px 12px;margin-bottom:14px;line-height:1.6}
+.pnote{font-size:11.5px;color:var(--ink-soft);background:var(--yellow-lightest);border:0.5px solid var(--yellow-pale);border-radius:4px;padding:10px 12px;margin-bottom:14px;line-height:1.65}
+.pnote b{color:var(--yellow-mid);font-weight:500}
+.pta{width:100%;padding:10px 12px;border:0.5px solid var(--line);border-radius:4px;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:11px;line-height:1.6;color:var(--ink);background:#FCFCFA;resize:vertical}
+.pta:focus{outline:none;border-color:var(--yellow)}
+.pstep{display:flex;align-items:center;gap:7px;margin:16px 0 8px}
+.pstep-n{font-family:Inter,sans-serif;font-size:9.5px;font-weight:500;background:var(--yellow);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pstep-t{font-family:'Noto Serif TC',serif;font-size:12.5px;font-weight:500;color:var(--ink)}
+.pstep-h{font-size:10.5px;color:var(--ink-light);margin-left:auto}
+
+.off-row{display:grid;grid-template-columns:1fr 1fr 1.1fr 26px;gap:7px;align-items:center;margin-bottom:6px}
+.off-row .fc{padding:6px 8px;font-size:12px}
+.off-x{border:0.5px solid var(--line);background:transparent;border-radius:3px;color:var(--ink-light);cursor:pointer;font-size:12px;height:29px;font-family:inherit}
+.off-x:hover{color:var(--red);border-color:var(--red);background:#fdf0ef}
+.off-add{font-size:11px;color:var(--yellow-mid);background:transparent;border:0.5px dashed var(--yellow);border-radius:3px;padding:6px 10px;cursor:pointer;font-family:inherit;width:100%;margin-top:2px}
+.off-add:hover{background:var(--yellow-lightest)}
+.off-empty{font-size:11px;color:var(--ink-light);padding:2px 0 6px}
+
 .imp-item{display:grid;grid-template-columns:22px 1fr;gap:8px;border:0.5px solid var(--line);border-radius:5px;padding:11px 13px;margin-bottom:8px;background:#fff}
 .imp-item.miss{background:#fdf6f5;border-color:#EDC9C7}
-.imp-item.miss .imp-name{color:var(--ink-light)}
 .imp-check{padding-top:2px}
 .imp-check input{cursor:pointer;margin:0}
 .imp-name{font-family:'Noto Serif TC',serif;font-size:13px;font-weight:500;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .imp-tag{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.06em;padding:1.5px 7px;border-radius:9px;font-weight:500}
 .imp-tag.ok{background:var(--yellow-pale);color:var(--yellow-mid)}
 .imp-tag.warn{background:#fdece9;color:var(--red)}
+.imp-tag.same{background:var(--line-soft);color:var(--ink-light)}
 .imp-target{font-size:10.5px;color:var(--ink-light);margin-top:3px}
-.imp-dates{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
-.imp-chip{font-family:Inter,sans-serif;font-size:10px;font-variant-numeric:tabular-nums;padding:2.5px 8px;border-radius:3px;letter-spacing:0.02em}
-.imp-chip.c1{background:var(--c-cut1-bg);color:#8a5f1a}
-.imp-chip.c2{background:var(--c-v1-bg);color:#7d6413}
-.imp-chip.c3{background:var(--c-biz-bg);color:#6d5208}
-.imp-chip.c4{background:#efeade;color:var(--c-fin)}
+.imp-note2{font-size:10.5px;color:var(--yellow-mid);margin-top:3px}
+.imp-diff{margin-top:7px;display:flex;flex-direction:column;gap:3px}
+.imp-d{font-family:Inter,sans-serif;font-size:10.5px;font-variant-numeric:tabular-nums;display:flex;gap:6px;align-items:baseline}
+.imp-d .k{color:var(--ink-light);min-width:58px;letter-spacing:0.03em}
+.imp-d .old{color:var(--ink-light);text-decoration:line-through}
+.imp-d .new{color:var(--acc);font-weight:500}
+.imp-err{background:#fdf0ef;border:0.5px solid #EDC9C7;color:var(--red);font-size:11.5px;border-radius:4px;padding:10px 12px;margin-bottom:12px;line-height:1.6}
+
+.sum{border:0.5px solid var(--yellow-pale);background:var(--yellow-lightest);border-radius:6px;padding:14px 16px;margin:14px 0 4px}
+.sum-hd{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.sum-title{font-family:'Noto Serif TC',serif;font-size:13.5px;font-weight:500;color:var(--yellow-mid)}
+.sum-x{margin-left:auto;background:transparent;border:0;color:var(--ink-light);cursor:pointer;font-size:12px;font-family:inherit;padding:2px 4px}
+.sum-x:hover{color:var(--red)}
+.sum-body{margin-top:10px}
+.sum-i{display:grid;grid-template-columns:104px 1fr;gap:10px;padding:7px 0;border-top:0.5px dashed var(--yellow-pale);font-size:12px;line-height:1.6}
+.sum-i:first-child{border-top:0}
+.sum-k{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--yellow-mid);font-weight:500;padding-top:2px}
+.sum-v{color:var(--ink-soft);white-space:pre-wrap}
+.row-label .name .flag{font-size:11px;margin-left:1px}
+.row-label .pnote-s{font-size:9.5px;color:var(--yellow-mid);line-height:1.35;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .loading{padding:60px;text-align:center;color:var(--ink-light);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px}
 .error{padding:30px;text-align:center;color:var(--red);font-size:13px}
@@ -149,7 +179,10 @@ var state={
   ym:[new Date().getFullYear(),new Date().getMonth()+1],
   edits:{},
   modal:null,
+  exp:null,
   imp:null,
+  summary:null,
+  planNotes:{},
   toast:null
 };
 
@@ -320,8 +353,10 @@ function renderGanttMonth(visible,yr,mo,now){
     var isDirty=!!state.edits[p.id];
     var row='<div class="gantt-row">';
     row+='<div class="row-label" onclick="openEdit(state.projects.find(function(x){return x.id===\''+p.id+'\';}))">';
-    row+='<div class="name'+(isDirty?' dirty':'')+'">'+escapeHtml(p.name)+'</div>';
+    var pn=state.planNotes[p.id]||null;
+    row+='<div class="name'+(isDirty?' dirty':'')+'">'+escapeHtml(p.name)+(pn&&pn.flag?' <span class="flag">'+escapeHtml(pn.flag)+'</span>':'')+'</div>';
     row+='<div class="meta">'+escapeHtml(p.client||"")+(p.airDate?" · "+p.airDate+"上片":"")+'</div>';
+    if(pn&&pn.note)row+='<div class="pnote-s" title="'+escAttr(pn.note)+'">'+escapeHtml(pn.note)+'</div>';
     row+='</div>';
     row+='<div class="row-canvas">';
     if(todayCol!==null){
@@ -377,7 +412,8 @@ function render(){
   html+='</div>';
   if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
   html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
-  html+='<button class="btn" onclick="openImport()" title="把規劃好的排程一次填入下方甘特圖">📥 帶入排程</button>';
+  html+='<button class="btn" onclick="openExport()" title="把待執行的案整理成 Prompt，複製給 Claude 排">📋 產生 Prompt</button>';
+  html+='<button class="btn" onclick="openImport()" title="把 Claude 排好的 JSON 貼回來，一鍵填入">📥 貼上排程</button>';
   html+='<button class="btn primary" id="save-btn-top" onclick="saveAll()" style="margin-left:auto" '+(dirty===0?'disabled':'')+'>💾 存回 Notion'+(dirty>0?' ('+dirty+')':'')+'</button>';
   html+='<div class="legend" style="margin-left:0;flex-basis:100%;margin-top:8px;padding-top:8px;border-top:0.5px dashed var(--line)">';
   [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
@@ -385,6 +421,8 @@ function render(){
   });
   html+='</div>';
   html+='</div>';
+  
+  html+=renderSummary();
   
   if(visible.length===0){
     html+='<div class="empty">沒有待執行的案(等待素材 / 待確認 / 初剪待執行)</div>';
@@ -458,7 +496,8 @@ function render(){
     html+='</div></div></div>';
   }
   
-  // 帶入排程面板
+  // 產生 Prompt / 貼上排程
+  if(state.exp){html+=renderExport();}
   if(state.imp){html+=renderImport();}
   
   // Toast
@@ -485,167 +524,469 @@ function daysBetween(a,b){
 }
 
 
-/* ══════════════════════════════════════════════════════════════
-   排程草案 · 2026-08-10 起可開工
-   要改日期，直接改下面的字串就好，格式 YYYY-MM-DD。
-   match = 對應 Notion 專案名的關鍵字，任一組全中就算對到。
-   ══════════════════════════════════════════════════════════════ */
-var CLAUDE_PLAN=[
-  {
-    name:"四角戀西班牙回顧", flag:"🚨🚨", air:"08/22",
-    match:[["四角","西班牙"],["四角戀"],["西班牙","回顧"]],
-    fields:{
-      cut1S:"2026-08-10", cut1E:"2026-08-12", cut1Due:"2026-08-12",
-      v1S:"2026-08-13",   v1E:"2026-08-19",   v1Due:"2026-08-19",
-      bizS:"2026-08-20",  bizE:"2026-08-20",  bizDue:"2026-08-20",
-      finalDue:"2026-08-21", noCut1:false, noBiz:false
-    }
-  },
-  {
-    name:"阿拉斯加 上集", flag:"🚨", air:"09/03",
-    match:[["阿拉斯加","上集"],["阿拉斯加","上"]],
-    fields:{
-      cut1S:"2026-08-10", cut1E:"2026-08-14", cut1Due:"2026-08-14",
-      v1S:"2026-08-19",   v1E:"2026-08-28",   v1Due:"2026-08-28",
-      finalDue:"2026-09-02", noCut1:false
-    }
-  },
-  {
-    name:"社長接體", flag:"", air:"10/01",
-    match:[["社長"],["小冬瓜"]],
-    fields:{
-      cut1S:"2026-08-24", cut1E:"2026-08-28", cut1Due:"2026-08-28",
-      v1S:"2026-09-07",   v1E:"2026-09-16",   v1Due:"2026-09-16",
-      finalDue:"2026-09-30", noCut1:false
-    }
-  },
-  {
-    name:"阿拉斯加 下集", flag:"", air:"10/05",
-    match:[["阿拉斯加","下集"],["阿拉斯加","下"]],
-    fields:{
-      cut1S:"2026-08-31", cut1E:"2026-09-04", cut1Due:"2026-09-04",
-      v1S:"2026-09-14",   v1E:"2026-09-23",   v1Due:"2026-09-23",
-      finalDue:"2026-10-02", noCut1:false
-    }
-  },
-  {
-    name:"洛杉磯週記", flag:"", air:"10/26",
-    match:[["洛杉磯","週記"],["洛杉磯","周記"],["週記"]],
-    fields:{
-      cut1S:"2026-09-21", cut1E:"2026-09-25", cut1Due:"2026-09-25",
-      v1S:"2026-10-05",   v1E:"2026-10-15",   v1Due:"2026-10-15",
-      finalDue:"2026-10-23", noCut1:false
-    }
-  },
-  {
-    name:"洛杉磯三餐便利商店", flag:"", air:"11/09",
-    match:[["洛杉磯","三餐"],["便利商店"],["三餐"]],
-    fields:{
-      cut1S:"2026-10-05", cut1E:"2026-10-09", cut1Due:"2026-10-09",
-      v1S:"2026-10-19",   v1E:"2026-10-30",   v1Due:"2026-10-30",
-      finalDue:"2026-11-06", noCut1:false
-    }
-  }
-];
+/* ══════════════════════════════════════════════════════════════════
+   排程往返 · 產生 Prompt ↔ 貼回 JSON
+   排程規則想改，直接改下面 PLAN_RULES 這段文字。
+   ══════════════════════════════════════════════════════════════════ */
 
-function normName(s){return (s||"").replace(/[\s·・\/\-—|,，。]/g,"");}
-function matchProject(entry){
+var PLAN_RULES =
+"- 一天同時進行 2–3 個長片案(以 2 個為主，最多 3 個)\n" +
+"- 初剪約 3–7 個工作天\n" +
+"- V1/ES 約 5–10 個工作天\n" +
+"- 業配(如果有)在 V1 完成後進行\n" +
+"- Final 需在上片日前一天交件\n" +
+"- 逾期 / 上片日最近的案件優先處理，並標記 🚨\n" +
+"- 短影優先，短影沒有個數限制，可直接安排，不計入 2–3 長片同時進行的額度\n" +
+"- 若案件處於「等待素材」，工作開始日不得早於可工作期間起始日；可工作期間未定者，請倒推出「素材最晚到齊日」\n" +
+"- 排程時優先處理上片日較近的案件，等待素材/等待回饋的空檔可用來插入其他案件或短影";
+
+// 這一份設定在分頁關掉前都留著，不用每次重填
+var PLAN_PREFS = {start:"", off:[], extra:""};
+
+var STAGE_FIELDS = ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"];
+var KNOWN_KEYS = ["id","notionId","name","client","status","airDate","closed",
+                  "cut1Done","v1Done","bizDone","finalDone","noCut1","noBiz"].concat(STAGE_FIELDS);
+
+function todayStr(){
+  var d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function md(s){
+  if(!s)return "";
+  var p=String(s).split("-");
+  return p.length>=3?(p[1]+"/"+p[2]):s;
+}
+
+function pendingProjects(){
+  var INCLUDE=["等待素材","待確認","初剪待執行"];
   return state.projects.filter(function(p){
     if(p.closed||p.finalDone)return false;
-    var n=normName(p.name)+normName(p.client);
-    return entry.match.some(function(g){
-      return g.every(function(k){return n.indexOf(k)>=0;});
+    return INCLUDE.indexOf(p.status)>=0;
+  }).sort(function(a,b){
+    var x=a.airDate||"9999-99-99", y=b.airDate||"9999-99-99";
+    return x<y?-1:(x>y?1:0);
+  });
+}
+
+/* ─── 休假設定 ─────────────────────────────────────────────── */
+
+function addOff(){
+  PLAN_PREFS.off.push({s:"",e:"",why:""});
+  render();
+}
+function delOff(i){
+  PLAN_PREFS.off.splice(i,1);
+  render();
+}
+function setOff(i,k,v){
+  if(!PLAN_PREFS.off[i])return;
+  PLAN_PREFS.off[i][k]=v;
+  if(k==="s"&&!PLAN_PREFS.off[i].e)PLAN_PREFS.off[i].e=v;   // 單日休假免填兩次
+  refreshPrompt();
+}
+function offLines(){
+  return PLAN_PREFS.off.filter(function(o){return o.s||o.e;}).map(function(o){
+    var a=o.s||o.e, b=o.e||o.s;
+    var txt=(a===b)?a+"（單日）":a+" → "+b;
+    if(o.why&&o.why.trim())txt+="（"+o.why.trim()+"）";
+    return txt;
+  });
+}
+
+/* ─── 1. 產生 Prompt ───────────────────────────────────────── */
+
+function progressLine(p){
+  var bits=[];
+  if(p.noCut1)bits.push("初剪: 不需要");
+  else bits.push("初剪: "+(p.cut1Done?"已交":"未交")+(p.cut1Due?"，原訂 "+p.cut1Due:""));
+  bits.push("V1/ES: "+(p.v1Done?"已交":"未交")+(p.v1Due?"，原訂 "+p.v1Due:""));
+  if(!p.noBiz&&(p.bizS||p.bizDue)){
+    bits.push("業配期間: "+(p.bizS||p.bizDue)+" → "+(p.bizDue||p.bizS)+(p.bizDone?"(已交)":""));
+  }
+  bits.push("Final: "+(p.finalDone?"已交":"未交")+(p.finalDue?"，原訂 "+p.finalDue:""));
+  return bits.join(" · ");
+}
+function workWindow(p){
+  var s=p.workStart||p.availStart||p.workS||p["可工作起"]||"";
+  var e=p.workEnd||p.availEnd||p.workE||p["可工作迄"]||"";
+  return (s||"?")+" → "+(e||"?");
+}
+function projType(p){
+  return p.type||p.kind||p["類型"]||"長片";
+}
+
+function buildPrompt(){
+  var list=pendingProjects();
+  var offs=offLines();
+  var t="剪輯案工作排程規劃\n";
+  t+="今天是 "+todayStr()+"。以下是我手上未完成的剪接案，請依照規則排出每個專案的工作日程。\n\n";
+
+  t+="## 前提\n";
+  t+="- 我最早可以開工的日期："+(PLAN_PREFS.start||todayStr())+"\n";
+  t+="- 工作天以週一～週五計算，週末不排\n";
+  if(offs.length){
+    t+="- 以下日子我休假，完全不能工作，排程請整段跳過，也不計入工作天：\n";
+    offs.forEach(function(o){t+="  - "+o+"\n";});
+  }
+  if(PLAN_PREFS.extra&&PLAN_PREFS.extra.trim()){
+    t+="- 額外狀況："+PLAN_PREFS.extra.trim()+"\n";
+  }
+  t+="\n## 排程規則\n"+PLAN_RULES+"\n\n";
+
+  t+="## 專案清單\n";
+  if(!list.length)t+="(目前沒有待執行的案)\n";
+  list.forEach(function(p,i){
+    t+="\n### "+(i+1)+". "+p.name+(p.client?" · "+p.client:"")+"\n";
+    t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
+    t+="- 可工作期間: "+workWindow(p)+"\n";
+    t+="- 進度: "+progressLine(p)+"\n";
+    t+="- id: `"+p.id+"`\n";
+    var extras=Object.keys(p).filter(function(k){
+      if(KNOWN_KEYS.indexOf(k)>=0)return false;
+      if(["type","kind","類型","workStart","workEnd","availStart","availEnd","workS","workE"].indexOf(k)>=0)return false;
+      var v=p[k];
+      return v!==null&&v!==undefined&&v!==""&&typeof v!=="object";
     });
+    if(extras.length)t+="- 其他: "+extras.map(function(k){return k+"="+p[k];}).join(" / ")+"\n";
   });
+
+  t+="\n---\n\n## 輸出格式要求\n";
+  t+="請依照以下格式，**逐一專案列出**(不要用大表格)：\n\n";
+  t+="```\n專案名稱\n工作時間  開始日期-結束日期 (天數)\n初剪     開始日期-結束日期 (天數)\nV1       開始日期-結束日期 (天數)\nFINAL    日期\n```\n\n";
+  t+="「初剪」這欄只有在專案進度是「初剪未交」時才列出，已交或不需的專案跳過。\n";
+  t+="逾期風險案件請在專案名稱旁標記 🚨。\n\n";
+  t+="最後請附上「排程概念說明」，用條列式簡短說明：\n";
+  t+="1. 為什麼這樣排序(哪個案件優先、為什麼)\n";
+  t+="2. 哪幾天長片同時量達到上限\n";
+  t+="3. 等待素材/等待回饋空檔如何被短影或其他案件填補\n";
+  t+="4. 業配如有，排在哪個時間點\n\n";
+
+  t+="## 最後請附上 JSON(我的排程網站要一鍵匯入用)\n";
+  t+="在回覆的**最末**放一個 ```json 區塊。日期一律 YYYY-MM-DD，沒有的階段填 null，`id` 原封不動照抄上面的值(這是匯入的依據，不能改)：\n\n";
+  t+="```json\n";
+  t+="{\n";
+  t+='  "summary": {\n';
+  t+='    "order": "為什麼這樣排序",\n';
+  t+='    "peak": "哪幾天長片同時量達到上限",\n';
+  t+='    "gaps": "空檔如何被填補",\n';
+  t+='    "biz": "業配排在哪個時間點"\n';
+  t+="  },\n";
+  t+='  "projects": [\n';
+  t+="    {\n";
+  t+='      "id": "照抄專案 id", "name": "專案名稱(方便我核對)",\n';
+  t+='      "flag": "有逾期風險就填 🚨，否則空字串",\n';
+  t+='      "cut1S": "初剪開始", "cut1Due": "初剪交件",\n';
+  t+='      "v1S": "V1/ES 開始", "v1Due": "V1/ES 交件",\n';
+  t+='      "bizS": "業配開始或 null", "bizDue": "業配交件或 null",\n';
+  t+='      "finalDue": "Final 交件",\n';
+  t+='      "note": "一句話備註，例如素材最晚到齊日；沒有就填空字串"\n';
+  t+="    }\n";
+  t+="  ]\n";
+  t+="}\n";
+  t+="```\n\n";
+  t+="補充：某案確定不需要初剪或業配，可在該筆多加 `\"noCut1\": true` 或 `\"noBiz\": true`。JSON 內不要有註解或多餘文字。\n";
+  return t;
 }
 
-function openImport(){
-  var sel={};
-  CLAUDE_PLAN.forEach(function(e,i){sel[i]=true;});
-  state.imp={sel:sel};
+function openExport(){
+  if(!PLAN_PREFS.start)PLAN_PREFS.start=todayStr();
+  state.exp={};
   render();
 }
-function closeImport(){state.imp=null;render();}
-function impToggleAll(v){
-  CLAUDE_PLAN.forEach(function(e,i){state.imp.sel[i]=v;});
-  render();
+function closeExport(){state.exp=null;render();}
+function refreshPrompt(){
+  var ta=document.getElementById("exp-out");
+  if(ta)ta.value=buildPrompt();
+  var c=document.getElementById("exp-count");
+  if(c)c.textContent=buildPrompt().length+" 字";
+}
+function copyPrompt(){
+  var ta=document.getElementById("exp-out");
+  if(!ta)return;
+  var txt=ta.value;
+  ta.focus();ta.select();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){
+      showToast("✅ 已複製 · 貼給 Claude 即可");
+    },function(){showToast("複製失敗 · 請手動全選複製");});
+    return;
+  }
+  var ok=false;
+  try{ok=document.execCommand("copy");}catch(err){}
+  showToast(ok?"✅ 已複製 · 貼給 Claude 即可":"請手動全選複製");
 }
 
-function renderImport(){
-  var VISIBLE=["等待素材","待確認","初剪待執行"];
-  var h='<div class="modal-overlay" onclick="if(event.target===this)closeImport()">';
-  h+='<div class="modal" style="max-width:660px">';
-  h+='<div class="modal-title">📥 帶入排程</div>';
-  h+='<div class="modal-sub">2026-08-10 起可開工 · 依上片日由近至遠 · 共 '+CLAUDE_PLAN.length+' 案</div>';
-  h+='<div class="imp-note">勾選要帶入的案子，按「填入甘特圖」。日期只是暫存在這個頁面，看過甘特圖沒問題，再按上方的「💾 存回 Notion」才會真的寫回。</div>';
+function renderExport(){
+  var list=pendingProjects();
+  var h='<div class="modal-overlay" onclick="if(event.target===this)closeExport()">';
+  h+='<div class="modal" style="max-width:780px">';
+  h+='<div class="modal-title">📋 產生 Prompt</div>';
+  h+='<div class="modal-sub">把目前待執行的 '+list.length+' 個案整理成一段文字，複製給 Claude 排</div>';
 
-  var okCount=0;
-  CLAUDE_PLAN.forEach(function(e,i){
-    var m=matchProject(e);
-    var ok=(m.length===1);
-    if(ok)okCount++;
-    var checked=ok&&(state.imp.sel[i]!==false);
-    var f=e.fields;
+  if(!list.length){
+    h+='<div class="imp-err">目前沒有狀態為「等待素材 / 待確認 / 初剪待執行」的案，沒東西可以排。</div>';
+    h+='<div class="modal-btns"><button class="btn" onclick="closeExport()">關閉</button></div></div></div>';
+    return h;
+  }
 
-    h+='<div class="imp-item'+(ok?'':' miss')+'">';
-    h+='<div class="imp-check"><input type="checkbox"'+(checked?' checked':'')+(ok?'':' disabled')+' onchange="state.imp.sel['+i+']=this.checked"></div>';
-    h+='<div>';
-    h+='<div class="imp-name">'+escapeHtml(e.name)+(e.flag?' '+e.flag:'');
-    if(ok){
-      h+=' <span class="imp-tag ok">已對到</span>';
-    } else if(m.length===0){
-      h+=' <span class="imp-tag warn">找不到對應專案</span>';
-    } else {
-      h+=' <span class="imp-tag warn">對到 '+m.length+' 筆，請手動處理</span>';
-    }
+  h+='<div class="pstep"><span class="pstep-n">1</span><span class="pstep-t">開工日</span></div>';
+  h+='<div class="row2">';
+  h+='<div><div class="flabel">最早可以開工</div><input type="date" class="fc" value="'+escAttr(PLAN_PREFS.start)+'" onchange="PLAN_PREFS.start=this.value;refreshPrompt()"></div>';
+  h+='<div><div class="flabel">額外狀況(選填)</div><input type="text" class="fc" placeholder="例如：這批素材畫質很差，剪起來會慢" value="'+escAttr(PLAN_PREFS.extra)+'" oninput="PLAN_PREFS.extra=this.value;refreshPrompt()"></div>';
+  h+='</div>';
+
+  h+='<div class="pstep"><span class="pstep-n">2</span><span class="pstep-t">休假 / 不排班的日子</span><span class="pstep-h">這幾天會整段跳過，不算工作天</span></div>';
+  if(!PLAN_PREFS.off.length){
+    h+='<div class="off-empty">沒有設定休假 · 需要的話按下面新增</div>';
+  }
+  PLAN_PREFS.off.forEach(function(o,i){
+    h+='<div class="off-row">';
+    h+='<input type="date" class="fc" value="'+escAttr(o.s)+'" onchange="setOff('+i+',\'s\',this.value);render()">';
+    h+='<input type="date" class="fc" value="'+escAttr(o.e)+'" onchange="setOff('+i+',\'e\',this.value)">';
+    h+='<input type="text" class="fc" placeholder="原因(選填)" value="'+escAttr(o.why)+'" oninput="setOff('+i+',\'why\',this.value)">';
+    h+='<button class="off-x" onclick="delOff('+i+')" title="刪掉這筆">✕</button>';
     h+='</div>';
-
-    if(ok){
-      var p=m[0];
-      var note=escapeHtml(p.name);
-      if(p.status&&VISIBLE.indexOf(p.status)<0)note+='（狀態「'+escapeHtml(p.status)+'」不在甘特圖顯示範圍，仍會寫入）';
-      h+='<div class="imp-target">→ '+note+'</div>';
-    } else {
-      h+='<div class="imp-target">Notion 上的專案名可能不一樣，改一下 CLAUDE_PLAN 裡的 match 關鍵字就能對到</div>';
-    }
-
-    h+='<div class="imp-dates">';
-    if(f.cut1S)h+='<span class="imp-chip c1">初剪 '+fmt(f.cut1S)+'–'+fmt(f.cut1Due)+'</span>';
-    if(f.v1S)h+='<span class="imp-chip c2">V1/ES '+fmt(f.v1S)+'–'+fmt(f.v1Due)+'</span>';
-    if(f.bizS)h+='<span class="imp-chip c3">業配 '+fmt(f.bizS)+'</span>';
-    if(f.finalDue)h+='<span class="imp-chip c4">Final '+fmt(f.finalDue)+'</span>';
-    h+='<span class="imp-chip" style="background:transparent;color:var(--ink-light)">上片 '+e.air+'</span>';
-    h+='</div>';
-    h+='</div></div>';
   });
+  h+='<button class="off-add" onclick="addOff()">＋ 新增休假期間</button>';
+
+  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">複製這段，貼給 Claude</span><span class="pstep-h" id="exp-count">'+buildPrompt().length+' 字</span></div>';
+  h+='<textarea class="pta" id="exp-out" rows="12" readonly onclick="this.select()">'+escapeHtml(buildPrompt())+'</textarea>';
+
+  h+='<div class="pnote" style="margin-top:12px">Claude 回覆的最後會有一段 <b>```json</b>，把那段(或整則回覆)複製起來，回到這裡按 <b>📥 貼上排程</b> 就能一鍵填入，排程說明和 🚨 也會一起帶回甘特圖。</div>';
 
   h+='<div class="modal-btns">';
-  h+='<button class="btn" onclick="impToggleAll(true)" style="margin-right:auto">全選</button>';
-  h+='<button class="btn" onclick="impToggleAll(false)">全不選</button>';
-  h+='<button class="btn" onclick="closeImport()">取消</button>';
-  h+='<button class="btn primary" onclick="applyImport()"'+(okCount===0?' disabled':'')+'>填入甘特圖</button>';
+  h+='<button class="btn" onclick="closeExport()">關閉</button>';
+  h+='<button class="btn primary" onclick="copyPrompt()">📋 複製 Prompt</button>';
   h+='</div></div></div>';
   return h;
 }
 
-function applyImport(){
-  var done=0, skipped=0;
-  CLAUDE_PLAN.forEach(function(e,i){
-    if(state.imp.sel[i]===false)return;
-    var m=matchProject(e);
-    if(m.length!==1){skipped++;return;}
-    var p=m[0];
-    Object.keys(e.fields).forEach(function(k){
-      setField(p,k,e.fields[k]);
+/* ─── 2. 貼回 JSON ─────────────────────────────────────────── */
+
+function parsePlanText(txt){
+  if(!txt||!txt.trim())throw new Error("還沒貼上任何內容。");
+  var s=txt.trim(), cands=[];
+  var fences=s.match(/```[a-zA-Z]*\s*[\s\S]*?```/g);
+  if(fences)fences.forEach(function(b){
+    cands.push(b.replace(/^```[a-zA-Z]*\s*/,"").replace(/```$/,"").trim());
+  });
+  cands.push(s);
+  var i=s.indexOf("{"), j=s.lastIndexOf("}");
+  if(i>=0&&j>i)cands.push(s.slice(i,j+1));
+  var i2=s.indexOf("["), j2=s.lastIndexOf("]");
+  if(i2>=0&&j2>i2)cands.push(s.slice(i2,j2+1));
+
+  for(var k=0;k<cands.length;k++){
+    if(!cands[k])continue;
+    try{
+      var o=JSON.parse(cands[k]);
+      if(Array.isArray(o)&&o.length)return {projects:o,summary:null};
+      if(o&&Array.isArray(o.projects)&&o.projects.length)return {projects:o.projects,summary:o.summary||null};
+      if(o&&Array.isArray(o.plan)&&o.plan.length)return {projects:o.plan,summary:o.summary||null};
+      if(o&&(o.id||o.name))return {projects:[o],summary:null};
+    }catch(err){}
+  }
+  throw new Error("解析不出 JSON。請確認有把 Claude 回覆最後那段 ```json 完整貼進來(含最外層的大括號)。");
+}
+
+function normName(s){return (s||"").replace(/[\s·・\/\-—|,，。]/g,"");}
+
+function findTarget(row){
+  var byId=state.projects.filter(function(p){
+    return !p.closed&&row.id&&(p.id===row.id||p.notionId===row.id);
+  });
+  if(byId.length===1)return {p:byId[0],how:"id"};
+  if(!row.name)return {p:null,how:"none"};
+  var n=normName(row.name);
+  var exact=state.projects.filter(function(p){
+    return !p.closed&&!p.finalDone&&normName(p.name)===n;
+  });
+  if(exact.length===1)return {p:exact[0],how:"name"};
+  var loose=state.projects.filter(function(p){
+    if(p.closed||p.finalDone)return false;
+    var pn=normName(p.name);
+    return pn.indexOf(n)>=0||n.indexOf(pn)>=0;
+  });
+  if(loose.length===1)return {p:loose[0],how:"name-loose"};
+  return {p:null,how:loose.length>1?"ambiguous":"none"};
+}
+
+function cleanDate(v){
+  if(v===null||v===undefined)return null;
+  var s=String(v).trim();
+  if(!s||s==="null"||s==="-"||s==="無")return null;
+  var m=s.replace(/\//g,"-").match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(!m)return undefined;                       // undefined = 格式看不懂
+  return m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+}
+
+function expandRow(row){
+  var f={},warn=[];
+  function put(sKey,eKey,dKey,sVal,dVal){
+    var s=cleanDate(sVal),d=cleanDate(dVal);
+    if(s===undefined||d===undefined){warn.push(sKey+" 日期格式看不懂");return;}
+    if(s===null&&d===null)return;               // 沒給就不動原本的
+    f[sKey]=s||d; f[eKey]=d||s; f[dKey]=d||s;
+  }
+  put("cut1S","cut1E","cut1Due",row.cut1S,row.cut1Due);
+  put("v1S","v1E","v1Due",row.v1S,row.v1Due);
+  put("bizS","bizE","bizDue",row.bizS,row.bizDue);
+  var fd=cleanDate(row.finalDue);
+  if(fd===undefined)warn.push("finalDue 日期格式看不懂");
+  else if(fd!==null)f.finalDue=fd;
+  if(row.noCut1===true||row.noCut1===false)f.noCut1=row.noCut1;
+  if(row.noBiz===true||row.noBiz===false)f.noBiz=row.noBiz;
+  if(f.cut1S&&f.noCut1!==true)f.noCut1=false;
+  if(f.bizS&&f.noBiz!==true)f.noBiz=false;
+  return {fields:f,warn:warn};
+}
+
+var FIELD_LABEL={cut1S:"初剪起",cut1E:"初剪迄",cut1Due:"初剪交",
+                 v1S:"V1 起",v1E:"V1 迄",v1Due:"V1 交",
+                 bizS:"業配起",bizE:"業配迄",bizDue:"業配交",
+                 finalDue:"Final",noCut1:"無初剪",noBiz:"無業配"};
+
+function openImport(){
+  state.imp={text:"",rows:null,summary:null,err:null,sel:{}};
+  render();
+}
+function closeImport(){state.imp=null;render();}
+
+function parseImport(){
+  var ta=document.getElementById("imp-in");
+  if(ta)state.imp.text=ta.value;
+  try{
+    var got=parsePlanText(state.imp.text);
+    var rows=got.projects.map(function(r,i){
+      var t=findTarget(r), ex=expandRow(r), changes=[];
+      if(t.p){
+        Object.keys(ex.fields).forEach(function(k){
+          var oldV=(t.p[k]===null||t.p[k]===undefined)?"":t.p[k];
+          var newV=ex.fields[k];
+          var a=(typeof oldV==="boolean")?(oldV?"是":"否"):oldV;
+          var b=(typeof newV==="boolean")?(newV?"是":"否"):newV;
+          if(String(a)!==String(b))changes.push({k:k,old:a,nw:b});
+        });
+      }
+      return {i:i,row:r,target:t,fields:ex.fields,warn:ex.warn,changes:changes};
     });
+    state.imp.rows=rows;
+    state.imp.summary=got.summary;
+    state.imp.err=null;
+    rows.forEach(function(r){state.imp.sel[r.i]=!!(r.target.p&&r.changes.length);});
+  }catch(err){
+    state.imp.rows=null;
+    state.imp.err=String(err.message||err);
+  }
+  render();
+}
+
+function applyImport(){
+  var rows=state.imp.rows||[], done=0;
+  rows.forEach(function(r){
+    if(!r.target.p)return;
+    var p=r.target.p;
+    // 備註和 🚨 只是頁面上的提醒，不會寫回 Notion
+    if(r.row.flag||r.row.note){
+      state.planNotes[p.id]={flag:r.row.flag||"",note:r.row.note||""};
+    }
+    if(!state.imp.sel[r.i])return;
+    Object.keys(r.fields).forEach(function(k){setField(p,k,r.fields[k]);});
     done++;
   });
+  if(state.imp.summary)state.summary=state.imp.summary;
   state.imp=null;
-  if(done===0){
-    showToast("沒有帶入任何案 · 請確認專案名稱有對到");
-  } else {
-    showToast("已填入 "+done+" 案"+(skipped?"，"+skipped+" 案未對到":"")+" · 檢查後按「存回 Notion」");
+  if(done===0)showToast("沒有填入任何案");
+  else showToast("已填入 "+done+" 案 · 檢查甘特圖後按「存回 Notion」");
+}
+
+function renderImport(){
+  var m=state.imp;
+  var h='<div class="modal-overlay" onclick="if(event.target===this)closeImport()">';
+  h+='<div class="modal" style="max-width:700px">';
+  h+='<div class="modal-title">📥 貼上排程</div>';
+  h+='<div class="modal-sub">把 Claude 回覆裡的 json 貼進來 · 先預覽再填入</div>';
+
+  if(!m.rows){
+    h+='<div class="pnote">整則回覆直接貼也可以，會自動抓出裡面的 <b>```json</b>。</div>';
+    if(m.err)h+='<div class="imp-err">⚠ '+escapeHtml(m.err)+'</div>';
+    h+='<textarea class="pta" id="imp-in" rows="11" placeholder="在這裡貼上 Claude 的回覆…">'+escapeHtml(m.text||"")+'</textarea>';
+    h+='<div class="modal-btns">';
+    h+='<button class="btn" onclick="closeImport()">取消</button>';
+    h+='<button class="btn primary" onclick="parseImport()">解析並預覽</button>';
+    h+='</div></div></div>';
+    return h;
   }
+
+  var okCount=0;
+  m.rows.forEach(function(r){
+    var p=r.target.p, ok=!!p, hasChange=r.changes.length>0;
+    if(ok&&hasChange)okCount++;
+    h+='<div class="imp-item'+(ok?'':' miss')+'">';
+    h+='<div class="imp-check"><input type="checkbox"'+((m.sel[r.i]&&ok)?' checked':'')+((ok&&hasChange)?'':' disabled')+' onchange="state.imp.sel['+r.i+']=this.checked"></div>';
+    h+='<div>';
+    h+='<div class="imp-name">'+escapeHtml(r.row.name||"(未命名)")+(r.row.flag?' '+escapeHtml(r.row.flag):'');
+    if(!ok)h+=' <span class="imp-tag warn">'+(r.target.how==="ambiguous"?"對到多筆":"找不到對應專案")+'</span>';
+    else if(!hasChange)h+=' <span class="imp-tag same">日期沒變</span>';
+    else h+=' <span class="imp-tag ok">'+r.changes.length+' 項變更</span>';
+    h+='</div>';
+
+    if(ok)h+='<div class="imp-target">→ '+escapeHtml(p.name)+(p.airDate?' · '+p.airDate+' 上片':'')+(r.target.how==="id"?'':' ·(用名稱對到)')+'</div>';
+    else h+='<div class="imp-target">id：'+escapeHtml(String(r.row.id||"未提供"))+' · 這筆會被跳過</div>';
+
+    if(r.row.note)h+='<div class="imp-note2">'+escapeHtml(String(r.row.note))+'</div>';
+    if(r.warn.length)h+='<div class="imp-note2" style="color:var(--red)">⚠ '+escapeHtml(r.warn.join(" / "))+'</div>';
+
+    if(ok&&hasChange){
+      h+='<div class="imp-diff">';
+      r.changes.forEach(function(c){
+        h+='<div class="imp-d"><span class="k">'+(FIELD_LABEL[c.k]||c.k)+'</span>';
+        if(c.old)h+='<span class="old">'+escapeHtml(String(c.old))+'</span>';
+        h+='<span class="new">'+escapeHtml(String(c.nw))+'</span></div>';
+      });
+      h+='</div>';
+    }
+    h+='</div></div>';
+  });
+
+  if(m.summary){
+    h+='<div class="pnote">✅ 有抓到「排程概念說明」，填入後會顯示在甘特圖上方。</div>';
+  } else {
+    h+='<div class="pnote">這次的 JSON 沒有 <b>summary</b> 欄位，甘特圖上方就不會有排程說明。日期還是照填。</div>';
+  }
+  h+='<div class="modal-btns">';
+  h+='<button class="btn" onclick="state.imp.rows=null;render()" style="margin-right:auto">← 改貼別的</button>';
+  h+='<button class="btn" onclick="closeImport()">取消</button>';
+  h+='<button class="btn primary" onclick="applyImport()"'+(okCount===0?' disabled':'')+'>填入甘特圖'+(okCount?' ('+okCount+')':'')+'</button>';
+  h+='</div></div></div>';
+  return h;
+}
+
+/* ─── 3. 排程概念說明 ──────────────────────────────────────── */
+
+var SUM_LABEL=[["order","排序邏輯"],["peak","同時上限"],["gaps","空檔填補"],["biz","業配時間"]];
+
+function clearSummary(){
+  state.summary=null;
+  state.planNotes={};
+  render();
+}
+
+function renderSummary(){
+  var s=state.summary;
+  if(!s)return "";
+  var any=SUM_LABEL.some(function(x){return s[x[0]];});
+  if(!any)return "";
+  var h='<div class="sum">';
+  h+='<div class="sum-hd"><span>📌</span><span class="sum-title">排程概念說明</span>';
+  h+='<button class="sum-x" onclick="clearSummary()" title="清掉說明和 🚨 標記">✕ 清除</button></div>';
+  h+='<div class="sum-body">';
+  SUM_LABEL.forEach(function(x){
+    if(!s[x[0]])return;
+    h+='<div class="sum-i"><div class="sum-k">'+x[1]+'</div><div class="sum-v">'+escapeHtml(String(s[x[0]]))+'</div></div>';
+  });
+  h+='</div></div>';
+  return h;
 }
 
 load();
