@@ -113,6 +113,24 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 .toast{position:fixed;top:30px;right:30px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:4px;font-size:12px;z-index:300;font-family:inherit;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
 
+.imp-note{font-size:11.5px;color:var(--ink-soft);background:var(--yellow-lightest);border:0.5px solid var(--yellow-pale);border-radius:4px;padding:10px 12px;margin-bottom:14px;line-height:1.6}
+.imp-item{display:grid;grid-template-columns:22px 1fr;gap:8px;border:0.5px solid var(--line);border-radius:5px;padding:11px 13px;margin-bottom:8px;background:#fff}
+.imp-item.miss{background:#fdf6f5;border-color:#EDC9C7}
+.imp-item.miss .imp-name{color:var(--ink-light)}
+.imp-check{padding-top:2px}
+.imp-check input{cursor:pointer;margin:0}
+.imp-name{font-family:'Noto Serif TC',serif;font-size:13px;font-weight:500;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.imp-tag{font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:0.06em;padding:1.5px 7px;border-radius:9px;font-weight:500}
+.imp-tag.ok{background:var(--yellow-pale);color:var(--yellow-mid)}
+.imp-tag.warn{background:#fdece9;color:var(--red)}
+.imp-target{font-size:10.5px;color:var(--ink-light);margin-top:3px}
+.imp-dates{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.imp-chip{font-family:Inter,sans-serif;font-size:10px;font-variant-numeric:tabular-nums;padding:2.5px 8px;border-radius:3px;letter-spacing:0.02em}
+.imp-chip.c1{background:var(--c-cut1-bg);color:#8a5f1a}
+.imp-chip.c2{background:var(--c-v1-bg);color:#7d6413}
+.imp-chip.c3{background:var(--c-biz-bg);color:#6d5208}
+.imp-chip.c4{background:#efeade;color:var(--c-fin)}
+
 .loading{padding:60px;text-align:center;color:var(--ink-light);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px}
 .error{padding:30px;text-align:center;color:var(--red);font-size:13px}
 </style>
@@ -131,6 +149,7 @@ var state={
   ym:[new Date().getFullYear(),new Date().getMonth()+1],
   edits:{},
   modal:null,
+  imp:null,
   toast:null
 };
 
@@ -358,6 +377,7 @@ function render(){
   html+='</div>';
   if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
   html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
+  html+='<button class="btn" onclick="openImport()" title="把規劃好的排程一次填入下方甘特圖">📥 帶入排程</button>';
   html+='<button class="btn primary" id="save-btn-top" onclick="saveAll()" style="margin-left:auto" '+(dirty===0?'disabled':'')+'>💾 存回 Notion'+(dirty>0?' ('+dirty+')':'')+'</button>';
   html+='<div class="legend" style="margin-left:0;flex-basis:100%;margin-top:8px;padding-top:8px;border-top:0.5px dashed var(--line)">';
   [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
@@ -438,6 +458,9 @@ function render(){
     html+='</div></div></div>';
   }
   
+  // 帶入排程面板
+  if(state.imp){html+=renderImport();}
+  
   // Toast
   if(state.toast){html+='<div class="toast">'+escapeHtml(state.toast)+'</div>';}
   
@@ -459,6 +482,170 @@ function daysBetween(a,b){
   if(!da||!db)return null;
   var d=Math.round((db-da)/86400000)+1;
   return d>0?d:null;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   排程草案 · 2026-08-10 起可開工
+   要改日期，直接改下面的字串就好，格式 YYYY-MM-DD。
+   match = 對應 Notion 專案名的關鍵字，任一組全中就算對到。
+   ══════════════════════════════════════════════════════════════ */
+var CLAUDE_PLAN=[
+  {
+    name:"四角戀西班牙回顧", flag:"🚨🚨", air:"08/22",
+    match:[["四角","西班牙"],["四角戀"],["西班牙","回顧"]],
+    fields:{
+      cut1S:"2026-08-10", cut1E:"2026-08-12", cut1Due:"2026-08-12",
+      v1S:"2026-08-13",   v1E:"2026-08-19",   v1Due:"2026-08-19",
+      bizS:"2026-08-20",  bizE:"2026-08-20",  bizDue:"2026-08-20",
+      finalDue:"2026-08-21", noCut1:false, noBiz:false
+    }
+  },
+  {
+    name:"阿拉斯加 上集", flag:"🚨", air:"09/03",
+    match:[["阿拉斯加","上集"],["阿拉斯加","上"]],
+    fields:{
+      cut1S:"2026-08-10", cut1E:"2026-08-14", cut1Due:"2026-08-14",
+      v1S:"2026-08-19",   v1E:"2026-08-28",   v1Due:"2026-08-28",
+      finalDue:"2026-09-02", noCut1:false
+    }
+  },
+  {
+    name:"社長接體", flag:"", air:"10/01",
+    match:[["社長"],["小冬瓜"]],
+    fields:{
+      cut1S:"2026-08-24", cut1E:"2026-08-28", cut1Due:"2026-08-28",
+      v1S:"2026-09-07",   v1E:"2026-09-16",   v1Due:"2026-09-16",
+      finalDue:"2026-09-30", noCut1:false
+    }
+  },
+  {
+    name:"阿拉斯加 下集", flag:"", air:"10/05",
+    match:[["阿拉斯加","下集"],["阿拉斯加","下"]],
+    fields:{
+      cut1S:"2026-08-31", cut1E:"2026-09-04", cut1Due:"2026-09-04",
+      v1S:"2026-09-14",   v1E:"2026-09-23",   v1Due:"2026-09-23",
+      finalDue:"2026-10-02", noCut1:false
+    }
+  },
+  {
+    name:"洛杉磯週記", flag:"", air:"10/26",
+    match:[["洛杉磯","週記"],["洛杉磯","周記"],["週記"]],
+    fields:{
+      cut1S:"2026-09-21", cut1E:"2026-09-25", cut1Due:"2026-09-25",
+      v1S:"2026-10-05",   v1E:"2026-10-15",   v1Due:"2026-10-15",
+      finalDue:"2026-10-23", noCut1:false
+    }
+  },
+  {
+    name:"洛杉磯三餐便利商店", flag:"", air:"11/09",
+    match:[["洛杉磯","三餐"],["便利商店"],["三餐"]],
+    fields:{
+      cut1S:"2026-10-05", cut1E:"2026-10-09", cut1Due:"2026-10-09",
+      v1S:"2026-10-19",   v1E:"2026-10-30",   v1Due:"2026-10-30",
+      finalDue:"2026-11-06", noCut1:false
+    }
+  }
+];
+
+function normName(s){return (s||"").replace(/[\s·・\/\-—|,，。]/g,"");}
+function matchProject(entry){
+  return state.projects.filter(function(p){
+    if(p.closed||p.finalDone)return false;
+    var n=normName(p.name)+normName(p.client);
+    return entry.match.some(function(g){
+      return g.every(function(k){return n.indexOf(k)>=0;});
+    });
+  });
+}
+
+function openImport(){
+  var sel={};
+  CLAUDE_PLAN.forEach(function(e,i){sel[i]=true;});
+  state.imp={sel:sel};
+  render();
+}
+function closeImport(){state.imp=null;render();}
+function impToggleAll(v){
+  CLAUDE_PLAN.forEach(function(e,i){state.imp.sel[i]=v;});
+  render();
+}
+
+function renderImport(){
+  var VISIBLE=["等待素材","待確認","初剪待執行"];
+  var h='<div class="modal-overlay" onclick="if(event.target===this)closeImport()">';
+  h+='<div class="modal" style="max-width:660px">';
+  h+='<div class="modal-title">📥 帶入排程</div>';
+  h+='<div class="modal-sub">2026-08-10 起可開工 · 依上片日由近至遠 · 共 '+CLAUDE_PLAN.length+' 案</div>';
+  h+='<div class="imp-note">勾選要帶入的案子，按「填入甘特圖」。日期只是暫存在這個頁面，看過甘特圖沒問題，再按上方的「💾 存回 Notion」才會真的寫回。</div>';
+
+  var okCount=0;
+  CLAUDE_PLAN.forEach(function(e,i){
+    var m=matchProject(e);
+    var ok=(m.length===1);
+    if(ok)okCount++;
+    var checked=ok&&(state.imp.sel[i]!==false);
+    var f=e.fields;
+
+    h+='<div class="imp-item'+(ok?'':' miss')+'">';
+    h+='<div class="imp-check"><input type="checkbox"'+(checked?' checked':'')+(ok?'':' disabled')+' onchange="state.imp.sel['+i+']=this.checked"></div>';
+    h+='<div>';
+    h+='<div class="imp-name">'+escapeHtml(e.name)+(e.flag?' '+e.flag:'');
+    if(ok){
+      h+=' <span class="imp-tag ok">已對到</span>';
+    } else if(m.length===0){
+      h+=' <span class="imp-tag warn">找不到對應專案</span>';
+    } else {
+      h+=' <span class="imp-tag warn">對到 '+m.length+' 筆，請手動處理</span>';
+    }
+    h+='</div>';
+
+    if(ok){
+      var p=m[0];
+      var note=escapeHtml(p.name);
+      if(p.status&&VISIBLE.indexOf(p.status)<0)note+='（狀態「'+escapeHtml(p.status)+'」不在甘特圖顯示範圍，仍會寫入）';
+      h+='<div class="imp-target">→ '+note+'</div>';
+    } else {
+      h+='<div class="imp-target">Notion 上的專案名可能不一樣，改一下 CLAUDE_PLAN 裡的 match 關鍵字就能對到</div>';
+    }
+
+    h+='<div class="imp-dates">';
+    if(f.cut1S)h+='<span class="imp-chip c1">初剪 '+fmt(f.cut1S)+'–'+fmt(f.cut1Due)+'</span>';
+    if(f.v1S)h+='<span class="imp-chip c2">V1/ES '+fmt(f.v1S)+'–'+fmt(f.v1Due)+'</span>';
+    if(f.bizS)h+='<span class="imp-chip c3">業配 '+fmt(f.bizS)+'</span>';
+    if(f.finalDue)h+='<span class="imp-chip c4">Final '+fmt(f.finalDue)+'</span>';
+    h+='<span class="imp-chip" style="background:transparent;color:var(--ink-light)">上片 '+e.air+'</span>';
+    h+='</div>';
+    h+='</div></div>';
+  });
+
+  h+='<div class="modal-btns">';
+  h+='<button class="btn" onclick="impToggleAll(true)" style="margin-right:auto">全選</button>';
+  h+='<button class="btn" onclick="impToggleAll(false)">全不選</button>';
+  h+='<button class="btn" onclick="closeImport()">取消</button>';
+  h+='<button class="btn primary" onclick="applyImport()"'+(okCount===0?' disabled':'')+'>填入甘特圖</button>';
+  h+='</div></div></div>';
+  return h;
+}
+
+function applyImport(){
+  var done=0, skipped=0;
+  CLAUDE_PLAN.forEach(function(e,i){
+    if(state.imp.sel[i]===false)return;
+    var m=matchProject(e);
+    if(m.length!==1){skipped++;return;}
+    var p=m[0];
+    Object.keys(e.fields).forEach(function(k){
+      setField(p,k,e.fields[k]);
+    });
+    done++;
+  });
+  state.imp=null;
+  if(done===0){
+    showToast("沒有帶入任何案 · 請確認專案名稱有對到");
+  } else {
+    showToast("已填入 "+done+" 案"+(skipped?"，"+skipped+" 案未對到":"")+" · 檢查後按「存回 Notion」");
+  }
 }
 
 load();
