@@ -341,6 +341,48 @@ function buildRow(p,yr,mo,dim){
   return{bars:bars,dots:dots};
 }
 
+/* 依照排程最遠的日期，算出甘特圖要畫幾個月(最少 2、最多 12) */
+function ganttMonths(visible,yr,mo){
+  var last=null;
+  visible.forEach(function(p){
+    var keys=["v1S","v1E","v1Due","finalDue"];
+    if(!p.noCut1)keys=keys.concat(["cut1S","cut1E","cut1Due"]);
+    if(!p.noBiz)keys=keys.concat(["bizS","bizE","bizDue"]);
+    keys.forEach(function(k){
+      var v=getField(p,k);if(!v)return;
+      var d=toDate(v);if(!d)return;
+      if(!last||d>last)last=d;
+    });
+  });
+  var n=2;
+  if(last){
+    var diff=(last.getFullYear()-yr)*12+(last.getMonth()+1-mo)+1;
+    if(diff>n)n=diff;
+  }
+  if(n>12)n=12;
+  return n;
+}
+
+/* 從起始年月往後展開 n 個月，回傳 [[年,月],…] */
+function monthList(yr,mo,n){
+  var out=[];
+  for(var i=0;i<n;i++){
+    var y2=yr,m2=mo+i;
+    while(m2>12){m2-=12;y2++;}
+    out.push([y2,m2]);
+  }
+  return out;
+}
+
+/* 月份導覽列的文字，例如「2026年 7–10月」或「2026年12月 – 2027年2月」 */
+function monthRangeLabel(list){
+  var a=list[0],b=list[list.length-1];
+  if(a[0]===b[0]){
+    return a[0]+"年 "+a[1]+(list.length>1?"–"+b[1]:"")+"月";
+  }
+  return a[0]+"年"+a[1]+"月 – "+b[0]+"年"+b[1]+"月";
+}
+
 function renderGanttMonth(visible,yr,mo,now){
   var dim=new Date(yr,mo,0).getDate();
   var todayCol=(now.getFullYear()===yr&&now.getMonth()+1===mo)?now.getDate():null;
@@ -393,7 +435,6 @@ function render(){
   if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
   
   var yr=state.ym[0],mo=state.ym[1];
-  var yr2=yr,mo2=mo+1;if(mo2>12){mo2=1;yr2++;}
   var now=new Date();
   
   var INCLUDE=["等待素材","待確認","初剪待執行"];
@@ -401,6 +442,8 @@ function render(){
     if(p.closed||p.finalDone)return false;
     return INCLUDE.indexOf(p.status)>=0;
   });
+  
+  var mList=monthList(yr,mo,ganttMonths(visible,yr,mo));
   
   var html='';
   html+='<div class="eyebrow">Editing Schedule Planner</div>';
@@ -411,7 +454,7 @@ function render(){
   html+='<div class="bar">';
   html+='<div class="month-nav">';
   html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
-  html+='<span class="month-label">'+yr+'年 '+mo+'月 / '+mo2+'月</span>';
+  html+='<span class="month-label">'+monthRangeLabel(mList)+'</span>';
   html+='<button class="btn" onclick="changeYm(1)">›</button>';
   html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
   html+='</div>';
@@ -435,8 +478,9 @@ function render(){
     return;
   }
   
-  html+=renderGanttMonth(visible,yr,mo,now);
-  html+=renderGanttMonth(visible,yr2,mo2,now);
+  mList.forEach(function(ym){
+    html+=renderGanttMonth(visible,ym[0],ym[1],now);
+  });
   
   // 存回 bar
   if(dirty>0){
@@ -758,6 +802,15 @@ function refreshPrompt(){
   var c=document.getElementById("exp-count");
   if(c)c.textContent=buildPrompt().length+" 字";
 }
+/* 複製成功後直接接到「貼上排程」，不用自己關掉再開 */
+function gotoImport(){
+  state.exp=null;
+  openImport();
+  setTimeout(function(){
+    var el=document.getElementById("imp-in");
+    if(el)el.focus();
+  },60);
+}
 function copyPrompt(){
   var ta=document.getElementById("exp-out");
   if(!ta)return;
@@ -765,13 +818,15 @@ function copyPrompt(){
   ta.focus();ta.select();
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(function(){
-      showToast("✅ 已複製 · 貼給 Claude 即可");
+      showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");
+      gotoImport();
     },function(){showToast("複製失敗 · 請手動全選複製");});
     return;
   }
   var ok=false;
   try{ok=document.execCommand("copy");}catch(err){}
-  showToast(ok?"✅ 已複製 · 貼給 Claude 即可":"請手動全選複製");
+  if(ok){showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");gotoImport();}
+  else{showToast("請手動全選複製");}
 }
 
 function renderExport(){
