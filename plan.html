@@ -341,48 +341,6 @@ function buildRow(p,yr,mo,dim){
   return{bars:bars,dots:dots};
 }
 
-/* 依照排程最遠的日期，算出甘特圖要畫幾個月(最少 2、最多 12) */
-function ganttMonths(visible,yr,mo){
-  var last=null;
-  visible.forEach(function(p){
-    var keys=["v1S","v1E","v1Due","finalDue"];
-    if(!p.noCut1)keys=keys.concat(["cut1S","cut1E","cut1Due"]);
-    if(!p.noBiz)keys=keys.concat(["bizS","bizE","bizDue"]);
-    keys.forEach(function(k){
-      var v=getField(p,k);if(!v)return;
-      var d=toDate(v);if(!d)return;
-      if(!last||d>last)last=d;
-    });
-  });
-  var n=2;
-  if(last){
-    var diff=(last.getFullYear()-yr)*12+(last.getMonth()+1-mo)+1;
-    if(diff>n)n=diff;
-  }
-  if(n>12)n=12;
-  return n;
-}
-
-/* 從起始年月往後展開 n 個月，回傳 [[年,月],…] */
-function monthList(yr,mo,n){
-  var out=[];
-  for(var i=0;i<n;i++){
-    var y2=yr,m2=mo+i;
-    while(m2>12){m2-=12;y2++;}
-    out.push([y2,m2]);
-  }
-  return out;
-}
-
-/* 月份導覽列的文字，例如「2026年 7–10月」或「2026年12月 – 2027年2月」 */
-function monthRangeLabel(list){
-  var a=list[0],b=list[list.length-1];
-  if(a[0]===b[0]){
-    return a[0]+"年 "+a[1]+(list.length>1?"–"+b[1]:"")+"月";
-  }
-  return a[0]+"年"+a[1]+"月 – "+b[0]+"年"+b[1]+"月";
-}
-
 function renderGanttMonth(visible,yr,mo,now){
   var dim=new Date(yr,mo,0).getDate();
   var todayCol=(now.getFullYear()===yr&&now.getMonth()+1===mo)?now.getDate():null;
@@ -435,6 +393,7 @@ function render(){
   if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
   
   var yr=state.ym[0],mo=state.ym[1];
+  var yr2=yr,mo2=mo+1;if(mo2>12){mo2=1;yr2++;}
   var now=new Date();
   
   var INCLUDE=["等待素材","待確認","初剪待執行"];
@@ -442,8 +401,6 @@ function render(){
     if(p.closed||p.finalDone)return false;
     return INCLUDE.indexOf(p.status)>=0;
   });
-  
-  var mList=monthList(yr,mo,ganttMonths(visible,yr,mo));
   
   var html='';
   html+='<div class="eyebrow">Editing Schedule Planner</div>';
@@ -454,7 +411,7 @@ function render(){
   html+='<div class="bar">';
   html+='<div class="month-nav">';
   html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
-  html+='<span class="month-label">'+monthRangeLabel(mList)+'</span>';
+  html+='<span class="month-label">'+yr+'年 '+mo+'月 / '+mo2+'月</span>';
   html+='<button class="btn" onclick="changeYm(1)">›</button>';
   html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
   html+='</div>';
@@ -478,9 +435,8 @@ function render(){
     return;
   }
   
-  mList.forEach(function(ym){
-    html+=renderGanttMonth(visible,ym[0],ym[1],now);
-  });
+  html+=renderGanttMonth(visible,yr,mo,now);
+  html+=renderGanttMonth(visible,yr2,mo2,now);
   
   // 存回 bar
   if(dirty>0){
@@ -589,12 +545,27 @@ var PLAN_RULES =
 "- 若案件處於「等待素材」，工作開始日不得早於可工作期間起始日；可工作期間未定者，請倒推出「素材最晚到齊日」\n" +
 "- 排程時優先處理上片日較近的案件，等待素材/等待回饋的空檔可用來插入其他案件或短影";
 
+/* 「完整時程」的開始/結束欄位名。自動偵測不到時，把正確名稱填在這裡，
+   例如 WORK_RANGE_OVERRIDE = ["workS","workE"];
+   要查名稱：在排程頁的 Console 執行  console.log(state.projects[0])           */
+var WORK_RANGE_OVERRIDE = null;
+var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","workEnd"],
+                             ["fullS","fullE"],["planS","planE"],
+                             ["schedS","schedE"],["startDate","endDate"],
+                             ["工作開始","工作結束"]];
+
 // 這一份設定在分頁關掉前都留著，不用每次重填
 var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}};
 
 var STAGE_FIELDS = ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"];
 var KNOWN_KEYS = ["id","notionId","name","client","status","airDate","closed",
                   "cut1Done","v1Done","bizDone","finalDone","noCut1","noBiz"].concat(STAGE_FIELDS);
+// 排程用不到的欄位(金額、看板位置等)，不要塞進 Prompt
+var SKIP_KEYS = ["type","kind","類型","length","note","month","order",
+                 "fee","feeItems","costItems","taxCut","overRate","kanbanPos",
+                 "editS","editE","workStart","workEnd","availStart","availEnd",
+                 "workS","workE","fullS","fullE","planS","planE","schedS","schedE",
+                 "startDate","endDate"];
 
 function todayStr(){
   var d=new Date();
@@ -606,18 +577,46 @@ function md(s){
   return p.length>=3?(p[1]+"/"+p[2]):s;
 }
 
+// airDate 可能是 "10/01" 這種沒有年份的格式，補上年份才排得對
+function airKey(p){
+  var a=String(p.airDate||"").trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(a))return a;
+  var m=a.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if(!m)return "9999-99-99";
+  var yr=(p.month&&/^\d{4}/.test(p.month))?p.month.slice(0,4)
+         :String(new Date().getFullYear());
+  var key=yr+"-"+String(m[1]).padStart(2,"0")+"-"+String(m[2]).padStart(2,"0");
+  // 上片日比工作月份還早 → 應該是隔年
+  if(p.month&&/^\d{4}-\d{2}$/.test(p.month)&&key<p.month+"-01"){
+    key=(parseInt(yr,10)+1)+key.slice(4);
+  }
+  return key;
+}
+
 function pendingProjects(){
   var INCLUDE=["等待素材","待確認","初剪待執行"];
   return state.projects.filter(function(p){
     if(p.closed||p.finalDone)return false;
     return INCLUDE.indexOf(p.status)>=0;
   }).sort(function(a,b){
-    var x=a.airDate||"9999-99-99", y=b.airDate||"9999-99-99";
+    var x=airKey(a), y=airKey(b);
     return x<y?-1:(x>y?1:0);
   });
 }
 
 /* ─── 已排好的案：略過不重排，但要算進額度 ─────────────────── */
+
+function workRangeFields(){
+  if(WORK_RANGE_OVERRIDE)return WORK_RANGE_OVERRIDE;
+  var probe=state.projects[0];
+  if(!probe)return null;
+  for(var i=0;i<WORK_RANGE_CANDIDATES.length;i++){
+    var c=WORK_RANGE_CANDIDATES[i];
+    if(Object.prototype.hasOwnProperty.call(probe,c[0])&&
+       Object.prototype.hasOwnProperty.call(probe,c[1]))return c;
+  }
+  return null;
+}
 
 function schedDates(p){
   return [p.cut1S,p.cut1E,p.cut1Due,p.v1S,p.v1E,p.v1Due,p.bizS,p.bizE,p.bizDue]
@@ -689,8 +688,13 @@ function progressLine(p){
   return bits.join(" · ");
 }
 function workWindow(p){
-  var s=p.workStart||p.availStart||p.workS||p["可工作起"]||"";
-  var e=p.workEnd||p.availEnd||p.workE||p["可工作迄"]||"";
+  var rf=workRangeFields();
+  var s=rf?(p[rf[0]]||""):"";
+  var e=rf?(p[rf[1]]||""):"";
+  if(!s&&!e){
+    s=p.editS||p.workStart||p.availStart||p.workS||"";
+    e=p.editE||p.workEnd||p.availEnd||p.workE||"";
+  }
   return (s||"?")+" → "+(e||"?");
 }
 function projType(p){
@@ -703,10 +707,12 @@ function projBlock(p,i){
   t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
   t+="- 可工作期間: "+workWindow(p)+"\n";
   t+="- 進度: "+progressLine(p)+"\n";
+  if(p.length)t+="- 片長: "+p.length+"\n";
+  if(p.note)t+="- 備註: "+String(p.note).replace(/\n/g," ")+"\n";
   t+="- id: `"+p.id+"`\n";
   var extras=Object.keys(p).filter(function(k){
     if(KNOWN_KEYS.indexOf(k)>=0)return false;
-    if(["type","kind","類型","workStart","workEnd","availStart","availEnd","workS","workE"].indexOf(k)>=0)return false;
+    if(SKIP_KEYS.indexOf(k)>=0)return false;
     var v=p[k];
     return v!==null&&v!==undefined&&v!==""&&typeof v!=="object";
   });
@@ -730,7 +736,10 @@ function buildPrompt(){
   if(PLAN_PREFS.extra&&PLAN_PREFS.extra.trim()){
     t+="- 額外狀況："+PLAN_PREFS.extra.trim()+"\n";
   }
-  t+="\n## 排程規則\n"+PLAN_RULES+"\n\n";
+  var shorts=sp.open.filter(function(p){return /短影|短片|shorts/i.test(projType(p));});
+  t+="\n## 排程規則\n"+PLAN_RULES+"\n";
+  if(shorts.length)t+="\n(這次要排的案裡有 "+shorts.length+" 個短影，可直接安排，不佔長片額度)\n";
+  t+="\n";
 
   if(sp.locked.length){
     t+="## A. 已經排好的案（不要重排）\n";
@@ -802,15 +811,6 @@ function refreshPrompt(){
   var c=document.getElementById("exp-count");
   if(c)c.textContent=buildPrompt().length+" 字";
 }
-/* 複製成功後直接接到「貼上排程」，不用自己關掉再開 */
-function gotoImport(){
-  state.exp=null;
-  openImport();
-  setTimeout(function(){
-    var el=document.getElementById("imp-in");
-    if(el)el.focus();
-  },60);
-}
 function copyPrompt(){
   var ta=document.getElementById("exp-out");
   if(!ta)return;
@@ -818,15 +818,13 @@ function copyPrompt(){
   ta.focus();ta.select();
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(function(){
-      showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");
-      gotoImport();
+      showToast("✅ 已複製 · 貼給 Claude 即可");
     },function(){showToast("複製失敗 · 請手動全選複製");});
     return;
   }
   var ok=false;
   try{ok=document.execCommand("copy");}catch(err){}
-  if(ok){showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");gotoImport();}
-  else{showToast("請手動全選複製");}
+  showToast(ok?"✅ 已複製 · 貼給 Claude 即可":"請手動全選複製");
 }
 
 function renderExport(){
@@ -969,10 +967,24 @@ function expandRow(row){
   if(row.noBiz===true||row.noBiz===false)f.noBiz=row.noBiz;
   if(f.cut1S&&f.noCut1!==true)f.noCut1=false;
   if(f.bizS&&f.noBiz!==true)f.noBiz=false;
+
+  // 完整時程：跟頁面上的算法一致(最早的階段日 → 最晚的交件日)
+  var rf=workRangeFields();
+  if(rf){
+    var all=[f.cut1S,f.v1S,f.bizS,f.cut1Due,f.v1Due,f.bizDue,f.finalDue]
+            .filter(function(x){return !!x;}).sort();
+    if(all.length){
+      f[rf[0]]=all[0];
+      f[rf[1]]=all[all.length-1];
+    }
+  }
   return {fields:f,warn:warn};
 }
 
-var FIELD_LABEL={cut1S:"初剪起",cut1E:"初剪迄",cut1Due:"初剪交",
+var FIELD_LABEL={editS:"工作起",editE:"工作迄",workS:"工作起",workE:"工作迄",workStart:"工作起",workEnd:"工作迄",
+                 fullS:"工作起",fullE:"工作迄",planS:"工作起",planE:"工作迄",
+                 schedS:"工作起",schedE:"工作迄",startDate:"工作起",endDate:"工作迄",
+                 cut1S:"初剪起",cut1E:"初剪迄",cut1Due:"初剪交",
                  v1S:"V1 起",v1E:"V1 迄",v1Due:"V1 交",
                  bizS:"業配起",bizE:"業配迄",bizDue:"業配交",
                  finalDue:"Final",noCut1:"無初剪",noBiz:"無業配"};
@@ -1080,6 +1092,10 @@ function renderImport(){
     h+='</div></div>';
   });
 
+  if(!workRangeFields()){
+    h+='<div class="imp-err">⚠ 偵測不到「完整時程」的開始/結束欄位，這兩格不會被寫回 Notion。<br>'+
+       '在 Console 執行 <b>console.log(state.projects[0])</b> 找出欄位名，填進檔案最上面的 <b>WORK_RANGE_OVERRIDE</b> 就會自動補上。</div>';
+  }
   if(m.summary){
     h+='<div class="pnote">✅ 有抓到「排程概念說明」，填入後會顯示在甘特圖上方。</div>';
   } else {
