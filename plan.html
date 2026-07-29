@@ -22,6 +22,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .page{width:100%;max-width:1100px;background:var(--paper);padding:28px 36px 32px;position:relative;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06)}
 .eyebrow{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.35em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:8px}
 .title-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px;flex-wrap:wrap}
+.title-left{display:flex;align-items:center;gap:10px}
+.home-link{text-decoration:none;font-size:19px;line-height:1;opacity:0.85;transition:opacity 0.15s}
+.home-link:hover{opacity:1}
 .title{font-family:'Noto Serif TC',serif;font-size:22px;font-weight:500;color:var(--ink);letter-spacing:-0.01em}
 .title-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-light);font-weight:400}
 .subtitle{font-size:12px;color:var(--ink-soft);margin-bottom:18px}
@@ -36,7 +39,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .btn.danger{color:var(--red);border-color:var(--red)}
 .btn.danger:hover{background:#fdf0ef}
 .month-nav{display:flex;align-items:center;gap:8px}
-.month-label{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);min-width:96px;text-align:center}
+.month-label{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);min-width:190px;text-align:center;white-space:nowrap}
 .dirty-badge{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--red);letter-spacing:0.02em}
 .legend{display:flex;flex-wrap:wrap;gap:7px;margin-left:auto;font-size:10px;color:var(--ink-light)}
 .legend>div{display:flex;align-items:center;gap:4px}
@@ -392,8 +395,14 @@ function render(){
   if(state.loading){root.innerHTML='<div class="loading">讀取 Notion 資料中…</div>';return;}
   if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
   
-  var yr=state.ym[0],mo=state.ym[1];
-  var yr2=yr,mo2=mo+1;if(mo2>12){mo2=1;yr2++;}
+  var MONTH_SPAN=3;
+  var months=[];
+  for(var mi=0;mi<MONTH_SPAN;mi++){
+    var _y=state.ym[0],_m=state.ym[1]+mi;
+    while(_m>12){_m-=12;_y++;}
+    months.push([_y,_m]);
+  }
+  var yr=months[0][0],mo=months[0][1];
   var now=new Date();
   
   var INCLUDE=["等待素材","待確認","初剪待執行"];
@@ -404,14 +413,15 @@ function render(){
   
   var html='';
   html+='<div class="eyebrow">Editing Schedule Planner</div>';
-  html+='<div class="title-row"><h1 class="title">📋 排程規劃</h1><span class="title-sub">Schedule Planning</span></div>';
+  html+='<div class="title-row"><div class="title-left"><h1 class="title">📋 排程規劃</h1><a class="home-link" href="https://finn-editor.vercel.app/" title="回主頁">🏠</a></div><span class="title-sub">Schedule Planning</span></div>';
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
   
   var dirty=dirtyCount();
   html+='<div class="bar">';
   html+='<div class="month-nav">';
   html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
-  html+='<span class="month-label">'+yr+'年 '+mo+'月 / '+mo2+'月</span>';
+  var mLabel=months.map(function(m,i){return (i===0||m[0]!==months[i-1][0])?(m[0]+'年 '+m[1]+'月'):(m[1]+'月');}).join(' / ');
+  html+='<span class="month-label">'+mLabel+'</span>';
   html+='<button class="btn" onclick="changeYm(1)">›</button>';
   html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
   html+='</div>';
@@ -435,8 +445,9 @@ function render(){
     return;
   }
   
-  html+=renderGanttMonth(visible,yr,mo,now);
-  html+=renderGanttMonth(visible,yr2,mo2,now);
+  months.forEach(function(m){
+    html+=renderGanttMonth(visible,m[0],m[1],now);
+  });
   
   // 存回 bar
   if(dirty>0){
