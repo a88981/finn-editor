@@ -2059,7 +2059,7 @@ function ClientMgr(props){
         h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
           saveState==="saving"&&h("span",{style:{fontSize:11,color:C.txt3}},"\u23f3 \u540c\u6b65\u4e2d\u2026"),
           saveState==="done"&&h("span",{style:{fontSize:11,color:C.ok}},"\u2714 \u5df2\u540c\u6b65"),
-          h("button",{onClick:onClose,style:{background:"none",border:"none",color:C.txt3,fontSize:20,cursor:"pointer"}}," ")
+          h("button",{onClick:onClose,style:{background:"none",border:"none",color:C.txt3,fontSize:20,cursor:"pointer"}},"\u00d7")
         )
       ),
       h("div",{style:{fontSize:10,color:C.txt3,marginBottom:14,letterSpacing:"0.04em"}},"\u62d6\u62c9 \u22ee\u22ee \u8abf\u5e8f \u00b7 \u9ede\u540d\u7a31\u53ef\u7de8\u8f2f \u00b7 \u9ede\u8272\u584a\u9078\u984f\u8272 \u00b7 \u8b8a\u66f4\u81ea\u52d5\u540c\u6b65"),
@@ -2093,7 +2093,7 @@ function ClientMgr(props){
                     h("button",{onClick:function(e){e.stopPropagation();remove(c);setConfirmDel(null);},style:{background:C.err,color:"#fff",border:"none",borderRadius:2,padding:"2px 7px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},"\u522a"),
                     h("button",{onClick:function(e){e.stopPropagation();setConfirmDel(null);},style:{background:"transparent",color:C.txt3,border:"0.5px solid "+C.brd,borderRadius:2,padding:"2px 7px",fontSize:10,cursor:"pointer",fontFamily:"inherit"}},"\u53d6")
                   )
-                : h("button",{onClick:function(e){e.stopPropagation();setConfirmDel(c);},style:{background:"transparent",border:"none",color:C.txt3,cursor:"pointer",fontSize:13,padding:"0 4px",lineHeight:1,fontFamily:"inherit",borderRadius:3,flexShrink:0},title:"\u522a\u9664"}," ")
+                : h("button",{onClick:function(e){e.stopPropagation();setConfirmDel(c);},style:{background:"transparent",border:"none",color:C.txt3,cursor:"pointer",fontSize:13,padding:"0 4px",lineHeight:1,fontFamily:"inherit",borderRadius:3,flexShrink:0},title:"\u522a\u9664"},"\u00d7")
             )
           );
         })
@@ -2107,7 +2107,7 @@ function ClientMgr(props){
         return h("div",{onClick:function(e){e.stopPropagation();},style:{marginBottom:10}},
           h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:10,color:C.txt3,marginBottom:6,padding:"0 2px",letterSpacing:"0.04em"}},
             h("span",null,"\u8272\u76e4 \u2190 \u70ba ",h("span",{style:{color:C.txt,fontWeight:700}},pickerFor)," \u6311\u9078"),
-            h("span",{onClick:function(){setPickerFor(null);},style:{cursor:"pointer",fontSize:13}}," ")
+            h("span",{onClick:function(){setPickerFor(null);},style:{cursor:"pointer",fontSize:13}},"\u00d7")
           ),
           h("div",{style:{background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:10,boxShadow:"0 4px 12px rgba(0,0,0,0.05)",display:"grid",gridTemplateColumns:"repeat(15,1fr)",gap:5}},
             PALETTE.map(function(col){return h("div",{key:col,onClick:function(){setColor(pickerFor,col);},title:col,style:{aspectRatio:"1",borderRadius:"50%",background:col,cursor:"pointer",border:currColor===col?"3px solid "+C.txt:"2px solid transparent",boxSizing:"border-box",transition:"transform 0.1s"},onMouseEnter:function(e){e.currentTarget.style.transform="scale(1.2)";},onMouseLeave:function(e){e.currentTarget.style.transform="none";}});})
@@ -2120,7 +2120,7 @@ function ClientMgr(props){
 
 // ── URGENT BANNER ─────────────────────────────────────────────────────────────
 function UrgentBanner(props){
-  var projects=props.projects,onEdit=props.onEdit;
+  var projects=props.projects,onEdit=props.onEdit,cColors=props.cColors||{};
   var urgent=[];
   var TODO_ST=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   projects.filter(function(p){return!p.closed&&p.status!=="\u66ab\u7de9"&&p.status!=="\u5f85\u78ba\u8a8d";}).forEach(function(p){
@@ -2155,7 +2155,13 @@ function UrgentBanner(props){
       var color=u.d<0?C.err:u.d===0?C.wrn:C.acc;
       var text=u.d<0?"\u903e\u671f"+Math.abs(u.d)+"\u5929":u.d===0?"\u4eca\u5929":(u.d===1?"\u660e\u5929":u.d+"\u5929\u5f8c");
       var verb=u.kind==="start"?"\u8d77":"\u4ea4";
-      return h("span",{key:i,onClick:function(){onEdit(u.p);},style:{fontSize:11,color:color,cursor:"pointer",fontWeight:700,background:"rgba(255,255,255,0.7)",borderRadius:4,padding:"2px 8px",border:"1px solid "+color+"44"}},text+verb+"["+u.label+"] "+u.p.name);
+      var cName=(u.p.client&&u.p.client!=="-")?u.p.client:"";
+      var cCol=cColors[u.p.client]||color;
+      return h("span",{key:i,onClick:function(){onEdit(u.p);},style:{fontSize:11,color:color,cursor:"pointer",fontWeight:700,background:"rgba(255,255,255,0.7)",borderRadius:4,padding:"2px 8px",border:"1px solid "+color+"44",display:"inline-flex",alignItems:"center",gap:2}},
+        h("span",null,text+verb+"["+u.label+"]"),
+        cName?h("span",{style:{color:cCol,fontWeight:700}},"\u3010"+cName+"\u3011"):null,
+        h("span",null,u.p.name)
+      );
     })
   );
 }
@@ -2467,7 +2473,7 @@ function App(){
     showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(c,cc){return saveClients({clients:c||activeClients,colors:cc||activeColors});},onClose:function(){setShowCM(false);},onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
     ghost&&h("div",{onClick:function(){setGhost(false);},style:{background:"#2c2820",color:"#f0d978",padding:"6px 14px",fontSize:11,fontWeight:600,textAlign:"center",letterSpacing:"0.05em",cursor:"pointer"}},"\ud83d\udc7b \u9b3c\u5f71\u6a21\u5f0f\u555f\u7528\u4e2d \u00b7 \u5ba2\u6236/\u5c08\u6848\u540d/\u91d1\u984d\u5747\u5df2\u96b1\u85cf \u00b7 \u9ede\u9019\u908a\u95dc\u9589"),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 12px 32px"}},
-      view==="kanban"&&h(UrgentBanner,{projects:displayProjects,onEdit:setModal}),
+      view==="kanban"&&h(UrgentBanner,{projects:displayProjects,onEdit:setModal,cColors:cColors||{}}),
       view==="kanban"&&h(Kanban,{projects:displayProjects,onEdit:setModal,onSC:scP,onToggle:togP,onStatus:setStatusP,onOrder:setOrderP,cColors:displayColors,onReorder:reorderP,showTodo:showTodo,onDuplicate:dupP}),
       view==="kanban"&&h(DoneSection,{done:done,onEdit:setModal,cColors:displayColors}),
       view==="todo2"&&h(TodoView,{projects:displayProjects,onEdit:setModal,cColors:displayColors}),
