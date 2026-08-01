@@ -2122,6 +2122,7 @@ function ClientMgr(props){
 function UrgentBanner(props){
   var projects=props.projects,onEdit=props.onEdit,cColors=props.cColors||{};
   var urgent=[];
+  var STG_COL={"\u521d\u526a":"#D89A3A","V1":"#C9A227","ES":"#C9A227","\u696d\u914d":"#B8860B","Final":"#7A6432"};
   var TODO_ST=["\u7b49\u5f85\u7d20\u6750","\u5f85\u78ba\u8a8d","\u66ab\u7de9"];
   projects.filter(function(p){return!p.closed&&p.status!=="\u66ab\u7de9"&&p.status!=="\u5f85\u78ba\u8a8d";}).forEach(function(p){
     var checks=[
@@ -2157,8 +2158,10 @@ function UrgentBanner(props){
       var verb=u.kind==="start"?"\u8d77":"\u4ea4";
       var cName=(u.p.client&&u.p.client!=="-")?u.p.client:"";
       var cCol=cColors[u.p.client]||color;
+      var sCol=STG_COL[u.label]||C.txt2;
       return h("span",{key:i,onClick:function(){onEdit(u.p);},style:{fontSize:11,color:color,cursor:"pointer",fontWeight:700,background:"rgba(255,255,255,0.7)",borderRadius:4,padding:"2px 8px",border:"1px solid "+color+"44",display:"inline-flex",alignItems:"center",gap:2}},
-        h("span",null,text+verb+"["+u.label+"]"),
+        h("span",null,text+verb),
+        h("span",{style:{fontSize:9.5,fontWeight:700,color:sCol,background:sCol+"1f",border:"1px solid "+sCol+"40",borderRadius:3,padding:"1px 5px",letterSpacing:"0.03em",lineHeight:1.5,marginLeft:1}},u.label),
         cName?h("span",{style:{color:cCol,fontWeight:700}},"\u3010"+cName+"\u3011"):null,
         h("span",null,u.p.name)
       );
