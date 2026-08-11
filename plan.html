@@ -183,7 +183,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V8";
+var PLAN_BUILD="V9";
 var state={
   projects:[],
   loading:true,
@@ -632,11 +632,11 @@ var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","w
                              ["工作開始","工作結束"]];
 
 // 這一份設定在分頁關掉前都留著，不用每次重填
-var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, mode:"auto", asked:[]};
+var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, pick:{}, mode:"auto", asked:[]};
 var MODE_HINT = {
-  auto:"有排定日期、而且還沒過期的案會先打勾。不對就自己改。",
-  all:"所有案全部重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
-  keep:"只要已經有工作日期的都不動，只排完全沒排過的那幾個。過期的也不會被重排。"
+  auto:"沒排過、或者排程已經過期的案會先打勾。不對就自己改。",
+  all:"所有案全部打勾重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
+  keep:"只打勾完全沒排過的案。已經有工作日期的一律不動，過期的也不會被重排。"
 };
 
 var STAGE_FIELDS = ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"];
@@ -711,26 +711,24 @@ function isStale(p){
   if(!e)return false;
   return e < (PLAN_PREFS.start||todayStr());
 }
-function autoLock(p){return hasSchedule(p)&&!isStale(p);}
-
-/* 這次的排法：
-   auto — 有排定日期、而且還沒過期的才不重排
-   all  — 全部重排，沒有任何案被鎖住
-   keep — 只要有日期就不動，只排完全沒排過的 */
+/* 打勾＝這次要重排。沒打勾的維持原日期，但仍然佔額度。
+   auto — 沒排過、或排程已過期的才要重排
+   all  — 全部重排
+   keep — 只重排完全沒排過的 */
 function planMode(){return PLAN_PREFS.mode||"auto";}
-function baseLock(p){
+function basePick(p){
   var m=planMode();
-  if(m==="all")return false;
-  if(m==="keep")return hasSchedule(p);
-  return autoLock(p);
+  if(m==="all")return true;
+  if(m==="keep")return !hasSchedule(p);
+  return !hasSchedule(p)||isStale(p);
 }
-function isLocked(p){
-  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.lock,p.id))return !!PLAN_PREFS.lock[p.id];
-  return baseLock(p);
+function willReplan(p){
+  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.pick,p.id))return !!PLAN_PREFS.pick[p.id];
+  return basePick(p);
 }
-function setLock(pid,v){PLAN_PREFS.lock[pid]=v;render();}
+function setPick(pid,v){PLAN_PREFS.pick[pid]=v;render();}
 /* 換模式時把手動改過的勾選清掉，不然會看不出來模式有生效 */
-function setMode(m){PLAN_PREFS.mode=m;PLAN_PREFS.lock={};render();}
+function setMode(m){PLAN_PREFS.mode=m;PLAN_PREFS.pick={};render();}
 function schedSummary(p){
   var bits=[];
   if(!p.noCut1&&(p.cut1S||p.cut1Due))bits.push("初剪 "+(p.cut1S||p.cut1Due)+(p.cut1Due&&p.cut1Due!==p.cut1S?" → "+p.cut1Due:""));
@@ -741,7 +739,7 @@ function schedSummary(p){
 }
 function splitProjects(){
   var all=pendingProjects(), locked=[], open=[];
-  all.forEach(function(p){(isLocked(p)?locked:open).push(p);});
+  all.forEach(function(p){(willReplan(p)?open:locked).push(p);});
   return {all:all,locked:locked,open:open};
 }
 
@@ -989,7 +987,7 @@ function renderExport(){
   });
   h+='<button class="off-add" onclick="addOff()">＋ 新增休假期間</button>';
 
-  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">這次要怎麼排</span><span class="pstep-h">打勾＝不重排，但仍佔用同時進行的額度</span></div>';
+  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">這次要怎麼排</span><span class="pstep-h">打勾＝這次要重排；沒打勾的維持原日期，但仍佔額度</span></div>';
   var pm=planMode();
   h+='<div class="mode-row">';
   h+='<button class="mode-b'+(pm==="auto"?" on":"")+'" onclick="setMode(\'auto\')">自動判斷</button>';
@@ -998,9 +996,9 @@ function renderExport(){
   h+='</div>';
   h+='<div class="lock-sum">'+MODE_HINT[pm]+'</div>';
   sp.all.forEach(function(p){
-    var on=isLocked(p), stale=isStale(p), has=hasSchedule(p);
+    var on=willReplan(p), stale=isStale(p), has=hasSchedule(p);
     h+='<div class="lock-row'+(on?' on':'')+'">';
-    h+='<input type="checkbox"'+(on?' checked':'')+' onchange="setLock(\''+p.id+'\',this.checked)">';
+    h+='<input type="checkbox"'+(on?' checked':'')+' onchange="setPick(\''+p.id+'\',this.checked)">';
     h+='<div>';
     h+='<div class="lock-nm">'+escapeHtml(p.name);
     if(!has)h+=' <span class="lock-tag">還沒排</span>';
@@ -1012,7 +1010,7 @@ function renderExport(){
 
   h+='<div class="pstep"><span class="pstep-n">4</span><span class="pstep-t">複製這段，貼給 Claude</span><span class="pstep-h" id="exp-count">'+buildPrompt().length+' 字</span></div>';
   if(!sp.open.length){
-    h+='<div class="imp-err">全部的案都被標成「已排好」，這次沒有東西要排。取消幾個勾選再複製。</div>';
+    h+='<div class="imp-err">一個案都沒打勾，這次沒有東西要排。勾幾個起來再複製。</div>';
   }
   h+='<textarea class="pta" id="exp-out" rows="12" readonly onclick="this.select()">'+escapeHtml(buildPrompt())+'</textarea>';
 
