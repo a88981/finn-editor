@@ -190,7 +190,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V15";
+var PLAN_BUILD="V16";
 var state={
   projects:[],
   loading:true,
@@ -489,7 +489,18 @@ function render(){
     var note;
     if(!nx.total)note='手上沒有排程中的長片，隨時可以接';
     else if(!nx.date)note='一年內都沒有連續 '+NEW_JOB_WORKDAYS+' 個工作天的空間（手上最後一支做到 '+nx.lastEnd+'）';
-    else note='從這天起連續 '+NEW_JOB_WORKDAYS+' 個工作天同時量都不會超過 1 支 · 手上最後一支做到 '+nx.lastEnd;
+    else{
+      var bits=[];
+      if(nx.freed)bits.push(escapeHtml(nx.freed.name)+' '+nx.freed.e+' 做完');
+      if(nx.still.length){
+        bits.push('只剩 '+nx.still.length+' 支在跑：'+nx.still.map(function(x){
+          return escapeHtml(x.name)+'（到 '+x.end+'）';
+        }).join('、'));
+      }else{
+        bits.push('當天沒有長片在跑');
+      }
+      note=bits.join(' · ');
+    }
     html+='<span class="nf-n">'+note+'</span></div>';
   }
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
@@ -832,7 +843,11 @@ function nextOpenDate(){
   var vis=pendingProjects().filter(function(p){
     return !/短影|短片|shorts/i.test(projType(p));
   });
-  var spans=vis.map(busySpan).filter(function(x){return !!x;});
+  var spans=vis.map(function(p){
+    var sp=busySpan(p);
+    if(sp)sp.name=p.name||"(未命名)";
+    return sp;
+  }).filter(function(x){return !!x;});
   if(!spans.length){
     return {date:PLAN_PREFS.start||todayStr(), running:0, total:0, lastEnd:null, immediate:true};
   }
@@ -867,8 +882,13 @@ function nextOpenDate(){
   for(var i=0;i<400;i++){
     if(isWorkday(cur)&&clearFrom(cur)){
       var ds=dstr(cur);
-      return {date:ds, running:running(ds), total:spans.length, lastEnd:lastEnd,
-              immediate:(i===0)};
+      /* 當天還在跑哪幾支，以及是誰做完才空出來的 */
+      var still=spans.filter(function(sp){return ds>=sp.s&&ds<=sp.e;})
+                     .map(function(sp){return {name:sp.name,end:sp.e};});
+      var freed=spans.filter(function(sp){return sp.e<ds;})
+                     .sort(function(a,b){return a.e<b.e?1:-1;})[0]||null;
+      return {date:ds, running:still.length, total:spans.length, lastEnd:lastEnd,
+              still:still, freed:freed, immediate:(i===0)};
     }
     cur.setDate(cur.getDate()+1);
   }
