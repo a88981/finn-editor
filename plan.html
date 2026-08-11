@@ -190,7 +190,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V16";
+var PLAN_BUILD="V18";
 var state={
   projects:[],
   loading:true,
@@ -663,20 +663,37 @@ function setPNote(pid,v){
 }
 
 var PLAN_RULES =
-"- 一天同時進行 2–3 個長片案(以 2 個為主，最多 3 個)\n" +
-"- 初剪約 3–7 個工作天\n" +
-"- V1/ES 約 5–10 個工作天\n" +
-"- 業配(如果有)在 V1 完成後進行\n" +
-"- V1/ES 交件之後要留回饋與修改的時間才能交 Final，**1–3 個工作天都可以，3 天最安全**。空間夠就給 3 天，被可工作期間或上片日壓縮時可以縮到 1 天，但不得為 0(V1 交件與 Final 不能同一天)\n" +
-"- 初剪交件之後不需要留回饋緩衝，隔一個工作天就可以接著開始 V1/ES\n" +
-"- 錨點優先順序：若某案同時有 V1/ES 交件日與 Final 交件日，一律以 **V1/ES 交件日為錨點**——那是已經對客戶承諾的日期，不要為了遷就 Final 而往後拖。Final 改由 V1/ES 交件日往後推 1–3 個工作天算出。只有在該案沒有 V1/ES 交件日時，才改以上片日／Final 交件日往前推\n" +
-"- Final 需在上片日前一天交件\n" +
-"- 逾期 / 上片日最近的案件優先處理，並標記 🚨\n" +
-"- 短影優先，短影沒有個數限制，可直接安排，不計入 2–3 長片同時進行的額度\n" +
-"- 可工作期間**有填起始日**者，工作開始日不得早於該日(那是素材最早可用日)。在這個前提下，中間怎麼安排由你決定，不必從第一天就開工\n" +
-"- 可工作期間**沒有填起始日**者，請自行判斷合適的開始日，並倒推出「素材最晚到齊日」寫在 note 裡\n" +
-"- 可工作期間有填結束日者，所有工作與交件都必須在該日之前完成\n" +
-"- 排程時優先處理上片日較近的案件，等待素材/等待回饋的空檔可用來插入其他案件或短影";
+"【硬性條件 — 任何情況都不可違反】\n" +
+"- 工作天以週一～週五計算，不排週末；標為休假的日子完全跳過，也不計入工作天\n" +
+"- 可工作期間有填起始日者，任何工作都不得早於該日\n" +
+"- 可工作期間有填結束日者，所有工作與交件都不得晚於該日\n" +
+"- 上片日已確定者，Final 不得晚於上片日前一天\n" +
+"- V1/ES 交件日與 Final 不得是同一天，中間至少要隔 1 個工作天\n" +
+"- 一天同時進行的長片不得超過 3 個\n" +
+"\n【各階段長度】\n" +
+"- 初剪 3–7 個工作天\n" +
+"- V1/ES 5–10 個工作天\n" +
+"- 初剪交件後不需要等回饋，下一個工作天就可以直接開始 V1/ES\n" +
+"- V1/ES 交件後要留回饋與修改的時間才能交 Final：1–3 個工作天，空間夠就給 3 天，被壓縮時可以縮到 1 天\n" +
+"- 有業配者，業配安排在 V1/ES 交件之後、Final 之前；業配交件日必須早於 Final\n" +
+"\n【錨點怎麼選 — 由上往下，符合哪一條就用哪一條】\n" +
+"1. 該案已有 V1/ES 交件日 → 以它為錨點且不得更動(那是對客戶承諾過的)，Final = V1/ES 交件日 + 1~3 個工作天，其餘階段往前推\n" +
+"2. 沒有 V1/ES 交件日、但上片日已確定 → Final = 上片日前一天，由此往前推\n" +
+"3. 上片日未定、但有原訂 Final 日 → 以原訂 Final 為錨點往前推，並在 note 裡註明是用原 Final 當錨點\n" +
+"4. 以上都沒有 → 依可工作期間與優先順序自行安排，並在 note 裡寫出你的依據\n" +
+"\n【衝突怎麼處理 — 這段最重要】\n" +
+"- 錨點算出來的 Final 若晚於「上片日前一天」或「可工作期間結束日」，以兩者中較早的那一天為準，把整段時程往前壓縮\n" +
+"- 壓縮時先砍回饋期(3 天 → 1 天)，再砍各階段天數到下限(初剪 3 天、V1/ES 5 天)，順序不要顛倒\n" +
+"- 壓到下限仍然來不及 → 排出最接近的方案，標記 🚨，並在說明裡寫清楚是哪一案、差幾天、卡在哪個條件上。不要自己把某個硬性條件放寬\n" +
+"- 絕對不要為了滿足軟性偏好而違反任何硬性條件\n" +
+"\n【排序與額度】\n" +
+"- 同時進行的長片以 2 個為主，最多 3 個\n" +
+"- 逾期、或上片日最近的案件優先處理，逾期案標記 🚨\n" +
+"- 短影不計入長片額度，沒有個數限制，可隨時插入，優先用來填補等待素材或等待回饋的空檔\n" +
+"\n【軟性偏好 — 能避就避，避不開照排就好】\n" +
+"- 交件日(初剪交、V1 交、Final)盡量避開星期一，我星期一晚上要直播；也盡量避開星期五\n" +
+"- 客戶是「阿滴」的案不受上一條限制：星期一、星期五、週末(六日)都可以交件\n" +
+"- 有交件日避不開落在星期一或星期五時(阿滴的案除外)，在說明裡順帶提一句是哪幾案";
 
 /* 「完整時程」的開始/結束欄位名。自動偵測不到時，把正確名稱填在這裡，
    例如 WORK_RANGE_OVERRIDE = ["workS","workE"];
@@ -1286,17 +1303,43 @@ function expandRow(row){
     }
   }
   /* 回饋緩衝檢查：V1 交件到 Final 之間至少要隔 3 個工作天 */
-  var vd=f.v1Due||null, fdue=f.finalDue||null;
+  var vd=f.v1Due||null, fdue=f.finalDue||null, bd=f.bizDue||null;
   if(vd&&fdue){
     var gap=workDaysBetween(vd,fdue);
     if(gap!==null&&gap<FEEDBACK_MIN_DAYS){
       warn.push("V1 交件 "+vd+" 到 Final "+fdue+" 中間沒有留任何工作天，至少要隔 1 天給回饋修改");
     }
   }
+  /* 業配要落在 V1 交件之後、Final 之前 */
+  if(bd&&fdue&&bd>=fdue){
+    warn.push("業配交件 "+bd+" 不早於 Final "+fdue+"，業配必須在 Final 之前完成");
+  }
+  if(bd&&vd&&bd<vd){
+    warn.push("業配交件 "+bd+" 早於 V1 交件 "+vd+"，業配應排在 V1/ES 交件之後");
+  }
   return {fields:f,warn:warn};
 }
 
 /* 兩個日期之間隔幾個工作天(不含起日、含迄日，只算週一–週五) */
+var WD_CH=["\u65e5","\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d"];
+/* 交件日落在星期幾。週一/週五是軟性偏好，避不開也無妨，
+   所以只用灏字提醒，不走紅字的 warn。阿滋的案不受限制，不提醒。 */
+function dueDayNote(p,f){
+  if(!p)return "";
+  if(String(p.client||"").indexOf("阿滴")>=0)return "";
+  var picks=[["cut1Due","初剪交"],["v1Due","V1 交"],["finalDue","Final"]];
+  var hit=[];
+  picks.forEach(function(x){
+    var v=f[x[0]];
+    if(!v)return;
+    var d=toDate(v);
+    if(!d)return;
+    var w=d.getDay();
+    if(w===1||w===5)hit.push(x[1]+" "+v+"("+WD_CH[w]+")");
+  });
+  return hit.length?("交件日落在想避開的星期："+hit.join("、")):"";
+}
+
 function workDaysBetween(a,b){
   var d1=toDate(a), d2=toDate(b);
   if(!d1||!d2)return null;
@@ -1345,7 +1388,8 @@ function parseImport(){
       if(t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
         ex.warn=ex.warn.concat(["V1 交件日從 "+t.p.v1Due+" 被往後拖到 "+ex.fields.v1Due+"，這是已承諾的日期"]);
       }
-      return {i:i,row:r,target:t,fields:ex.fields,warn:ex.warn,changes:changes};
+      return {i:i,row:r,target:t,fields:ex.fields,warn:ex.warn,
+              soft:dueDayNote(t.p,ex.fields), changes:changes};
     });
     state.imp.rows=rows;
     state.imp.summary=got.summary;
@@ -1426,6 +1470,7 @@ function renderImport(){
 
     if(r.row.note)h+='<div class="imp-note2">'+escapeHtml(String(r.row.note))+'</div>';
     if(r.warn.length)h+='<div class="imp-note2" style="color:var(--red)">⚠ '+escapeHtml(r.warn.join(" / "))+'</div>';
+    if(r.soft)h+='<div class="imp-note2" style="color:var(--ink-light)">○ '+escapeHtml(r.soft)+'</div>';
 
     if(ok&&hasChange){
       h+='<div class="imp-diff">';
