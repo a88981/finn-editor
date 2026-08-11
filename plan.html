@@ -22,6 +22,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .page{width:100%;max-width:1100px;background:var(--paper);padding:28px 36px 32px;position:relative;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06)}
 .eyebrow{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.35em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:8px}
 .title-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px;flex-wrap:wrap}
+.title-left{display:flex;align-items:center;gap:10px}
+.home-link{text-decoration:none;font-size:19px;line-height:1;opacity:0.85;transition:opacity 0.15s}
+.home-link:hover{opacity:1}
 .title{font-family:'Noto Serif TC',serif;font-size:22px;font-weight:500;color:var(--ink);letter-spacing:-0.01em}
 .title-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-light);font-weight:400}
 .subtitle{font-size:12px;color:var(--ink-soft);margin-bottom:18px}
@@ -36,7 +39,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .btn.danger{color:var(--red);border-color:var(--red)}
 .btn.danger:hover{background:#fdf0ef}
 .month-nav{display:flex;align-items:center;gap:8px}
-.month-label{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);min-width:96px;text-align:center}
+.month-label{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);min-width:190px;text-align:center;white-space:nowrap}
 .dirty-badge{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--red);letter-spacing:0.02em}
 .legend{display:flex;flex-wrap:wrap;gap:7px;margin-left:auto;font-size:10px;color:var(--ink-light)}
 .legend>div{display:flex;align-items:center;gap:4px}
@@ -48,8 +51,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .month-title::after{content:"";flex:1}
 .gantt-head{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:end;font-size:9.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .gantt-head-days{display:flex;font-variant-numeric:tabular-nums}
-.gantt-head-days>div{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1.15}
-.gantt-head-days .dwk{font-size:8.5px;opacity:.55;letter-spacing:0;margin-top:1px}
+.gantt-head-days>div{flex:1;text-align:center}
 .gantt-head-days .we{color:var(--red);opacity:0.6}
 .gantt-row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line-soft);min-height:42px}
 .gantt-row:hover{background:rgba(232,179,64,0.03)}
@@ -169,22 +171,6 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 .loading{padding:60px;text-align:center;color:var(--ink-light);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px}
 .error{padding:30px;text-align:center;color:var(--red);font-size:13px}
-.build-tag{font-size:10px;letter-spacing:.5px;color:var(--muted,#999);opacity:.6;margin-left:8px}
-.mcount{font-size:10px;color:var(--muted,#999);opacity:.75;margin:0 4px 0 8px;white-space:nowrap}
-.mode-row{display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap}
-.mode-b{font-family:'Noto Serif TC',serif;font-size:11.5px;padding:5px 12px;border:0.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink-light);cursor:pointer;transition:.12s}
-.mode-b:hover{border-color:var(--yellow-pale);color:var(--ink)}
-.mode-b.on{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--ink);font-weight:500}
-.note-in{margin-top:6px;padding:5px 8px;font-size:11px;border:0.5px dashed var(--line);border-radius:3px;width:100%;background:#FCFCFA}
-.note-in:focus{outline:none;border-style:solid;border-color:var(--yellow);background:#fff}
-.note-in::placeholder{color:var(--ink-light);opacity:.65}
-.nextfree{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border:0.5px solid var(--yellow-pale);background:var(--yellow-lightest);border-radius:5px;padding:8px 13px;margin:2px 0 14px}
-.nf-k{font-family:'Noto Serif TC',serif;font-size:11.5px;color:var(--yellow-mid);font-weight:500}
-.nf-d{font-family:Inter,sans-serif;font-size:15px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0.02em}
-.nf-n{font-size:10.5px;color:var(--ink-light);margin-left:auto}
-.nextfree.rush{border-style:dashed;background:transparent;margin-top:-8px}
-.nextfree.rush .nf-k{color:var(--ink-light)}
-.nextfree.rush .nf-d{font-size:13px;color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -194,16 +180,11 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V22";
-var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
   loading:true,
   error:null,
   ym:[new Date().getFullYear(),new Date().getMonth()+1],
-  monthsOverride:null,
-  skipScroll:false,
-  mCount:2,
   edits:{},
   modal:null,
   exp:null,
@@ -363,65 +344,6 @@ function buildRow(p,yr,mo,dim){
   return{bars:bars,dots:dots};
 }
 
-/* 甘特圖要畫幾個月：手動指定優先，否則看排程最遠的日期(最少 2、最多 12) */
-function ganttMonths(visible,yr,mo){
-  if(state.monthsOverride){
-    return Math.min(12,Math.max(1,state.monthsOverride));
-  }
-  var last=null;
-  function bump(v){
-    if(!v)return;
-    var d=toDate(v);if(!d)return;
-    if(!last||d>last)last=d;
-  }
-  visible.forEach(function(p){
-    var keys=["v1S","v1E","v1Due","finalDue"];
-    if(!p.noCut1)keys=keys.concat(["cut1S","cut1E","cut1Due"]);
-    if(!p.noBiz)keys=keys.concat(["bizS","bizE","bizDue"]);
-    keys.forEach(function(k){bump(getField(p,k));});
-    /* 上片日也要算：還沒排之前，它是唯一能看出這次要排到幾月的依據 */
-    var ak=airKey(p);
-    if(ak&&ak!=="9999-99-99")bump(ak);
-  });
-  var n=2;
-  if(last){
-    var diff=(last.getFullYear()-yr)*12+(last.getMonth()+1-mo)+1;
-    if(diff>n)n=diff;
-  }
-  if(n>12)n=12;
-  return n;
-}
-
-/* 手動增減月份，不用等資料裡有日期 */
-function addMonths(d){
-  var n=(state.monthsOverride||state.mCount||2)+d;
-  if(n<1)n=1;
-  if(n>12)n=12;
-  state.monthsOverride=n;
-  render();
-}
-function autoMonths(){state.monthsOverride=null;render();}
-
-/* 從起始年月往後展開 n 個月，回傳 [[年,月],…] */
-function monthList(yr,mo,n){
-  var out=[];
-  for(var i=0;i<n;i++){
-    var y2=yr,m2=mo+i;
-    while(m2>12){m2-=12;y2++;}
-    out.push([y2,m2]);
-  }
-  return out;
-}
-
-/* 月份導覽列的文字，例如「2026年 7–10月」或「2026年12月 – 2027年2月」 */
-function monthRangeLabel(list){
-  var a=list[0],b=list[list.length-1];
-  if(a[0]===b[0]){
-    return a[0]+"年 "+a[1]+(list.length>1?"–"+b[1]:"")+"月";
-  }
-  return a[0]+"年"+a[1]+"月 – "+b[0]+"年"+b[1]+"月";
-}
-
 function renderGanttMonth(visible,yr,mo,now){
   var dim=new Date(yr,mo,0).getDate();
   var todayCol=(now.getFullYear()===yr&&now.getMonth()+1===mo)?now.getDate():null;
@@ -429,10 +351,7 @@ function renderGanttMonth(visible,yr,mo,now){
   html+='<div class="gantt"><div class="month-title">'+yr+'年 '+mo+'月</div>';
   html+='<div class="gantt-head"><div>專案</div><div class="gantt-head-days">';
   for(var d=1;d<=dim;d++){
-    var wi=new Date(yr,mo-1,d).getDay();
-    html+='<div'+(isWeekend(yr,mo,d)?' class="we"':'')+'>'
-        +'<span class="dnum">'+d+'</span>'
-        +'<span class="dwk">'+WD_CH[wi]+'</span></div>';
+    html+='<div'+(isWeekend(yr,mo,d)?' class="we"':'')+'>'+d+'</div>';
   }
   html+='</div></div>';
   var rowsHtml=visible.map(function(p){
@@ -473,11 +392,17 @@ function renderGanttMonth(visible,yr,mo,now){
 
 function render(){
   var root=document.getElementById("root");
-  var _sc=grabScroll();
   if(state.loading){root.innerHTML='<div class="loading">讀取 Notion 資料中…</div>';return;}
   if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
   
-  var yr=state.ym[0],mo=state.ym[1];
+  var MONTH_SPAN=3;
+  var months=[];
+  for(var mi=0;mi<MONTH_SPAN;mi++){
+    var _y=state.ym[0],_m=state.ym[1]+mi;
+    while(_m>12){_m-=12;_y++;}
+    months.push([_y,_m]);
+  }
+  var yr=months[0][0],mo=months[0][1];
   var now=new Date();
   
   var INCLUDE=["等待素材","待確認","初剪待執行"];
@@ -486,60 +411,19 @@ function render(){
     return INCLUDE.indexOf(p.status)>=0;
   });
   
-  state.mCount=ganttMonths(visible,yr,mo);
-  var mList=monthList(yr,mo,state.mCount);
-  
   var html='';
   html+='<div class="eyebrow">Editing Schedule Planner</div>';
-  html+='<div class="title-row"><h1 class="title">📋 排程規劃</h1><span class="title-sub">Schedule Planning</span><span class="build-tag">build '+PLAN_BUILD+'</span></div>';
-  var nx=nextOpenDate();
-  if(nx){
-    html+='<div class="nextfree"><span class="nf-k">下一支可以接案</span>';
-    html+='<span class="nf-d">'+(nx.date||'排不進來')+'</span>';
-    var note;
-    if(!nx.total)note='手上沒有排程中的長片，隨時可以接';
-    else if(!nx.date)note='一年內都沒有連續 '+NEW_JOB_WORKDAYS+' 個工作天的空間（手上最後一支做到 '+nx.lastEnd+'）';
-    else{
-      var bits=[];
-      if(nx.freed)bits.push(escapeHtml(nx.freed.name)+' '+nx.freed.e+' 做完');
-      if(nx.still.length){
-        bits.push('只剩 '+nx.still.length+' 支在跑：'+nx.still.map(function(x){
-          return escapeHtml(x.name)+'（到 '+x.end+'）';
-        }).join('、'));
-      }else{
-        bits.push('當天沒有長片在跑');
-      }
-      note=bits.join(' · ');
-    }
-    html+='<span class="nf-n">'+note+'</span></div>';
-
-    var rw=rushWindows(2);
-    if(rw.length){
-      var seg=rw[0];
-      html+='<div class="nextfree rush"><span class="nf-k">急案最快可以塞</span>';
-      html+='<span class="nf-d">'+seg.s+'</span>';
-      var rn=seg.open
-        ? ('從這天起就一直有空間（期間同時最多 '+(seg.peak+1)+' 支）')
-        : ('到 '+seg.e+' 為止有 '+seg.days+' 個工作天（期間同時最多 '+(seg.peak+1)+' 支）');
-      if(!seg.open&&rw[1])rn+=' · 下一段 '+rw[1].s+' 起';
-      html+='<span class="nf-n">'+rn+'</span></div>';
-    }
-  }
+  html+='<div class="title-row"><div class="title-left"><h1 class="title">📋 排程規劃</h1><a class="home-link" href="https://finn-editor.vercel.app/" title="回主頁">🏠</a></div><span class="title-sub">Schedule Planning</span></div>';
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
   
   var dirty=dirtyCount();
   html+='<div class="bar">';
   html+='<div class="month-nav">';
   html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
-  html+='<span class="month-label">'+monthRangeLabel(mList)+'</span>';
+  var mLabel=months.map(function(m,i){return (i===0||m[0]!==months[i-1][0])?(m[0]+'年 '+m[1]+'月'):(m[1]+'月');}).join(' / ');
+  html+='<span class="month-label">'+mLabel+'</span>';
   html+='<button class="btn" onclick="changeYm(1)">›</button>';
   html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
-  html+='<span class="mcount">'+state.mCount+' 個月</span>';
-  html+='<button class="btn" onclick="addMonths(-1)" style="font-size:10px" title="少看一個月">−月</button>';
-  html+='<button class="btn" onclick="addMonths(1)" style="font-size:10px" title="多看一個月">＋月</button>';
-  if(state.monthsOverride){
-    html+='<button class="btn" onclick="autoMonths()" style="font-size:10px" title="改回依排程自動決定">自動</button>';
-  }
   html+='</div>';
   if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
   html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
@@ -558,12 +442,11 @@ function render(){
   if(visible.length===0){
     html+='<div class="empty">沒有待執行的案(等待素材 / 待確認 / 初剪待執行)</div>';
     root.innerHTML=html;
-    restoreScroll(_sc);
     return;
   }
   
-  mList.forEach(function(ym){
-    html+=renderGanttMonth(visible,ym[0],ym[1],now);
+  months.forEach(function(m){
+    html+=renderGanttMonth(visible,m[0],m[1],now);
   });
   
   // 存回 bar
@@ -637,7 +520,6 @@ function render(){
   if(state.toast){html+='<div class="toast">'+escapeHtml(state.toast)+'</div>';}
   
   root.innerHTML=html;
-  restoreScroll(_sc);
 }
 
 function escAttr(s){return (s||"").replace(/"/g,'&quot;');}
@@ -663,61 +545,16 @@ function daysBetween(a,b){
    排程規則想改，直接改下面 PLAN_RULES 這段文字。
    ══════════════════════════════════════════════════════════════════ */
 
-/* V1 交件到 Final 至少要隔幾個工作天。要改改這裡，上面 PLAN_RULES 的文字也要一起改 */
-var FEEDBACK_MIN_DAYS = 1;
-
-/* 每個案自己的排程限制。存在瀏覽器 localStorage，換電腦不會跟著走 */
-var PLAN_NOTES_KEY = "plan_notes_v1";
-var PLAN_NOTES = (function(){
-  try{
-    var raw=window.localStorage.getItem(PLAN_NOTES_KEY);
-    var o=raw?JSON.parse(raw):{};
-    return (o&&typeof o==="object")?o:{};
-  }catch(err){return {};}
-})();
-function saveNotes(){
-  try{window.localStorage.setItem(PLAN_NOTES_KEY,JSON.stringify(PLAN_NOTES));}catch(err){}
-}
-function pNote(p){return (PLAN_NOTES[p.id]||"").trim();}
-function setPNote(pid,v){
-  v=(v||"").trim();
-  if(v)PLAN_NOTES[pid]=v; else delete PLAN_NOTES[pid];
-  saveNotes();
-  render();
-}
-
 var PLAN_RULES =
-"【硬性條件 — 任何情況都不可違反】\n" +
-"- 工作天以週一～週五計算，不排週末；標為休假的日子完全跳過，也不計入工作天\n" +
-"- 可工作期間有填起始日者，任何工作都不得早於該日\n" +
-"- 可工作期間有填結束日者，所有工作與交件都不得晚於該日\n" +
-"- 上片日已確定者，Final 不得晚於上片日前一天\n" +
-"- V1/ES 交件日與 Final 不得是同一天，中間至少要隔 1 個工作天\n" +
-"- 一天同時進行的長片不得超過 3 個\n" +
-"\n【各階段長度】\n" +
-"- 初剪 3–7 個工作天\n" +
-"- V1/ES 5–10 個工作天\n" +
-"- 初剪交件後不需要等回饋，下一個工作天就可以直接開始 V1/ES\n" +
-"- V1/ES 交件後要留回饋與修改的時間才能交 Final：1–3 個工作天，空間夠就給 3 天，被壓縮時可以縮到 1 天\n" +
-"- 有業配者，業配安排在 V1/ES 交件之後、Final 之前；業配交件日必須早於 Final\n" +
-"\n【錨點怎麼選 — 由上往下，符合哪一條就用哪一條】\n" +
-"1. 該案已有 V1/ES 交件日 → 以它為錨點且不得更動(那是對客戶承諾過的)，Final = V1/ES 交件日 + 1~3 個工作天，其餘階段往前推\n" +
-"2. 沒有 V1/ES 交件日、但上片日已確定 → Final = 上片日前一天，由此往前推\n" +
-"3. 上片日未定、但有原訂 Final 日 → 以原訂 Final 為錨點往前推，並在 note 裡註明是用原 Final 當錨點\n" +
-"4. 以上都沒有 → 依可工作期間與優先順序自行安排，並在 note 裡寫出你的依據\n" +
-"\n【衝突怎麼處理 — 這段最重要】\n" +
-"- 錨點算出來的 Final 若晚於「上片日前一天」或「可工作期間結束日」，以兩者中較早的那一天為準，把整段時程往前壓縮\n" +
-"- 壓縮時先砍回饋期(3 天 → 1 天)，再砍各階段天數到下限(初剪 3 天、V1/ES 5 天)，順序不要顛倒\n" +
-"- 壓到下限仍然來不及 → 排出最接近的方案，標記 🚨，並在說明裡寫清楚是哪一案、差幾天、卡在哪個條件上。不要自己把某個硬性條件放寬\n" +
-"- 絕對不要為了滿足軟性偏好而違反任何硬性條件\n" +
-"\n【排序與額度】\n" +
-"- 同時進行的長片以 2 個為主，最多 3 個\n" +
-"- 逾期、或上片日最近的案件優先處理，逾期案標記 🚨\n" +
-"- 短影不計入長片額度，沒有個數限制，可隨時插入，優先用來填補等待素材或等待回饋的空檔\n" +
-"\n【軟性偏好 — 能避就避，避不開照排就好】\n" +
-"- 交件日(初剪交、V1 交、Final)盡量避開星期一，我星期一晚上要直播；也盡量避開星期五\n" +
-"- 客戶是「阿滴」的案不受上一條限制：星期一、星期五、週末(六日)都可以交件\n" +
-"- 有交件日避不開落在星期一或星期五時(阿滴的案除外)，在說明裡順帶提一句是哪幾案";
+"- 一天同時進行 2–3 個長片案(以 2 個為主，最多 3 個)\n" +
+"- 初剪約 3–7 個工作天\n" +
+"- V1/ES 約 5–10 個工作天\n" +
+"- 業配(如果有)在 V1 完成後進行\n" +
+"- Final 需在上片日前一天交件\n" +
+"- 逾期 / 上片日最近的案件優先處理，並標記 🚨\n" +
+"- 短影優先，短影沒有個數限制，可直接安排，不計入 2–3 長片同時進行的額度\n" +
+"- 若案件處於「等待素材」，工作開始日不得早於可工作期間起始日；可工作期間未定者，請倒推出「素材最晚到齊日」\n" +
+"- 排程時優先處理上片日較近的案件，等待素材/等待回饋的空檔可用來插入其他案件或短影";
 
 /* 「完整時程」的開始/結束欄位名。自動偵測不到時，把正確名稱填在這裡，
    例如 WORK_RANGE_OVERRIDE = ["workS","workE"];
@@ -729,12 +566,7 @@ var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","w
                              ["工作開始","工作結束"]];
 
 // 這一份設定在分頁關掉前都留著，不用每次重填
-var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, pick:{}, mode:"all", asked:[]};
-var MODE_HINT = {
-  auto:"沒排過、或者排程已經過期的案會先打勾。不對就自己改。",
-  all:"所有案全部打勾重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
-  keep:"只打勾完全沒排過的案。已經有工作日期的一律不動，過期的也不會被重排。"
-};
+var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}};
 
 var STAGE_FIELDS = ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"];
 var KNOWN_KEYS = ["id","notionId","name","client","status","airDate","closed",
@@ -750,23 +582,6 @@ function todayStr(){
   var d=new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
-/* 重繪會整個換掉 innerHTML，捲動位置歸零 —— 勾選 modal 裡靠下面的案子時
-   畫面會彈回最上面。所以重繪前把位置存起來，重繪後放回去。
-   開關 modal 時位置沒有意義，用 skipScroll 跳過。 */
-function grabScroll(){
-  var m=document.querySelector(".modal");
-  return {top:m?m.scrollTop:null, win:window.scrollY||0};
-}
-function restoreScroll(sc){
-  if(!sc)return;
-  if(state.skipScroll){state.skipScroll=false;return;}
-  if(sc.top!==null){
-    var m=document.querySelector(".modal");
-    if(m)m.scrollTop=sc.top;
-  }
-  if((window.scrollY||0)!==sc.win)window.scrollTo(0,sc.win);
-}
-
 function md(s){
   if(!s)return "";
   var p=String(s).split("-");
@@ -825,24 +640,12 @@ function isStale(p){
   if(!e)return false;
   return e < (PLAN_PREFS.start||todayStr());
 }
-/* 打勾＝這次要重排。沒打勾的維持原日期，但仍然佔額度。
-   auto — 沒排過、或排程已過期的才要重排
-   all  — 全部重排
-   keep — 只重排完全沒排過的 */
-function planMode(){return PLAN_PREFS.mode||"all";}
-function basePick(p){
-  var m=planMode();
-  if(m==="all")return true;
-  if(m==="keep")return !hasSchedule(p);
-  return !hasSchedule(p)||isStale(p);
+function autoLock(p){return hasSchedule(p)&&!isStale(p);}
+function isLocked(p){
+  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.lock,p.id))return !!PLAN_PREFS.lock[p.id];
+  return autoLock(p);
 }
-function willReplan(p){
-  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.pick,p.id))return !!PLAN_PREFS.pick[p.id];
-  return basePick(p);
-}
-function setPick(pid,v){PLAN_PREFS.pick[pid]=v;render();}
-/* 換模式時把手動改過的勾選清掉，不然會看不出來模式有生效 */
-function setMode(m){PLAN_PREFS.mode=m;PLAN_PREFS.pick={};render();}
+function setLock(pid,v){PLAN_PREFS.lock[pid]=v;render();}
 function schedSummary(p){
   var bits=[];
   if(!p.noCut1&&(p.cut1S||p.cut1Due))bits.push("初剪 "+(p.cut1S||p.cut1Due)+(p.cut1Due&&p.cut1Due!==p.cut1S?" → "+p.cut1Due:""));
@@ -853,7 +656,7 @@ function schedSummary(p){
 }
 function splitProjects(){
   var all=pendingProjects(), locked=[], open=[];
-  all.forEach(function(p){(willReplan(p)?open:locked).push(p);});
+  all.forEach(function(p){(isLocked(p)?locked:open).push(p);});
   return {all:all,locked:locked,open:open};
 }
 
@@ -873,121 +676,6 @@ function setOff(i,k,v){
   if(k==="s"&&!PLAN_PREFS.off[i].e)PLAN_PREFS.off[i].e=v;   // 單日休假免填兩次
   refreshPrompt();
 }
-/* ── 下一個可以接新案的日期 ────────────────────────────────
-   長片同時進行以 2 個為主，所以往前找第一個「在跑的長片 ≤ 1」的工作天。
-   週末、休假日都跳過。案子佔用的期間取最早階段起日 → 最晚交件日。   */
-function isOffDay(ds){
-  return (PLAN_PREFS.off||[]).some(function(o){
-    var a=o.s||o.e, b=o.e||o.s;
-    if(!a)return false;
-    return ds>=a&&ds<=b;
-  });
-}
-function busySpan(p){
-  var d=[getField(p,"cut1S"),getField(p,"v1S"),getField(p,"bizS"),
-         getField(p,"cut1Due"),getField(p,"v1Due"),getField(p,"bizDue")]
-        .filter(function(x){return !!x;}).sort();
-  if(!d.length)return null;
-  return {s:d[0], e:d[d.length-1]};
-}
-function dstr(d){
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
-/* 接一支新長片大約要佔掉的工作天(初剪 3–7 + V1 5–10 + 緩衝)。
-   只看「某一天有空」沒有意義，要看那天之後能不能一直有空間。 */
-var NEW_JOB_WORKDAYS = 20;
-
-function nextOpenDate(){
-  var vis=pendingProjects().filter(function(p){
-    return !/短影|短片|shorts/i.test(projType(p));
-  });
-  var spans=vis.map(function(p){
-    var sp=busySpan(p);
-    if(sp)sp.name=p.name||"(未命名)";
-    return sp;
-  }).filter(function(x){return !!x;});
-  if(!spans.length){
-    return {date:PLAN_PREFS.start||todayStr(), running:0, total:0, lastEnd:null, immediate:true};
-  }
-  var lastEnd=spans.map(function(s){return s.e;}).sort().pop();
-
-  function running(ds){
-    var n=0;
-    spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)n++;});
-    return n;
-  }
-  function isWorkday(d){
-    var w=d.getDay();
-    return w!==0&&w!==6&&!isOffDay(dstr(d));
-  }
-  /* 從 d 起算，往後 NEW_JOB_WORKDAYS 個工作天內同時量會不會超過 1 */
-  function clearFrom(d){
-    var c=new Date(d.getTime()), cnt=0, peak=0;
-    for(var k=0;k<400&&cnt<NEW_JOB_WORKDAYS;k++){
-      if(isWorkday(c)){
-        cnt++;
-        var r=running(dstr(c));
-        if(r>peak)peak=r;
-        if(r>1)return false;
-      }
-      c.setDate(c.getDate()+1);
-    }
-    return true;
-  }
-
-  var cur=toDate(PLAN_PREFS.start||todayStr());
-  if(!cur)return null;
-  for(var i=0;i<400;i++){
-    if(isWorkday(cur)&&clearFrom(cur)){
-      var ds=dstr(cur);
-      /* 當天還在跑哪幾支，以及是誰做完才空出來的 */
-      var still=spans.filter(function(sp){return ds>=sp.s&&ds<=sp.e;})
-                     .map(function(sp){return {name:sp.name,end:sp.e};});
-      var freed=spans.filter(function(sp){return sp.e<ds;})
-                     .sort(function(a,b){return a.e<b.e?1:-1;})[0]||null;
-      return {date:ds, running:still.length, total:spans.length, lastEnd:lastEnd,
-              still:still, freed:freed, immediate:(i===0)};
-    }
-    cur.setDate(cur.getDate()+1);
-  }
-  return {date:null, running:null, total:spans.length, lastEnd:lastEnd};
-}
-
-/* 急案：可以硬塞到「同時 3 支」的區間。
-   一般接案要求同時 ≤1(排完變 2)；急案放寬到 ≤2(排完變 3，規則的上限)。
-   回傳最前面幾段連續可用區間，附上各段的工作天數。 */
-function rushWindows(limit){
-  var vis=pendingProjects().filter(function(p){
-    return !/短影|短片|shorts/i.test(projType(p));
-  });
-  var spans=vis.map(busySpan).filter(function(x){return !!x;});
-  function running(ds){
-    var n=0;
-    spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)n++;});
-    return n;
-  }
-  var cur=toDate(PLAN_PREFS.start||todayStr());
-  if(!cur)return [];
-  var out=[], seg=null, peak=0;
-  for(var i=0;i<180;i++){
-    var w=cur.getDay(), ds=dstr(cur);
-    if(w!==0&&w!==6&&!isOffDay(ds)){
-      var r=running(ds);
-      if(r<=2){
-        if(!seg){seg={s:ds,e:ds,days:0,peak:r};peak=r;}
-        seg.e=ds; seg.days++;
-        if(r>seg.peak)seg.peak=r;
-      }else if(seg){
-        out.push(seg); seg=null;
-        if(out.length>=(limit||2))return out;
-      }
-    }
-    cur.setDate(cur.getDate()+1);
-  }
-  if(seg){seg.open=true; out.push(seg);}
-  return out;
-}
-
 function offLines(){
   return PLAN_PREFS.off.filter(function(o){return o.s||o.e;}).map(function(o){
     var a=o.s||o.e, b=o.e||o.s;
@@ -1002,15 +690,15 @@ function offLines(){
 function progressLine(p){
   var bits=[];
   if(p.noCut1)bits.push("初剪: 不需要");
-  else bits.push("初剪: "+(p.cut1Done?"已交":"未交")+(p.cut1Due?"，原訂 "+p.cut1Due:""));
-  bits.push("V1/ES: "+(p.v1Done?"已交":"未交")+(p.v1Due?"，原訂 "+p.v1Due:""));
+  else bits.push("初剪: "+(p.cut1Done?"已交":"未交")+(p.cut1Due?"，上一版排定 "+p.cut1Due+"（可調整）":""));
+  bits.push("V1/ES: "+(p.v1Done?"已交":"未交")+(p.v1Due?"，上一版排定 "+p.v1Due+"（可調整）":""));
   if(!p.noBiz&&(p.bizS||p.bizDue)){
     bits.push("業配期間: "+(p.bizS||p.bizDue)+" → "+(p.bizDue||p.bizS)+(p.bizDone?"(已交)":""));
   }
-  bits.push("Final: "+(p.finalDone?"已交":"未交")+(p.finalDue?"，原訂 "+p.finalDue:""));
+  bits.push("Final: "+(p.finalDone?"已交":"未交")+(p.finalDue?"，上一版排定 "+p.finalDue+"（可調整）":""));
   return bits.join(" · ");
 }
-function workWindowVals(p){
+function workWindow(p){
   var rf=workRangeFields();
   var s=rf?(p[rf[0]]||""):"";
   var e=rf?(p[rf[1]]||""):"";
@@ -1018,20 +706,7 @@ function workWindowVals(p){
     s=p.editS||p.workStart||p.availStart||p.workS||"";
     e=p.editE||p.workEnd||p.availEnd||p.workE||"";
   }
-  return [s,e];
-}
-function workWindow(p){
-  var v=workWindowVals(p);
-  return (v[0]||"?")+" → "+(v[1]||"?");
-}
-/* 寫進 Prompt 的版本：把「有沒有填開始日」講清楚，不然 AI 看到 ? 不知道該怎麼辦 */
-function workWindowLine(p){
-  var v=workWindowVals(p), s=v[0], e=v[1];
-  var t=(s||"未填")+" → "+(e||"未填");
-  if(s)t+="  ← 開始日已確定，工作開始日不得早於 "+s+"(中間怎麼安排你決定)";
-  else t+="  ← 開始日未填，請自行判斷何時開工，並倒推出素材最晚到齊日";
-  if(e)t+="；所有交件須在 "+e+" 之前完成";
-  return t;
+  return (s||"?")+" → "+(e||"?");
 }
 function projType(p){
   return p.type||p.kind||p["類型"]||"長片";
@@ -1041,12 +716,10 @@ function projBlock(p,i){
   var t="";
   t+="\n### "+(i+1)+". "+p.name+(p.client?" · "+p.client:"")+"\n";
   t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
-  t+="- 可工作期間: "+workWindowLine(p)+"\n";
+  t+="- 可工作期間: "+workWindow(p)+"\n";
   t+="- 進度: "+progressLine(p)+"\n";
   if(p.length)t+="- 片長: "+p.length+"\n";
   if(p.note)t+="- 備註: "+String(p.note).replace(/\n/g," ")+"\n";
-  var pn=pNote(p);
-  if(pn)t+="- **排程限制(我指定的，必須遵守): "+pn.replace(/\n/g," ")+"**\n";
   t+="- id: `"+p.id+"`\n";
   var extras=Object.keys(p).filter(function(k){
     if(KNOWN_KEYS.indexOf(k)>=0)return false;
@@ -1071,29 +744,21 @@ function buildPrompt(){
     t+="- 以下日子我休假，完全不能工作，排程請整段跳過，也不計入工作天：\n";
     offs.forEach(function(o){t+="  - "+o+"\n";});
   }
+  t+="\n";
   if(PLAN_PREFS.extra&&PLAN_PREFS.extra.trim()){
-    t+="- 額外狀況："+PLAN_PREFS.extra.trim()+"\n";
+    t+="## 我的排程限制（最高優先，必須全部滿足）\n";
+    PLAN_PREFS.extra.trim().split(/\n+/).forEach(function(line){
+      if(line.trim())t+="- "+line.trim()+"\n";
+    });
+    t+="\n";
   }
-  var pm=planMode();
-  if(pm==="all"){
-    t+="\n## 這次的排法\n";
-    t+="**全部重新排。**下面每個案既有的工作日期(初剪、V1、業配的起迄)一律作廢，不要參考、也不要沿用。\n";
-    t+="唯一的例外是**已經存在的 V1/ES 交件日**：那是對客戶承諾過的，請保留不動並當成該案的錨點，其餘日期繞著它重排。\n";
-    t+="沒有 V1/ES 交件日的案，才以**上片日與 Final 交件日為基準**往前推算完整的工作時程。\n";
-    t+="上片日 / Final 日本身不要改動；若倒推回來已經來不及，標記 🚨 並在說明裡點出。\n";
-  }else if(pm==="keep"){
-    t+="\n## 這次的排法\n";
-    t+="**只要已經有工作日期的案，一律不要動。**這次只需要替下面 B 區、也就是完全沒有工作日期的那幾個案排程。\n";
-    t+="請把它們塞進 A 區留下來的空檔，不能讓同時進行的長片數超過上限。\n";
-  }
-
+  t+="## 衝突處理（很重要，請先讀完再排）\n";
+  t+="1. 上面「我的排程限制」和「前提」的優先度**高於專案資料裡的任何既有日期**。\n";
+  t+="2. 專案資料裡寫「上一版排定 ...（可調整）」的日期，是我上一輪排程留下的舊值，**不是對客戶承諾的日期，可以自由更動**。只有 A 區的案和上片日是真的不能動。\n";
+  t+="3. 舊日期和我的排程限制打架時，**一律改舊日期**，不要反過來壓縮工作天或犧牲我的限制。改完請在說明裡列出你動了哪些日期、原本是什麼、為什麼改。\n";
+  t+="4. 如果所有限制真的無法同時滿足，**不要自行取捨**。直接告訴我是哪兩條限制互斥、缺幾個工作天，讓我決定要放寬哪一條。\n";
   var shorts=sp.open.filter(function(p){return /短影|短片|shorts/i.test(projType(p));});
   t+="\n## 排程規則\n"+PLAN_RULES+"\n";
-  var noted=sp.all.filter(function(p){return pNote(p);});
-  if(noted.length){
-    t+="\n有標「排程限制」的案，那是我指定的硬性條件，**優先於上面的一般規則**，不能為了排得好看而違反。\n";
-    t+="若某個限制跟其他規則或上片日衝突、排不出來，請直接說明衝突在哪裡，不要自己硬排。\n";
-  }
   if(shorts.length)t+="\n(這次要排的案裡有 "+shorts.length+" 個短影，可直接安排，不佔長片額度)\n";
   t+="\n";
 
@@ -1124,8 +789,7 @@ function buildPrompt(){
   t+="1. 為什麼這樣排序(哪個案件優先、為什麼)\n";
   t+="2. 哪幾天長片同時量達到上限"+(sp.locked.length?"(含 A 區已排好的案)":"")+"\n";
   t+="3. 等待素材/等待回饋空檔如何被短影或其他案件填補\n";
-  t+="4. 業配如有，排在哪個時間點\n";
-  t+="5. 排完之後我最快哪一天可以再接一支新的長片(以同時 2 支為基準判斷，說明那天手上還在跑幾支)\n\n";
+  t+="4. 業配如有，排在哪個時間點\n\n";
 
   t+="## 最後請附上 JSON(我的排程網站要一鍵匯入用)\n";
   t+="在回覆的**最末**放一個 ```json 區塊";
@@ -1137,8 +801,7 @@ function buildPrompt(){
   t+='    "order": "為什麼這樣排序",\n';
   t+='    "peak": "哪幾天長片同時量達到上限",\n';
   t+='    "gaps": "空檔如何被填補",\n';
-  t+='    "biz": "業配排在哪個時間點",\n';
-  t+='    "next": "排完之後，我最快哪一天可以再接一支新的長片(要說明那天在跑幾支)"\n';
+  t+='    "biz": "業配排在哪個時間點"\n';
   t+="  },\n";
   t+='  "projects": [\n';
   t+="    {\n";
@@ -1160,51 +823,29 @@ function buildPrompt(){
 function openExport(){
   if(!PLAN_PREFS.start)PLAN_PREFS.start=todayStr();
   state.exp={};
-  state.skipScroll=true;
   render();
 }
-function closeExport(){state.exp=null;state.skipScroll=true;render();}
+function closeExport(){state.exp=null;render();}
 function refreshPrompt(){
   var ta=document.getElementById("exp-out");
   if(ta)ta.value=buildPrompt();
   var c=document.getElementById("exp-count");
   if(c)c.textContent=buildPrompt().length+" 字";
 }
-/* 複製成功後直接接到「貼上排程」，不用自己關掉再開 */
-function gotoImport(){
-  state.exp=null;
-  openImport();
-  setTimeout(function(){
-    var el=document.getElementById("imp-in");
-    if(el)el.focus();
-  },60);
-}
 function copyPrompt(){
   var ta=document.getElementById("exp-out");
   if(!ta)return;
   var txt=ta.value;
   ta.focus();ta.select();
-
-  /* 先用同步的 execCommand，確保在畫面重繪前就完成複製 */
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){
+      showToast("✅ 已複製 · 貼給 Claude 即可");
+    },function(){showToast("複製失敗 · 請手動全選複製");});
+    return;
+  }
   var ok=false;
   try{ok=document.execCommand("copy");}catch(err){}
-
-  /* 再補一次新版 API；它是非同步的，不拿它當跳轉條件 */
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    try{
-      navigator.clipboard.writeText(txt).then(function(){},function(){});
-      ok=true;
-    }catch(err){}
-  }
-
-  if(ok){
-    /* 記下這次要求 Claude 排的是哪幾案，貼回來時好比對有沒有漏 */
-    PLAN_PREFS.asked=splitProjects().open.map(function(p){return {id:p.id,name:p.name};});
-    showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");
-    gotoImport();
-  }else{
-    showToast("複製失敗 · 請手動全選複製");
-  }
+  showToast(ok?"✅ 已複製 · 貼給 Claude 即可":"請手動全選複製");
 }
 
 function renderExport(){
@@ -1221,9 +862,9 @@ function renderExport(){
   }
 
   h+='<div class="pstep"><span class="pstep-n">1</span><span class="pstep-t">開工日</span></div>';
-  h+='<div class="row2">';
   h+='<div><div class="flabel">最早可以開工</div><input type="date" class="fc" value="'+escAttr(PLAN_PREFS.start)+'" onchange="PLAN_PREFS.start=this.value;render()"></div>';
-  h+='<div><div class="flabel">額外狀況(選填)</div><input type="text" class="fc" placeholder="例如：這批素材畫質很差，剪起來會慢" value="'+escAttr(PLAN_PREFS.extra)+'" oninput="PLAN_PREFS.extra=this.value;refreshPrompt()"></div>';
+  h+='<div style="margin-top:10px"><div class="flabel">排程限制 / 額外狀況(選填) · 一行一條</div>';
+  h+='<textarea class="fc" rows="4" style="resize:vertical;line-height:1.6" oninput="PLAN_PREFS.extra=this.value;refreshPrompt()" placeholder="10/25 前一定要 Final&#10;不要排週五交件，假日客戶不會回饋&#10;這支是紀錄片，工作期可以拉長一點">'+escapeHtml(PLAN_PREFS.extra)+'</textarea>';
   h+='</div>';
 
   h+='<div class="pstep"><span class="pstep-n">2</span><span class="pstep-t">休假 / 不排班的日子</span><span class="pstep-h">這幾天會整段跳過，不算工作天</span></div>';
@@ -1240,31 +881,24 @@ function renderExport(){
   });
   h+='<button class="off-add" onclick="addOff()">＋ 新增休假期間</button>';
 
-  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">這次要怎麼排</span><span class="pstep-h">打勾＝這次要重排；沒打勾的維持原日期，但仍佔額度</span></div>';
-  var pm=planMode();
-  h+='<div class="mode-row">';
-  h+='<button class="mode-b'+(pm==="all"?" on":"")+'" onclick="setMode(\'all\')">全部重排</button>';
-  h+='<button class="mode-b'+(pm==="auto"?" on":"")+'" onclick="setMode(\'auto\')">自動判斷</button>';
-  h+='<button class="mode-b'+(pm==="keep"?" on":"")+'" onclick="setMode(\'keep\')">只排沒排過的</button>';
-  h+='</div>';
-  h+='<div class="lock-sum">'+MODE_HINT[pm]+'</div>';
+  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">哪些已經排好了</span><span class="pstep-h">打勾＝不重排，但仍佔用同時進行的額度</span></div>';
+  h+='<div class="lock-sum">已自動判斷：有排定日期、而且還沒過期的案會先打勾。不對就自己改。</div>';
   sp.all.forEach(function(p){
-    var on=willReplan(p), stale=isStale(p), has=hasSchedule(p);
+    var on=isLocked(p), stale=isStale(p), has=hasSchedule(p);
     h+='<div class="lock-row'+(on?' on':'')+'">';
-    h+='<input type="checkbox"'+(on?' checked':'')+' onchange="setPick(\''+p.id+'\',this.checked)">';
+    h+='<input type="checkbox"'+(on?' checked':'')+' onchange="setLock(\''+p.id+'\',this.checked)">';
     h+='<div>';
     h+='<div class="lock-nm">'+escapeHtml(p.name);
     if(!has)h+=' <span class="lock-tag">還沒排</span>';
     else if(stale)h+=' <span class="lock-tag stale">排程已過期</span>';
     h+='</div>';
     h+='<div class="lock-meta">'+(p.airDate?p.airDate+' 上片 · ':'')+escapeHtml(has?schedSummary(p):"沒有已排定的工作日期")+'</div>';
-    h+='<input class="fc note-in" value="'+escAttr(pNote(p))+'" placeholder="排程限制（選填）例如：9 月才開工，8 月不要排" onchange="setPNote(\''+p.id+'\',this.value)">';
     h+='</div></div>';
   });
 
   h+='<div class="pstep"><span class="pstep-n">4</span><span class="pstep-t">複製這段，貼給 Claude</span><span class="pstep-h" id="exp-count">'+buildPrompt().length+' 字</span></div>';
   if(!sp.open.length){
-    h+='<div class="imp-err">一個案都沒打勾，這次沒有東西要排。勾幾個起來再複製。</div>';
+    h+='<div class="imp-err">全部的案都被標成「已排好」，這次沒有東西要排。取消幾個勾選再複製。</div>';
   }
   h+='<textarea class="pta" id="exp-out" rows="12" readonly onclick="this.select()">'+escapeHtml(buildPrompt())+'</textarea>';
 
@@ -1292,26 +926,16 @@ function parsePlanText(txt){
   var i2=s.indexOf("["), j2=s.lastIndexOf("]");
   if(i2>=0&&j2>i2)cands.push(s.slice(i2,j2+1));
 
-  /* 不能遇到第一個能解的就收。回覆裡常常不只一個 ```json 區塊
-     (或者連 Prompt 一起貼進來，Prompt 尾巴那段範例只有一個案)，
-     全部試完，挑案數最多的那一塊。*/
-  var best=null;
   for(var k=0;k<cands.length;k++){
     if(!cands[k])continue;
-    var got=null;
     try{
       var o=JSON.parse(cands[k]);
-      if(Array.isArray(o)&&o.length)got={projects:o,summary:null};
-      else if(o&&Array.isArray(o.projects)&&o.projects.length)got={projects:o.projects,summary:o.summary||null};
-      else if(o&&Array.isArray(o.plan)&&o.plan.length)got={projects:o.plan,summary:o.summary||null};
-      else if(o&&(o.id||o.name))got={projects:[o],summary:null};
+      if(Array.isArray(o)&&o.length)return {projects:o,summary:null};
+      if(o&&Array.isArray(o.projects)&&o.projects.length)return {projects:o.projects,summary:o.summary||null};
+      if(o&&Array.isArray(o.plan)&&o.plan.length)return {projects:o.plan,summary:o.summary||null};
+      if(o&&(o.id||o.name))return {projects:[o],summary:null};
     }catch(err){}
-    if(!got)continue;
-    if(!best||got.projects.length>best.projects.length)best=got;
-    /* 案數一樣時，有 summary 的優先 */
-    else if(got.projects.length===best.projects.length&&!best.summary&&got.summary)best=got;
   }
-  if(best)return best;
   throw new Error("解析不出 JSON。請確認有把 Claude 回覆最後那段 ```json 完整貼進來(含最外層的大括號)。");
 }
 
@@ -1365,69 +989,17 @@ function expandRow(row){
   if(f.cut1S&&f.noCut1!==true)f.noCut1=false;
   if(f.bizS&&f.noBiz!==true)f.noBiz=false;
 
-  /* 可工作期間(editS/editE)是我自己填的條件——最早可開始、最晚要完成，
-     不是排程算出來的結果，所以匯入時絕對不能覆寫，否則下一輪 AI 會拿
-     自己上次排的日期當成素材可用日，一輪一輪偏掉。 */
+  // 完整時程：跟頁面上的算法一致(最早的階段日 → 最晚的交件日)
   var rf=workRangeFields();
   if(rf){
-    var ws=state.projects.filter(function(x){return x.id===(row.id||"");})[0];
     var all=[f.cut1S,f.v1S,f.bizS,f.cut1Due,f.v1Due,f.bizDue,f.finalDue]
             .filter(function(x){return !!x;}).sort();
-    if(ws&&all.length){
-      var lo=ws[rf[0]]||"", hi=ws[rf[1]]||"";
-      if(lo&&all[0]<lo)warn.push("工作開始日 "+all[0]+" 早於可工作期間起始日 "+lo);
-      if(hi&&all[all.length-1]>hi)warn.push("最後交件日 "+all[all.length-1]+" 超過可工作期間結束日 "+hi);
+    if(all.length){
+      f[rf[0]]=all[0];
+      f[rf[1]]=all[all.length-1];
     }
-  }
-  /* 回饋緩衝檢查：V1 交件到 Final 之間至少要隔 3 個工作天 */
-  var vd=f.v1Due||null, fdue=f.finalDue||null, bd=f.bizDue||null;
-  if(vd&&fdue){
-    var gap=workDaysBetween(vd,fdue);
-    if(gap!==null&&gap<FEEDBACK_MIN_DAYS){
-      warn.push("V1 交件 "+vd+" 到 Final "+fdue+" 中間沒有留任何工作天，至少要隔 1 天給回饋修改");
-    }
-  }
-  /* 業配要落在 V1 交件之後、Final 之前 */
-  if(bd&&fdue&&bd>=fdue){
-    warn.push("業配交件 "+bd+" 不早於 Final "+fdue+"，業配必須在 Final 之前完成");
-  }
-  if(bd&&vd&&bd<vd){
-    warn.push("業配交件 "+bd+" 早於 V1 交件 "+vd+"，業配應排在 V1/ES 交件之後");
   }
   return {fields:f,warn:warn};
-}
-
-/* 兩個日期之間隔幾個工作天(不含起日、含迄日，只算週一–週五) */
-/* 交件日落在星期幾。週一/週五是軟性偏好，避不開也無妨，
-   所以只用灏字提醒，不走紅字的 warn。阿滋的案不受限制，不提醒。 */
-function dueDayNote(p,f){
-  if(!p)return "";
-  if(String(p.client||"").indexOf("阿滴")>=0)return "";
-  var picks=[["cut1Due","初剪交"],["v1Due","V1 交"],["finalDue","Final"]];
-  var hit=[];
-  picks.forEach(function(x){
-    var v=f[x[0]];
-    if(!v)return;
-    var d=toDate(v);
-    if(!d)return;
-    var w=d.getDay();
-    if(w===1||w===5)hit.push(x[1]+" "+v+"("+WD_CH[w]+")");
-  });
-  return hit.length?("交件日落在想避開的星期："+hit.join("、")):"";
-}
-
-function workDaysBetween(a,b){
-  var d1=toDate(a), d2=toDate(b);
-  if(!d1||!d2)return null;
-  if(d2<d1)return 0;
-  var n=0, cur=new Date(d1.getTime());
-  cur.setDate(cur.getDate()+1);
-  while(cur<=d2){
-    var w=cur.getDay();
-    if(w!==0&&w!==6)n++;
-    cur.setDate(cur.getDate()+1);
-  }
-  return n;
 }
 
 var FIELD_LABEL={editS:"工作起",editE:"工作迄",workS:"工作起",workE:"工作迄",workStart:"工作起",workEnd:"工作迄",
@@ -1440,10 +1012,9 @@ var FIELD_LABEL={editS:"工作起",editE:"工作迄",workS:"工作起",workE:"�
 
 function openImport(){
   state.imp={text:"",rows:null,summary:null,err:null,sel:{}};
-  state.skipScroll=true;
   render();
 }
-function closeImport(){state.imp=null;state.skipScroll=true;render();}
+function closeImport(){state.imp=null;render();}
 
 function parseImport(){
   var ta=document.getElementById("imp-in");
@@ -1461,12 +1032,7 @@ function parseImport(){
           if(String(a)!==String(b))changes.push({k:k,old:a,nw:b});
         });
       }
-      /* V1 交件日是對客戶承諾過的，被往後拖就要當場講 */
-      if(t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
-        ex.warn=ex.warn.concat(["V1 交件日從 "+t.p.v1Due+" 被往後拖到 "+ex.fields.v1Due+"，這是已承諾的日期"]);
-      }
-      return {i:i,row:r,target:t,fields:ex.fields,warn:ex.warn,
-              soft:dueDayNote(t.p,ex.fields), changes:changes};
+      return {i:i,row:r,target:t,fields:ex.fields,warn:ex.warn,changes:changes};
     });
     state.imp.rows=rows;
     state.imp.summary=got.summary;
@@ -1516,19 +1082,6 @@ function renderImport(){
     return h;
   }
 
-  /* 比對這次要排的案數，json 漏了就直接講 */
-  var asked=PLAN_PREFS.asked||[];
-  if(asked.length){
-    var hit={};
-    m.rows.forEach(function(r){if(r.target.p)hit[r.target.p.id]=1;});
-    var miss=asked.filter(function(a){return !hit[a.id];});
-    if(miss.length){
-      h+='<div class="imp-err">⚠ 這次要排 '+asked.length+' 案，但這份 JSON 只對到 '+(asked.length-miss.length)+' 案。<br>';
-      h+='沒出現的：'+miss.map(function(a){return escapeHtml(a.name);}).join("、")+'<br>';
-      h+='多半是回覆裡的 json 沒貼完整，或者 Claude 漏排了。可以先填入這幾案，也可以回去把完整的那段再貼一次。</div>';
-    }
-  }
-
   var okCount=0;
   m.rows.forEach(function(r){
     var p=r.target.p, ok=!!p, hasChange=r.changes.length>0;
@@ -1547,7 +1100,6 @@ function renderImport(){
 
     if(r.row.note)h+='<div class="imp-note2">'+escapeHtml(String(r.row.note))+'</div>';
     if(r.warn.length)h+='<div class="imp-note2" style="color:var(--red)">⚠ '+escapeHtml(r.warn.join(" / "))+'</div>';
-    if(r.soft)h+='<div class="imp-note2" style="color:var(--ink-light)">○ '+escapeHtml(r.soft)+'</div>';
 
     if(ok&&hasChange){
       h+='<div class="imp-diff">';
@@ -1580,7 +1132,7 @@ function renderImport(){
 
 /* ─── 3. 排程概念說明 ──────────────────────────────────────── */
 
-var SUM_LABEL=[["order","排序邏輯"],["peak","同時上限"],["gaps","空檔填補"],["biz","業配時間"],["next","可接新案"]];
+var SUM_LABEL=[["order","排序邏輯"],["peak","同時上限"],["gaps","空檔填補"],["biz","業配時間"]];
 
 function clearSummary(){
   state.summary=null;
