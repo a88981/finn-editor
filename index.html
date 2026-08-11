@@ -1919,10 +1919,13 @@ function CopySched(props){
   }
 
   // 只列還沒開工的案：已進入初剪/後製/審核或已 Final 完成的都不顯示
+  // 例外：這些狀態雖然列在上面的群組，但實際還沒動工，仍然可以選
+  var OK_ANYWAY=["\u521d\u526a\u5f85\u57f7\u884c"];
   var STARTED=[];
   SG.forEach(function(g){
     if(["\u521d\u526a","\u5f8c\u88fd","\u5be9\u6838","\u5b8c\u6210"].indexOf(g.label)>=0)STARTED=STARTED.concat(g.items);
   });
+  STARTED=STARTED.filter(function(st){return OK_ANYWAY.indexOf(st)<0;});
   var list=projects.filter(function(p){return!p.closed&&STARTED.indexOf(p.status)<0;});
   if(q.trim()){
     var kw=q.trim().toLowerCase();
