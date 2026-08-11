@@ -48,7 +48,8 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .month-title::after{content:"";flex:1}
 .gantt-head{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:end;font-size:9.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .gantt-head-days{display:flex;font-variant-numeric:tabular-nums}
-.gantt-head-days>div{flex:1;text-align:center}
+.gantt-head-days>div{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.gantt-head-days .dwk{font-size:8.5px;opacity:.55;letter-spacing:0;margin-top:1px}
 .gantt-head-days .we{color:var(--red);opacity:0.6}
 .gantt-row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line-soft);min-height:42px}
 .gantt-row:hover{background:rgba(232,179,64,0.03)}
@@ -190,13 +191,15 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V18";
+var PLAN_BUILD="V21";
+var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
   loading:true,
   error:null,
   ym:[new Date().getFullYear(),new Date().getMonth()+1],
   monthsOverride:null,
+  skipScroll:false,
   mCount:2,
   edits:{},
   modal:null,
@@ -423,7 +426,10 @@ function renderGanttMonth(visible,yr,mo,now){
   html+='<div class="gantt"><div class="month-title">'+yr+'年 '+mo+'月</div>';
   html+='<div class="gantt-head"><div>專案</div><div class="gantt-head-days">';
   for(var d=1;d<=dim;d++){
-    html+='<div'+(isWeekend(yr,mo,d)?' class="we"':'')+'>'+d+'</div>';
+    var wi=new Date(yr,mo-1,d).getDay();
+    html+='<div'+(isWeekend(yr,mo,d)?' class="we"':'')+'>'
+        +'<span class="dnum">'+d+'</span>'
+        +'<span class="dwk">'+WD_CH[wi]+'</span></div>';
   }
   html+='</div></div>';
   var rowsHtml=visible.map(function(p){
@@ -464,6 +470,7 @@ function renderGanttMonth(visible,yr,mo,now){
 
 function render(){
   var root=document.getElementById("root");
+  var _sc=grabScroll();
   if(state.loading){root.innerHTML='<div class="loading">讀取 Notion 資料中…</div>';return;}
   if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
   
@@ -536,6 +543,7 @@ function render(){
   if(visible.length===0){
     html+='<div class="empty">沒有待執行的案(等待素材 / 待確認 / 初剪待執行)</div>';
     root.innerHTML=html;
+    restoreScroll(_sc);
     return;
   }
   
@@ -614,6 +622,7 @@ function render(){
   if(state.toast){html+='<div class="toast">'+escapeHtml(state.toast)+'</div>';}
   
   root.innerHTML=html;
+  restoreScroll(_sc);
 }
 
 function escAttr(s){return (s||"").replace(/"/g,'&quot;');}
@@ -705,7 +714,7 @@ var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","w
                              ["工作開始","工作結束"]];
 
 // 這一份設定在分頁關掉前都留著，不用每次重填
-var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, pick:{}, mode:"auto", asked:[]};
+var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, pick:{}, mode:"all", asked:[]};
 var MODE_HINT = {
   auto:"沒排過、或者排程已經過期的案會先打勾。不對就自己改。",
   all:"所有案全部打勾重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
@@ -726,6 +735,23 @@ function todayStr(){
   var d=new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
+/* 重繪會整個換掉 innerHTML，捲動位置歸零 —— 勾選 modal 裡靠下面的案子時
+   畫面會彈回最上面。所以重繪前把位置存起來，重繪後放回去。
+   開關 modal 時位置沒有意義，用 skipScroll 跳過。 */
+function grabScroll(){
+  var m=document.querySelector(".modal");
+  return {top:m?m.scrollTop:null, win:window.scrollY||0};
+}
+function restoreScroll(sc){
+  if(!sc)return;
+  if(state.skipScroll){state.skipScroll=false;return;}
+  if(sc.top!==null){
+    var m=document.querySelector(".modal");
+    if(m)m.scrollTop=sc.top;
+  }
+  if((window.scrollY||0)!==sc.win)window.scrollTo(0,sc.win);
+}
+
 function md(s){
   if(!s)return "";
   var p=String(s).split("-");
@@ -788,7 +814,7 @@ function isStale(p){
    auto — 沒排過、或排程已過期的才要重排
    all  — 全部重排
    keep — 只重排完全沒排過的 */
-function planMode(){return PLAN_PREFS.mode||"auto";}
+function planMode(){return PLAN_PREFS.mode||"all";}
 function basePick(p){
   var m=planMode();
   if(m==="all")return true;
@@ -1084,9 +1110,10 @@ function buildPrompt(){
 function openExport(){
   if(!PLAN_PREFS.start)PLAN_PREFS.start=todayStr();
   state.exp={};
+  state.skipScroll=true;
   render();
 }
-function closeExport(){state.exp=null;render();}
+function closeExport(){state.exp=null;state.skipScroll=true;render();}
 function refreshPrompt(){
   var ta=document.getElementById("exp-out");
   if(ta)ta.value=buildPrompt();
@@ -1166,8 +1193,8 @@ function renderExport(){
   h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">這次要怎麼排</span><span class="pstep-h">打勾＝這次要重排；沒打勾的維持原日期，但仍佔額度</span></div>';
   var pm=planMode();
   h+='<div class="mode-row">';
-  h+='<button class="mode-b'+(pm==="auto"?" on":"")+'" onclick="setMode(\'auto\')">自動判斷</button>';
   h+='<button class="mode-b'+(pm==="all"?" on":"")+'" onclick="setMode(\'all\')">全部重排</button>';
+  h+='<button class="mode-b'+(pm==="auto"?" on":"")+'" onclick="setMode(\'auto\')">自動判斷</button>';
   h+='<button class="mode-b'+(pm==="keep"?" on":"")+'" onclick="setMode(\'keep\')">只排沒排過的</button>';
   h+='</div>';
   h+='<div class="lock-sum">'+MODE_HINT[pm]+'</div>';
@@ -1321,7 +1348,6 @@ function expandRow(row){
 }
 
 /* 兩個日期之間隔幾個工作天(不含起日、含迄日，只算週一–週五) */
-var WD_CH=["\u65e5","\u4e00","\u4e8c","\u4e09","\u56db","\u4e94","\u516d"];
 /* 交件日落在星期幾。週一/週五是軟性偏好，避不開也無妨，
    所以只用灏字提醒，不走紅字的 warn。阿滋的案不受限制，不提醒。 */
 function dueDayNote(p,f){
@@ -1364,9 +1390,10 @@ var FIELD_LABEL={editS:"工作起",editE:"工作迄",workS:"工作起",workE:"�
 
 function openImport(){
   state.imp={text:"",rows:null,summary:null,err:null,sel:{}};
+  state.skipScroll=true;
   render();
 }
-function closeImport(){state.imp=null;render();}
+function closeImport(){state.imp=null;state.skipScroll=true;render();}
 
 function parseImport(){
   var ta=document.getElementById("imp-in");
