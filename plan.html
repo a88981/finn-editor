@@ -174,6 +174,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .mode-b{font-family:'Noto Serif TC',serif;font-size:11.5px;padding:5px 12px;border:0.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink-light);cursor:pointer;transition:.12s}
 .mode-b:hover{border-color:var(--yellow-pale);color:var(--ink)}
 .mode-b.on{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--ink);font-weight:500}
+.note-in{margin-top:6px;padding:5px 8px;font-size:11px;border:0.5px dashed var(--line);border-radius:3px;width:100%;background:#FCFCFA}
+.note-in:focus{outline:none;border-style:solid;border-color:var(--yellow);background:#fff}
+.note-in::placeholder{color:var(--ink-light);opacity:.65}
 </style>
 </head>
 <body>
@@ -183,7 +186,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V10";
+var PLAN_BUILD="V13";
 var state={
   projects:[],
   loading:true,
@@ -614,6 +617,26 @@ function daysBetween(a,b){
 /* V1 交件到 Final 至少要隔幾個工作天。要改改這裡，上面 PLAN_RULES 的文字也要一起改 */
 var FEEDBACK_MIN_DAYS = 3;
 
+/* 每個案自己的排程限制。存在瀏覽器 localStorage，換電腦不會跟著走 */
+var PLAN_NOTES_KEY = "plan_notes_v1";
+var PLAN_NOTES = (function(){
+  try{
+    var raw=window.localStorage.getItem(PLAN_NOTES_KEY);
+    var o=raw?JSON.parse(raw):{};
+    return (o&&typeof o==="object")?o:{};
+  }catch(err){return {};}
+})();
+function saveNotes(){
+  try{window.localStorage.setItem(PLAN_NOTES_KEY,JSON.stringify(PLAN_NOTES));}catch(err){}
+}
+function pNote(p){return (PLAN_NOTES[p.id]||"").trim();}
+function setPNote(pid,v){
+  v=(v||"").trim();
+  if(v)PLAN_NOTES[pid]=v; else delete PLAN_NOTES[pid];
+  saveNotes();
+  render();
+}
+
 var PLAN_RULES =
 "- 一天同時進行 2–3 個長片案(以 2 個為主，最多 3 個)\n" +
 "- 初剪約 3–7 個工作天\n" +
@@ -621,10 +644,13 @@ var PLAN_RULES =
 "- 業配(如果有)在 V1 完成後進行\n" +
 "- V1/ES 交件之後必須留 3–5 個工作天給客戶回饋與修改，才能交 Final。也就是 V1 交件日與 Final 交件日之間至少要隔 3 個工作天，不得把 V1 交件貼在 Final 前一天\n" +
 "- 初剪交件之後不需要留回饋緩衝，隔一個工作天就可以接著開始 V1/ES\n" +
+"- 錨點優先順序：若某案同時有 V1/ES 交件日與 Final 交件日，一律以 **V1/ES 交件日為錨點**——那是已經對客戶承諾的日期，不要為了遷就 Final 而往後拖。Final 改由 V1/ES 交件日往後推 3–5 個工作天算出。只有在該案沒有 V1/ES 交件日時，才改以上片日／Final 交件日往前推\n" +
 "- Final 需在上片日前一天交件\n" +
 "- 逾期 / 上片日最近的案件優先處理，並標記 🚨\n" +
 "- 短影優先，短影沒有個數限制，可直接安排，不計入 2–3 長片同時進行的額度\n" +
-"- 若案件處於「等待素材」，工作開始日不得早於可工作期間起始日；可工作期間未定者，請倒推出「素材最晚到齊日」\n" +
+"- 可工作期間**有填起始日**者，工作開始日不得早於該日(那是素材最早可用日)。在這個前提下，中間怎麼安排由你決定，不必從第一天就開工\n" +
+"- 可工作期間**沒有填起始日**者，請自行判斷合適的開始日，並倒推出「素材最晚到齊日」寫在 note 裡\n" +
+"- 可工作期間有填結束日者，所有工作與交件都必須在該日之前完成\n" +
 "- 排程時優先處理上片日較近的案件，等待素材/等待回饋的空檔可用來插入其他案件或短影";
 
 /* 「完整時程」的開始/結束欄位名。自動偵測不到時，把正確名稱填在這裡，
@@ -786,7 +812,7 @@ function progressLine(p){
   bits.push("Final: "+(p.finalDone?"已交":"未交")+(p.finalDue?"，原訂 "+p.finalDue:""));
   return bits.join(" · ");
 }
-function workWindow(p){
+function workWindowVals(p){
   var rf=workRangeFields();
   var s=rf?(p[rf[0]]||""):"";
   var e=rf?(p[rf[1]]||""):"";
@@ -794,7 +820,20 @@ function workWindow(p){
     s=p.editS||p.workStart||p.availStart||p.workS||"";
     e=p.editE||p.workEnd||p.availEnd||p.workE||"";
   }
-  return (s||"?")+" → "+(e||"?");
+  return [s,e];
+}
+function workWindow(p){
+  var v=workWindowVals(p);
+  return (v[0]||"?")+" → "+(v[1]||"?");
+}
+/* 寫進 Prompt 的版本：把「有沒有填開始日」講清楚，不然 AI 看到 ? 不知道該怎麼辦 */
+function workWindowLine(p){
+  var v=workWindowVals(p), s=v[0], e=v[1];
+  var t=(s||"未填")+" → "+(e||"未填");
+  if(s)t+="  ← 開始日已確定，工作開始日不得早於 "+s+"(中間怎麼安排你決定)";
+  else t+="  ← 開始日未填，請自行判斷何時開工，並倒推出素材最晚到齊日";
+  if(e)t+="；所有交件須在 "+e+" 之前完成";
+  return t;
 }
 function projType(p){
   return p.type||p.kind||p["類型"]||"長片";
@@ -804,10 +843,12 @@ function projBlock(p,i){
   var t="";
   t+="\n### "+(i+1)+". "+p.name+(p.client?" · "+p.client:"")+"\n";
   t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
-  t+="- 可工作期間: "+workWindow(p)+"\n";
+  t+="- 可工作期間: "+workWindowLine(p)+"\n";
   t+="- 進度: "+progressLine(p)+"\n";
   if(p.length)t+="- 片長: "+p.length+"\n";
   if(p.note)t+="- 備註: "+String(p.note).replace(/\n/g," ")+"\n";
+  var pn=pNote(p);
+  if(pn)t+="- **排程限制(我指定的，必須遵守): "+pn.replace(/\n/g," ")+"**\n";
   t+="- id: `"+p.id+"`\n";
   var extras=Object.keys(p).filter(function(k){
     if(KNOWN_KEYS.indexOf(k)>=0)return false;
@@ -839,7 +880,8 @@ function buildPrompt(){
   if(pm==="all"){
     t+="\n## 這次的排法\n";
     t+="**全部重新排。**下面每個案既有的工作日期(初剪、V1、業配的起迄)一律作廢，不要參考、也不要沿用。\n";
-    t+="請以每個案的**上片日與 Final 交件日為基準**，從這兩個日期往前推算出完整的工作時程。\n";
+    t+="唯一的例外是**已經存在的 V1/ES 交件日**：那是對客戶承諾過的，請保留不動並當成該案的錨點，其餘日期繞著它重排。\n";
+    t+="沒有 V1/ES 交件日的案，才以**上片日與 Final 交件日為基準**往前推算完整的工作時程。\n";
     t+="上片日 / Final 日本身不要改動；若倒推回來已經來不及，標記 🚨 並在說明裡點出。\n";
   }else if(pm==="keep"){
     t+="\n## 這次的排法\n";
@@ -849,6 +891,11 @@ function buildPrompt(){
 
   var shorts=sp.open.filter(function(p){return /短影|短片|shorts/i.test(projType(p));});
   t+="\n## 排程規則\n"+PLAN_RULES+"\n";
+  var noted=sp.all.filter(function(p){return pNote(p);});
+  if(noted.length){
+    t+="\n有標「排程限制」的案，那是我指定的硬性條件，**優先於上面的一般規則**，不能為了排得好看而違反。\n";
+    t+="若某個限制跟其他規則或上片日衝突、排不出來，請直接說明衝突在哪裡，不要自己硬排。\n";
+  }
   if(shorts.length)t+="\n(這次要排的案裡有 "+shorts.length+" 個短影，可直接安排，不佔長片額度)\n";
   t+="\n";
 
@@ -1010,6 +1057,7 @@ function renderExport(){
     else if(stale)h+=' <span class="lock-tag stale">排程已過期</span>';
     h+='</div>';
     h+='<div class="lock-meta">'+(p.airDate?p.airDate+' 上片 · ':'')+escapeHtml(has?schedSummary(p):"沒有已排定的工作日期")+'</div>';
+    h+='<input class="fc note-in" value="'+escAttr(pNote(p))+'" placeholder="排程限制（選填）例如：9 月才開工，8 月不要排" onchange="setPNote(\''+p.id+'\',this.value)">';
     h+='</div></div>';
   });
 
@@ -1116,14 +1164,18 @@ function expandRow(row){
   if(f.cut1S&&f.noCut1!==true)f.noCut1=false;
   if(f.bizS&&f.noBiz!==true)f.noBiz=false;
 
-  // 完整時程：跟頁面上的算法一致(最早的階段日 → 最晚的交件日)
+  /* 可工作期間(editS/editE)是我自己填的條件——最早可開始、最晚要完成，
+     不是排程算出來的結果，所以匯入時絕對不能覆寫，否則下一輪 AI 會拿
+     自己上次排的日期當成素材可用日，一輪一輪偏掉。 */
   var rf=workRangeFields();
   if(rf){
+    var ws=state.projects.filter(function(x){return x.id===(row.id||"");})[0];
     var all=[f.cut1S,f.v1S,f.bizS,f.cut1Due,f.v1Due,f.bizDue,f.finalDue]
             .filter(function(x){return !!x;}).sort();
-    if(all.length){
-      f[rf[0]]=all[0];
-      f[rf[1]]=all[all.length-1];
+    if(ws&&all.length){
+      var lo=ws[rf[0]]||"", hi=ws[rf[1]]||"";
+      if(lo&&all[0]<lo)warn.push("工作開始日 "+all[0]+" 早於可工作期間起始日 "+lo);
+      if(hi&&all[all.length-1]>hi)warn.push("最後交件日 "+all[all.length-1]+" 超過可工作期間結束日 "+hi);
     }
   }
   /* 回饋緩衝檢查：V1 交件到 Final 之間至少要隔 3 個工作天 */
@@ -1181,6 +1233,10 @@ function parseImport(){
           var b=(typeof newV==="boolean")?(newV?"是":"否"):newV;
           if(String(a)!==String(b))changes.push({k:k,old:a,nw:b});
         });
+      }
+      /* V1 交件日是對客戶承諾過的，被往後拖就要當場講 */
+      if(t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
+        ex.warn=ex.warn.concat(["V1 交件日從 "+t.p.v1Due+" 被往後拖到 "+ex.fields.v1Due+"，這是已承諾的日期"]);
       }
       return {i:i,row:r,target:t,fields:ex.fields,warn:ex.warn,changes:changes};
     });
