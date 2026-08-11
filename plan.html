@@ -177,6 +177,10 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .note-in{margin-top:6px;padding:5px 8px;font-size:11px;border:0.5px dashed var(--line);border-radius:3px;width:100%;background:#FCFCFA}
 .note-in:focus{outline:none;border-style:solid;border-color:var(--yellow);background:#fff}
 .note-in::placeholder{color:var(--ink-light);opacity:.65}
+.nextfree{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border:0.5px solid var(--yellow-pale);background:var(--yellow-lightest);border-radius:5px;padding:8px 13px;margin:2px 0 14px}
+.nf-k{font-family:'Noto Serif TC',serif;font-size:11.5px;color:var(--yellow-mid);font-weight:500}
+.nf-d{font-family:Inter,sans-serif;font-size:15px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+.nf-n{font-size:10.5px;color:var(--ink-light);margin-left:auto}
 </style>
 </head>
 <body>
@@ -186,7 +190,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V13";
+var PLAN_BUILD="V14";
 var state={
   projects:[],
   loading:true,
@@ -478,6 +482,12 @@ function render(){
   var html='';
   html+='<div class="eyebrow">Editing Schedule Planner</div>';
   html+='<div class="title-row"><h1 class="title">📋 排程規劃</h1><span class="title-sub">Schedule Planning</span><span class="build-tag">build '+PLAN_BUILD+'</span></div>';
+  var nx=nextOpenDate();
+  if(nx){
+    html+='<div class="nextfree"><span class="nf-k">下一支可以接案</span>';
+    html+='<span class="nf-d">'+nx.date+'</span>';
+    html+='<span class="nf-n">當天在跑 '+nx.running+' 支長片（共 '+nx.total+' 支排程中）</span></div>';
+  }
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
   
   var dirty=dirtyCount();
@@ -615,7 +625,7 @@ function daysBetween(a,b){
    ══════════════════════════════════════════════════════════════════ */
 
 /* V1 交件到 Final 至少要隔幾個工作天。要改改這裡，上面 PLAN_RULES 的文字也要一起改 */
-var FEEDBACK_MIN_DAYS = 3;
+var FEEDBACK_MIN_DAYS = 1;
 
 /* 每個案自己的排程限制。存在瀏覽器 localStorage，換電腦不會跟著走 */
 var PLAN_NOTES_KEY = "plan_notes_v1";
@@ -642,9 +652,9 @@ var PLAN_RULES =
 "- 初剪約 3–7 個工作天\n" +
 "- V1/ES 約 5–10 個工作天\n" +
 "- 業配(如果有)在 V1 完成後進行\n" +
-"- V1/ES 交件之後必須留 3–5 個工作天給客戶回饋與修改，才能交 Final。也就是 V1 交件日與 Final 交件日之間至少要隔 3 個工作天，不得把 V1 交件貼在 Final 前一天\n" +
+"- V1/ES 交件之後要留回饋與修改的時間才能交 Final，**1–3 個工作天都可以，3 天最安全**。空間夠就給 3 天，被可工作期間或上片日壓縮時可以縮到 1 天，但不得為 0(V1 交件與 Final 不能同一天)\n" +
 "- 初剪交件之後不需要留回饋緩衝，隔一個工作天就可以接著開始 V1/ES\n" +
-"- 錨點優先順序：若某案同時有 V1/ES 交件日與 Final 交件日，一律以 **V1/ES 交件日為錨點**——那是已經對客戶承諾的日期，不要為了遷就 Final 而往後拖。Final 改由 V1/ES 交件日往後推 3–5 個工作天算出。只有在該案沒有 V1/ES 交件日時，才改以上片日／Final 交件日往前推\n" +
+"- 錨點優先順序：若某案同時有 V1/ES 交件日與 Final 交件日，一律以 **V1/ES 交件日為錨點**——那是已經對客戶承諾的日期，不要為了遷就 Final 而往後拖。Final 改由 V1/ES 交件日往後推 1–3 個工作天算出。只有在該案沒有 V1/ES 交件日時，才改以上片日／Final 交件日往前推\n" +
 "- Final 需在上片日前一天交件\n" +
 "- 逾期 / 上片日最近的案件優先處理，並標記 🚨\n" +
 "- 短影優先，短影沒有個數限制，可直接安排，不計入 2–3 長片同時進行的額度\n" +
@@ -790,6 +800,44 @@ function setOff(i,k,v){
   if(k==="s"&&!PLAN_PREFS.off[i].e)PLAN_PREFS.off[i].e=v;   // 單日休假免填兩次
   refreshPrompt();
 }
+/* ── 下一個可以接新案的日期 ────────────────────────────────
+   長片同時進行以 2 個為主，所以往前找第一個「在跑的長片 ≤ 1」的工作天。
+   週末、休假日都跳過。案子佔用的期間取最早階段起日 → 最晚交件日。   */
+function isOffDay(ds){
+  return (PLAN_PREFS.off||[]).some(function(o){
+    var a=o.s||o.e, b=o.e||o.s;
+    if(!a)return false;
+    return ds>=a&&ds<=b;
+  });
+}
+function busySpan(p){
+  var d=[getField(p,"cut1S"),getField(p,"v1S"),getField(p,"bizS"),
+         getField(p,"cut1Due"),getField(p,"v1Due"),getField(p,"bizDue")]
+        .filter(function(x){return !!x;}).sort();
+  if(!d.length)return null;
+  return {s:d[0], e:d[d.length-1]};
+}
+function nextOpenDate(){
+  var vis=pendingProjects().filter(function(p){
+    return !/短影|短片|shorts/i.test(projType(p));
+  });
+  var spans=vis.map(busySpan).filter(function(x){return !!x;});
+  var start=PLAN_PREFS.start||todayStr();
+  var cur=toDate(start);
+  if(!cur)return null;
+  for(var i=0;i<400;i++){
+    var w=cur.getDay();
+    var ds=cur.getFullYear()+"-"+String(cur.getMonth()+1).padStart(2,"0")+"-"+String(cur.getDate()).padStart(2,"0");
+    if(w!==0&&w!==6&&!isOffDay(ds)){
+      var n=0;
+      spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)n++;});
+      if(n<=1)return {date:ds, running:n, total:spans.length};
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  return null;
+}
+
 function offLines(){
   return PLAN_PREFS.off.filter(function(o){return o.s||o.e;}).map(function(o){
     var a=o.s||o.e, b=o.e||o.s;
@@ -926,7 +974,8 @@ function buildPrompt(){
   t+="1. 為什麼這樣排序(哪個案件優先、為什麼)\n";
   t+="2. 哪幾天長片同時量達到上限"+(sp.locked.length?"(含 A 區已排好的案)":"")+"\n";
   t+="3. 等待素材/等待回饋空檔如何被短影或其他案件填補\n";
-  t+="4. 業配如有，排在哪個時間點\n\n";
+  t+="4. 業配如有，排在哪個時間點\n";
+  t+="5. 排完之後我最快哪一天可以再接一支新的長片(以同時 2 支為基準判斷，說明那天手上還在跑幾支)\n\n";
 
   t+="## 最後請附上 JSON(我的排程網站要一鍵匯入用)\n";
   t+="在回覆的**最末**放一個 ```json 區塊";
@@ -938,7 +987,8 @@ function buildPrompt(){
   t+='    "order": "為什麼這樣排序",\n';
   t+='    "peak": "哪幾天長片同時量達到上限",\n';
   t+='    "gaps": "空檔如何被填補",\n';
-  t+='    "biz": "業配排在哪個時間點"\n';
+  t+='    "biz": "業配排在哪個時間點",\n';
+  t+='    "next": "排完之後，我最快哪一天可以再接一支新的長片(要說明那天在跑幾支)"\n';
   t+="  },\n";
   t+='  "projects": [\n';
   t+="    {\n";
@@ -1183,7 +1233,7 @@ function expandRow(row){
   if(vd&&fdue){
     var gap=workDaysBetween(vd,fdue);
     if(gap!==null&&gap<FEEDBACK_MIN_DAYS){
-      warn.push("V1 交件 "+vd+" 到 Final "+fdue+" 只隔 "+gap+" 個工作天，不夠回饋修改(至少 "+FEEDBACK_MIN_DAYS+" 天)");
+      warn.push("V1 交件 "+vd+" 到 Final "+fdue+" 中間沒有留任何工作天，至少要隔 1 天給回饋修改");
     }
   }
   return {fields:f,warn:warn};
@@ -1351,7 +1401,7 @@ function renderImport(){
 
 /* ─── 3. 排程概念說明 ──────────────────────────────────────── */
 
-var SUM_LABEL=[["order","排序邏輯"],["peak","同時上限"],["gaps","空檔填補"],["biz","業配時間"]];
+var SUM_LABEL=[["order","排序邏輯"],["peak","同時上限"],["gaps","空檔填補"],["biz","業配時間"],["next","可接新案"]];
 
 function clearSummary(){
   state.summary=null;
