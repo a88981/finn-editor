@@ -182,6 +182,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .nf-k{font-family:'Noto Serif TC',serif;font-size:11.5px;color:var(--yellow-mid);font-weight:500}
 .nf-d{font-family:Inter,sans-serif;font-size:15px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0.02em}
 .nf-n{font-size:10.5px;color:var(--ink-light);margin-left:auto}
+.nextfree.rush{border-style:dashed;background:transparent;margin-top:-8px}
+.nextfree.rush .nf-k{color:var(--ink-light)}
+.nextfree.rush .nf-d{font-size:13px;color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -191,7 +194,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V21";
+var PLAN_BUILD="V22";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -509,6 +512,18 @@ function render(){
       note=bits.join(' · ');
     }
     html+='<span class="nf-n">'+note+'</span></div>';
+
+    var rw=rushWindows(2);
+    if(rw.length){
+      var seg=rw[0];
+      html+='<div class="nextfree rush"><span class="nf-k">急案最快可以塞</span>';
+      html+='<span class="nf-d">'+seg.s+'</span>';
+      var rn=seg.open
+        ? ('從這天起就一直有空間（期間同時最多 '+(seg.peak+1)+' 支）')
+        : ('到 '+seg.e+' 為止有 '+seg.days+' 個工作天（期間同時最多 '+(seg.peak+1)+' 支）');
+      if(!seg.open&&rw[1])rn+=' · 下一段 '+rw[1].s+' 起';
+      html+='<span class="nf-n">'+rn+'</span></div>';
+    }
   }
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
   
@@ -936,6 +951,41 @@ function nextOpenDate(){
     cur.setDate(cur.getDate()+1);
   }
   return {date:null, running:null, total:spans.length, lastEnd:lastEnd};
+}
+
+/* 急案：可以硬塞到「同時 3 支」的區間。
+   一般接案要求同時 ≤1(排完變 2)；急案放寬到 ≤2(排完變 3，規則的上限)。
+   回傳最前面幾段連續可用區間，附上各段的工作天數。 */
+function rushWindows(limit){
+  var vis=pendingProjects().filter(function(p){
+    return !/短影|短片|shorts/i.test(projType(p));
+  });
+  var spans=vis.map(busySpan).filter(function(x){return !!x;});
+  function running(ds){
+    var n=0;
+    spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)n++;});
+    return n;
+  }
+  var cur=toDate(PLAN_PREFS.start||todayStr());
+  if(!cur)return [];
+  var out=[], seg=null, peak=0;
+  for(var i=0;i<180;i++){
+    var w=cur.getDay(), ds=dstr(cur);
+    if(w!==0&&w!==6&&!isOffDay(ds)){
+      var r=running(ds);
+      if(r<=2){
+        if(!seg){seg={s:ds,e:ds,days:0,peak:r};peak=r;}
+        seg.e=ds; seg.days++;
+        if(r>seg.peak)seg.peak=r;
+      }else if(seg){
+        out.push(seg); seg=null;
+        if(out.length>=(limit||2))return out;
+      }
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  if(seg){seg.open=true; out.push(seg);}
+  return out;
 }
 
 function offLines(){
