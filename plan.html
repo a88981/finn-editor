@@ -190,7 +190,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V14";
+var PLAN_BUILD="V15";
 var state={
   projects:[],
   loading:true,
@@ -485,8 +485,12 @@ function render(){
   var nx=nextOpenDate();
   if(nx){
     html+='<div class="nextfree"><span class="nf-k">下一支可以接案</span>';
-    html+='<span class="nf-d">'+nx.date+'</span>';
-    html+='<span class="nf-n">當天在跑 '+nx.running+' 支長片（共 '+nx.total+' 支排程中）</span></div>';
+    html+='<span class="nf-d">'+(nx.date||'排不進來')+'</span>';
+    var note;
+    if(!nx.total)note='手上沒有排程中的長片，隨時可以接';
+    else if(!nx.date)note='一年內都沒有連續 '+NEW_JOB_WORKDAYS+' 個工作天的空間（手上最後一支做到 '+nx.lastEnd+'）';
+    else note='從這天起連續 '+NEW_JOB_WORKDAYS+' 個工作天同時量都不會超過 1 支 · 手上最後一支做到 '+nx.lastEnd;
+    html+='<span class="nf-n">'+note+'</span></div>';
   }
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
   
@@ -817,25 +821,58 @@ function busySpan(p){
   if(!d.length)return null;
   return {s:d[0], e:d[d.length-1]};
 }
+function dstr(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+/* 接一支新長片大約要佔掉的工作天(初剪 3–7 + V1 5–10 + 緩衝)。
+   只看「某一天有空」沒有意義，要看那天之後能不能一直有空間。 */
+var NEW_JOB_WORKDAYS = 20;
+
 function nextOpenDate(){
   var vis=pendingProjects().filter(function(p){
     return !/短影|短片|shorts/i.test(projType(p));
   });
   var spans=vis.map(busySpan).filter(function(x){return !!x;});
-  var start=PLAN_PREFS.start||todayStr();
-  var cur=toDate(start);
+  if(!spans.length){
+    return {date:PLAN_PREFS.start||todayStr(), running:0, total:0, lastEnd:null, immediate:true};
+  }
+  var lastEnd=spans.map(function(s){return s.e;}).sort().pop();
+
+  function running(ds){
+    var n=0;
+    spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)n++;});
+    return n;
+  }
+  function isWorkday(d){
+    var w=d.getDay();
+    return w!==0&&w!==6&&!isOffDay(dstr(d));
+  }
+  /* 從 d 起算，往後 NEW_JOB_WORKDAYS 個工作天內同時量會不會超過 1 */
+  function clearFrom(d){
+    var c=new Date(d.getTime()), cnt=0, peak=0;
+    for(var k=0;k<400&&cnt<NEW_JOB_WORKDAYS;k++){
+      if(isWorkday(c)){
+        cnt++;
+        var r=running(dstr(c));
+        if(r>peak)peak=r;
+        if(r>1)return false;
+      }
+      c.setDate(c.getDate()+1);
+    }
+    return true;
+  }
+
+  var cur=toDate(PLAN_PREFS.start||todayStr());
   if(!cur)return null;
   for(var i=0;i<400;i++){
-    var w=cur.getDay();
-    var ds=cur.getFullYear()+"-"+String(cur.getMonth()+1).padStart(2,"0")+"-"+String(cur.getDate()).padStart(2,"0");
-    if(w!==0&&w!==6&&!isOffDay(ds)){
-      var n=0;
-      spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)n++;});
-      if(n<=1)return {date:ds, running:n, total:spans.length};
+    if(isWorkday(cur)&&clearFrom(cur)){
+      var ds=dstr(cur);
+      return {date:ds, running:running(ds), total:spans.length, lastEnd:lastEnd,
+              immediate:(i===0)};
     }
     cur.setDate(cur.getDate()+1);
   }
-  return null;
+  return {date:null, running:null, total:spans.length, lastEnd:lastEnd};
 }
 
 function offLines(){
