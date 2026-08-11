@@ -183,7 +183,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V9";
+var PLAN_BUILD="V10";
 var state={
   projects:[],
   loading:true,
@@ -611,11 +611,16 @@ function daysBetween(a,b){
    排程規則想改，直接改下面 PLAN_RULES 這段文字。
    ══════════════════════════════════════════════════════════════════ */
 
+/* V1 交件到 Final 至少要隔幾個工作天。要改改這裡，上面 PLAN_RULES 的文字也要一起改 */
+var FEEDBACK_MIN_DAYS = 3;
+
 var PLAN_RULES =
 "- 一天同時進行 2–3 個長片案(以 2 個為主，最多 3 個)\n" +
 "- 初剪約 3–7 個工作天\n" +
 "- V1/ES 約 5–10 個工作天\n" +
 "- 業配(如果有)在 V1 完成後進行\n" +
+"- V1/ES 交件之後必須留 3–5 個工作天給客戶回饋與修改，才能交 Final。也就是 V1 交件日與 Final 交件日之間至少要隔 3 個工作天，不得把 V1 交件貼在 Final 前一天\n" +
+"- 初剪交件之後不需要留回饋緩衝，隔一個工作天就可以接著開始 V1/ES\n" +
 "- Final 需在上片日前一天交件\n" +
 "- 逾期 / 上片日最近的案件優先處理，並標記 🚨\n" +
 "- 短影優先，短影沒有個數限制，可直接安排，不計入 2–3 長片同時進行的額度\n" +
@@ -1121,7 +1126,30 @@ function expandRow(row){
       f[rf[1]]=all[all.length-1];
     }
   }
+  /* 回饋緩衝檢查：V1 交件到 Final 之間至少要隔 3 個工作天 */
+  var vd=f.v1Due||null, fdue=f.finalDue||null;
+  if(vd&&fdue){
+    var gap=workDaysBetween(vd,fdue);
+    if(gap!==null&&gap<FEEDBACK_MIN_DAYS){
+      warn.push("V1 交件 "+vd+" 到 Final "+fdue+" 只隔 "+gap+" 個工作天，不夠回饋修改(至少 "+FEEDBACK_MIN_DAYS+" 天)");
+    }
+  }
   return {fields:f,warn:warn};
+}
+
+/* 兩個日期之間隔幾個工作天(不含起日、含迄日，只算週一–週五) */
+function workDaysBetween(a,b){
+  var d1=toDate(a), d2=toDate(b);
+  if(!d1||!d2)return null;
+  if(d2<d1)return 0;
+  var n=0, cur=new Date(d1.getTime());
+  cur.setDate(cur.getDate()+1);
+  while(cur<=d2){
+    var w=cur.getDay();
+    if(w!==0&&w!==6)n++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return n;
 }
 
 var FIELD_LABEL={editS:"工作起",editE:"工作迄",workS:"工作起",workE:"工作迄",workStart:"工作起",workEnd:"工作迄",
