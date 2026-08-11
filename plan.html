@@ -22,9 +22,6 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .page{width:100%;max-width:1100px;background:var(--paper);padding:28px 36px 32px;position:relative;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,0.04),0 8px 24px rgba(0,0,0,0.06)}
 .eyebrow{font-family:Inter,sans-serif;font-size:10px;letter-spacing:0.35em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-bottom:8px}
 .title-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:6px;flex-wrap:wrap}
-.title-left{display:flex;align-items:center;gap:10px}
-.home-link{text-decoration:none;font-size:19px;line-height:1;opacity:0.85;transition:opacity 0.15s}
-.home-link:hover{opacity:1}
 .title{font-family:'Noto Serif TC',serif;font-size:22px;font-weight:500;color:var(--ink);letter-spacing:-0.01em}
 .title-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-light);font-weight:400}
 .subtitle{font-size:12px;color:var(--ink-soft);margin-bottom:18px}
@@ -39,7 +36,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .btn.danger{color:var(--red);border-color:var(--red)}
 .btn.danger:hover{background:#fdf0ef}
 .month-nav{display:flex;align-items:center;gap:8px}
-.month-label{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);min-width:190px;text-align:center;white-space:nowrap}
+.month-label{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink);min-width:96px;text-align:center}
 .dirty-badge{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--red);letter-spacing:0.02em}
 .legend{display:flex;flex-wrap:wrap;gap:7px;margin-left:auto;font-size:10px;color:var(--ink-light)}
 .legend>div{display:flex;align-items:center;gap:4px}
@@ -171,6 +168,12 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 .loading{padding:60px;text-align:center;color:var(--ink-light);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px}
 .error{padding:30px;text-align:center;color:var(--red);font-size:13px}
+.build-tag{font-size:10px;letter-spacing:.5px;color:var(--muted,#999);opacity:.6;margin-left:8px}
+.mcount{font-size:10px;color:var(--muted,#999);opacity:.75;margin:0 4px 0 8px;white-space:nowrap}
+.mode-row{display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap}
+.mode-b{font-family:'Noto Serif TC',serif;font-size:11.5px;padding:5px 12px;border:0.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink-light);cursor:pointer;transition:.12s}
+.mode-b:hover{border-color:var(--yellow-pale);color:var(--ink)}
+.mode-b.on{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--ink);font-weight:500}
 </style>
 </head>
 <body>
@@ -180,11 +183,14 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
+var PLAN_BUILD="V7";
 var state={
   projects:[],
   loading:true,
   error:null,
   ym:[new Date().getFullYear(),new Date().getMonth()+1],
+  monthsOverride:null,
+  mCount:2,
   edits:{},
   modal:null,
   exp:null,
@@ -344,6 +350,65 @@ function buildRow(p,yr,mo,dim){
   return{bars:bars,dots:dots};
 }
 
+/* 甘特圖要畫幾個月：手動指定優先，否則看排程最遠的日期(最少 2、最多 12) */
+function ganttMonths(visible,yr,mo){
+  if(state.monthsOverride){
+    return Math.min(12,Math.max(1,state.monthsOverride));
+  }
+  var last=null;
+  function bump(v){
+    if(!v)return;
+    var d=toDate(v);if(!d)return;
+    if(!last||d>last)last=d;
+  }
+  visible.forEach(function(p){
+    var keys=["v1S","v1E","v1Due","finalDue"];
+    if(!p.noCut1)keys=keys.concat(["cut1S","cut1E","cut1Due"]);
+    if(!p.noBiz)keys=keys.concat(["bizS","bizE","bizDue"]);
+    keys.forEach(function(k){bump(getField(p,k));});
+    /* 上片日也要算：還沒排之前，它是唯一能看出這次要排到幾月的依據 */
+    var ak=airKey(p);
+    if(ak&&ak!=="9999-99-99")bump(ak);
+  });
+  var n=2;
+  if(last){
+    var diff=(last.getFullYear()-yr)*12+(last.getMonth()+1-mo)+1;
+    if(diff>n)n=diff;
+  }
+  if(n>12)n=12;
+  return n;
+}
+
+/* 手動增減月份，不用等資料裡有日期 */
+function addMonths(d){
+  var n=(state.monthsOverride||state.mCount||2)+d;
+  if(n<1)n=1;
+  if(n>12)n=12;
+  state.monthsOverride=n;
+  render();
+}
+function autoMonths(){state.monthsOverride=null;render();}
+
+/* 從起始年月往後展開 n 個月，回傳 [[年,月],…] */
+function monthList(yr,mo,n){
+  var out=[];
+  for(var i=0;i<n;i++){
+    var y2=yr,m2=mo+i;
+    while(m2>12){m2-=12;y2++;}
+    out.push([y2,m2]);
+  }
+  return out;
+}
+
+/* 月份導覽列的文字，例如「2026年 7–10月」或「2026年12月 – 2027年2月」 */
+function monthRangeLabel(list){
+  var a=list[0],b=list[list.length-1];
+  if(a[0]===b[0]){
+    return a[0]+"年 "+a[1]+(list.length>1?"–"+b[1]:"")+"月";
+  }
+  return a[0]+"年"+a[1]+"月 – "+b[0]+"年"+b[1]+"月";
+}
+
 function renderGanttMonth(visible,yr,mo,now){
   var dim=new Date(yr,mo,0).getDate();
   var todayCol=(now.getFullYear()===yr&&now.getMonth()+1===mo)?now.getDate():null;
@@ -395,14 +460,7 @@ function render(){
   if(state.loading){root.innerHTML='<div class="loading">讀取 Notion 資料中…</div>';return;}
   if(state.error){root.innerHTML='<div class="error">⚠ 讀取失敗:'+escapeHtml(state.error)+'<br><br><button class="btn" onclick="load()">重試</button></div>';return;}
   
-  var MONTH_SPAN=3;
-  var months=[];
-  for(var mi=0;mi<MONTH_SPAN;mi++){
-    var _y=state.ym[0],_m=state.ym[1]+mi;
-    while(_m>12){_m-=12;_y++;}
-    months.push([_y,_m]);
-  }
-  var yr=months[0][0],mo=months[0][1];
+  var yr=state.ym[0],mo=state.ym[1];
   var now=new Date();
   
   var INCLUDE=["等待素材","待確認","初剪待執行"];
@@ -411,19 +469,27 @@ function render(){
     return INCLUDE.indexOf(p.status)>=0;
   });
   
+  state.mCount=ganttMonths(visible,yr,mo);
+  var mList=monthList(yr,mo,state.mCount);
+  
   var html='';
   html+='<div class="eyebrow">Editing Schedule Planner</div>';
-  html+='<div class="title-row"><div class="title-left"><h1 class="title">📋 排程規劃</h1><a class="home-link" href="https://finn-editor.vercel.app/" title="回主頁">🏠</a></div><span class="title-sub">Schedule Planning</span></div>';
+  html+='<div class="title-row"><h1 class="title">📋 排程規劃</h1><span class="title-sub">Schedule Planning</span><span class="build-tag">build '+PLAN_BUILD+'</span></div>';
   html+='<div class="subtitle">手動拖拉日期 → 確認排程沒問題 → 一鍵存回 Notion。主追蹤器不會即時改動。</div>';
   
   var dirty=dirtyCount();
   html+='<div class="bar">';
   html+='<div class="month-nav">';
   html+='<button class="btn" onclick="changeYm(-1)">‹</button>';
-  var mLabel=months.map(function(m,i){return (i===0||m[0]!==months[i-1][0])?(m[0]+'年 '+m[1]+'月'):(m[1]+'月');}).join(' / ');
-  html+='<span class="month-label">'+mLabel+'</span>';
+  html+='<span class="month-label">'+monthRangeLabel(mList)+'</span>';
   html+='<button class="btn" onclick="changeYm(1)">›</button>';
   html+='<button class="btn" onclick="thisMonth()" style="margin-left:6px;font-size:10px">今月</button>';
+  html+='<span class="mcount">'+state.mCount+' 個月</span>';
+  html+='<button class="btn" onclick="addMonths(-1)" style="font-size:10px" title="少看一個月">−月</button>';
+  html+='<button class="btn" onclick="addMonths(1)" style="font-size:10px" title="多看一個月">＋月</button>';
+  if(state.monthsOverride){
+    html+='<button class="btn" onclick="autoMonths()" style="font-size:10px" title="改回依排程自動決定">自動</button>';
+  }
   html+='</div>';
   if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
   html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
@@ -445,8 +511,8 @@ function render(){
     return;
   }
   
-  months.forEach(function(m){
-    html+=renderGanttMonth(visible,m[0],m[1],now);
+  mList.forEach(function(ym){
+    html+=renderGanttMonth(visible,ym[0],ym[1],now);
   });
   
   // 存回 bar
@@ -566,7 +632,12 @@ var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","w
                              ["工作開始","工作結束"]];
 
 // 這一份設定在分頁關掉前都留著，不用每次重填
-var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}};
+var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, mode:"auto"};
+var MODE_HINT = {
+  auto:"有排定日期、而且還沒過期的案會先打勾。不對就自己改。",
+  all:"所有案全部重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
+  keep:"只要已經有工作日期的都不動，只排完全沒排過的那幾個。過期的也不會被重排。"
+};
 
 var STAGE_FIELDS = ["cut1S","cut1E","cut1Due","v1S","v1E","v1Due","bizS","bizE","bizDue","finalDue"];
 var KNOWN_KEYS = ["id","notionId","name","client","status","airDate","closed",
@@ -641,11 +712,25 @@ function isStale(p){
   return e < (PLAN_PREFS.start||todayStr());
 }
 function autoLock(p){return hasSchedule(p)&&!isStale(p);}
-function isLocked(p){
-  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.lock,p.id))return !!PLAN_PREFS.lock[p.id];
+
+/* 這次的排法：
+   auto — 有排定日期、而且還沒過期的才不重排
+   all  — 全部重排，沒有任何案被鎖住
+   keep — 只要有日期就不動，只排完全沒排過的 */
+function planMode(){return PLAN_PREFS.mode||"auto";}
+function baseLock(p){
+  var m=planMode();
+  if(m==="all")return false;
+  if(m==="keep")return hasSchedule(p);
   return autoLock(p);
 }
+function isLocked(p){
+  if(Object.prototype.hasOwnProperty.call(PLAN_PREFS.lock,p.id))return !!PLAN_PREFS.lock[p.id];
+  return baseLock(p);
+}
 function setLock(pid,v){PLAN_PREFS.lock[pid]=v;render();}
+/* 換模式時把手動改過的勾選清掉，不然會看不出來模式有生效 */
+function setMode(m){PLAN_PREFS.mode=m;PLAN_PREFS.lock={};render();}
 function schedSummary(p){
   var bits=[];
   if(!p.noCut1&&(p.cut1S||p.cut1Due))bits.push("初剪 "+(p.cut1S||p.cut1Due)+(p.cut1Due&&p.cut1Due!==p.cut1S?" → "+p.cut1Due:""));
@@ -747,6 +832,18 @@ function buildPrompt(){
   if(PLAN_PREFS.extra&&PLAN_PREFS.extra.trim()){
     t+="- 額外狀況："+PLAN_PREFS.extra.trim()+"\n";
   }
+  var pm=planMode();
+  if(pm==="all"){
+    t+="\n## 這次的排法\n";
+    t+="**全部重新排。**下面每個案既有的工作日期(初剪、V1、業配的起迄)一律作廢，不要參考、也不要沿用。\n";
+    t+="請以每個案的**上片日與 Final 交件日為基準**，從這兩個日期往前推算出完整的工作時程。\n";
+    t+="上片日 / Final 日本身不要改動；若倒推回來已經來不及，標記 🚨 並在說明裡點出。\n";
+  }else if(pm==="keep"){
+    t+="\n## 這次的排法\n";
+    t+="**只要已經有工作日期的案，一律不要動。**這次只需要替下面 B 區、也就是完全沒有工作日期的那幾個案排程。\n";
+    t+="請把它們塞進 A 區留下來的空檔，不能讓同時進行的長片數超過上限。\n";
+  }
+
   var shorts=sp.open.filter(function(p){return /短影|短片|shorts/i.test(projType(p));});
   t+="\n## 排程規則\n"+PLAN_RULES+"\n";
   if(shorts.length)t+="\n(這次要排的案裡有 "+shorts.length+" 個短影，可直接安排，不佔長片額度)\n";
@@ -822,20 +919,39 @@ function refreshPrompt(){
   var c=document.getElementById("exp-count");
   if(c)c.textContent=buildPrompt().length+" 字";
 }
+/* 複製成功後直接接到「貼上排程」，不用自己關掉再開 */
+function gotoImport(){
+  state.exp=null;
+  openImport();
+  setTimeout(function(){
+    var el=document.getElementById("imp-in");
+    if(el)el.focus();
+  },60);
+}
 function copyPrompt(){
   var ta=document.getElementById("exp-out");
   if(!ta)return;
   var txt=ta.value;
   ta.focus();ta.select();
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(function(){
-      showToast("✅ 已複製 · 貼給 Claude 即可");
-    },function(){showToast("複製失敗 · 請手動全選複製");});
-    return;
-  }
+
+  /* 先用同步的 execCommand，確保在畫面重繪前就完成複製 */
   var ok=false;
   try{ok=document.execCommand("copy");}catch(err){}
-  showToast(ok?"✅ 已複製 · 貼給 Claude 即可":"請手動全選複製");
+
+  /* 再補一次新版 API；它是非同步的，不拿它當跳轉條件 */
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    try{
+      navigator.clipboard.writeText(txt).then(function(){},function(){});
+      ok=true;
+    }catch(err){}
+  }
+
+  if(ok){
+    showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");
+    gotoImport();
+  }else{
+    showToast("複製失敗 · 請手動全選複製");
+  }
 }
 
 function renderExport(){
@@ -871,8 +987,14 @@ function renderExport(){
   });
   h+='<button class="off-add" onclick="addOff()">＋ 新增休假期間</button>';
 
-  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">哪些已經排好了</span><span class="pstep-h">打勾＝不重排，但仍佔用同時進行的額度</span></div>';
-  h+='<div class="lock-sum">已自動判斷：有排定日期、而且還沒過期的案會先打勾。不對就自己改。</div>';
+  h+='<div class="pstep"><span class="pstep-n">3</span><span class="pstep-t">這次要怎麼排</span><span class="pstep-h">打勾＝不重排，但仍佔用同時進行的額度</span></div>';
+  var pm=planMode();
+  h+='<div class="mode-row">';
+  h+='<button class="mode-b'+(pm==="auto"?" on":"")+'" onclick="setMode(\'auto\')">自動判斷</button>';
+  h+='<button class="mode-b'+(pm==="all"?" on":"")+'" onclick="setMode(\'all\')">全部重排</button>';
+  h+='<button class="mode-b'+(pm==="keep"?" on":"")+'" onclick="setMode(\'keep\')">只排沒排過的</button>';
+  h+='</div>';
+  h+='<div class="lock-sum">'+MODE_HINT[pm]+'</div>';
   sp.all.forEach(function(p){
     var on=isLocked(p), stale=isStale(p), has=hasSchedule(p);
     h+='<div class="lock-row'+(on?' on':'')+'">';
