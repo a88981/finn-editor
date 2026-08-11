@@ -183,7 +183,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V7";
+var PLAN_BUILD="V8";
 var state={
   projects:[],
   loading:true,
@@ -632,7 +632,7 @@ var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","w
                              ["工作開始","工作結束"]];
 
 // 這一份設定在分頁關掉前都留著，不用每次重填
-var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, mode:"auto"};
+var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, mode:"auto", asked:[]};
 var MODE_HINT = {
   auto:"有排定日期、而且還沒過期的案會先打勾。不對就自己改。",
   all:"所有案全部重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
@@ -947,6 +947,8 @@ function copyPrompt(){
   }
 
   if(ok){
+    /* 記下這次要求 Claude 排的是哪幾案，貼回來時好比對有沒有漏 */
+    PLAN_PREFS.asked=splitProjects().open.map(function(p){return {id:p.id,name:p.name};});
     showToast("✅ 已複製 · 貼給 Claude，回覆貼到下面");
     gotoImport();
   }else{
@@ -1038,16 +1040,26 @@ function parsePlanText(txt){
   var i2=s.indexOf("["), j2=s.lastIndexOf("]");
   if(i2>=0&&j2>i2)cands.push(s.slice(i2,j2+1));
 
+  /* 不能遇到第一個能解的就收。回覆裡常常不只一個 ```json 區塊
+     (或者連 Prompt 一起貼進來，Prompt 尾巴那段範例只有一個案)，
+     全部試完，挑案數最多的那一塊。*/
+  var best=null;
   for(var k=0;k<cands.length;k++){
     if(!cands[k])continue;
+    var got=null;
     try{
       var o=JSON.parse(cands[k]);
-      if(Array.isArray(o)&&o.length)return {projects:o,summary:null};
-      if(o&&Array.isArray(o.projects)&&o.projects.length)return {projects:o.projects,summary:o.summary||null};
-      if(o&&Array.isArray(o.plan)&&o.plan.length)return {projects:o.plan,summary:o.summary||null};
-      if(o&&(o.id||o.name))return {projects:[o],summary:null};
+      if(Array.isArray(o)&&o.length)got={projects:o,summary:null};
+      else if(o&&Array.isArray(o.projects)&&o.projects.length)got={projects:o.projects,summary:o.summary||null};
+      else if(o&&Array.isArray(o.plan)&&o.plan.length)got={projects:o.plan,summary:o.summary||null};
+      else if(o&&(o.id||o.name))got={projects:[o],summary:null};
     }catch(err){}
+    if(!got)continue;
+    if(!best||got.projects.length>best.projects.length)best=got;
+    /* 案數一樣時，有 summary 的優先 */
+    else if(got.projects.length===best.projects.length&&!best.summary&&got.summary)best=got;
   }
+  if(best)return best;
   throw new Error("解析不出 JSON。請確認有把 Claude 回覆最後那段 ```json 完整貼進來(含最外層的大括號)。");
 }
 
@@ -1192,6 +1204,19 @@ function renderImport(){
     h+='<button class="btn primary" onclick="parseImport()">解析並預覽</button>';
     h+='</div></div></div>';
     return h;
+  }
+
+  /* 比對這次要排的案數，json 漏了就直接講 */
+  var asked=PLAN_PREFS.asked||[];
+  if(asked.length){
+    var hit={};
+    m.rows.forEach(function(r){if(r.target.p)hit[r.target.p.id]=1;});
+    var miss=asked.filter(function(a){return !hit[a.id];});
+    if(miss.length){
+      h+='<div class="imp-err">⚠ 這次要排 '+asked.length+' 案，但這份 JSON 只對到 '+(asked.length-miss.length)+' 案。<br>';
+      h+='沒出現的：'+miss.map(function(a){return escapeHtml(a.name);}).join("、")+'<br>';
+      h+='多半是回覆裡的 json 沒貼完整，或者 Claude 漏排了。可以先填入這幾案，也可以回去把完整的那段再貼一次。</div>';
+    }
   }
 
   var okCount=0;
