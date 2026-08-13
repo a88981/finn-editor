@@ -1337,7 +1337,7 @@ function drawQuoteCard(q, mode) {
 
   const H = HEAD_H + rowsH + 18 + TOTAL_H + PRICE_NOTES_H + SCHED_H + SCHED_NOTES_H + FOOT_H;
 
-  const dpr = 1.65;
+  const dpr = 800 / W;   // 輸出固定 800px 寬
   const cv = document.createElement('canvas');
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   const c = cv.getContext('2d');
@@ -2079,43 +2079,8 @@ function fallbackCopy(text, btn) {
   setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
 }
 
-// ── 預覽用範例資料（確認版面用；不需要時把 fillSample() 這一行刪掉即可）──
-function fillSample() {
-  document.getElementById('project-name').value = '單程旅行社-社長接體';
-  document.getElementById('duration').value = '10:00';
-
-  const dates = {
-    'sched-receive': '2026-07-22', 'sched-draft': '2026-09-17',
-    'sched-draft-fb': '2026-09-21', 'sched-v1': '2026-10-13',
-    'sched-v1-fb': '2026-10-16', 'sched-v2': '2026-10-20',
-    'sched-v2-fb': '2026-10-21', 'sched-final': '2026-10-23'
-  };
-  Object.keys(dates).forEach(function (k) {
-    const el = document.getElementById(k);
-    if (el) el.value = dates[k];
-  });
-
-  selectPlanType('A', 'full');
-  if (state.projType === 'ad') toggleProjAd();
-
-  if (!state.extraFootage) toggleExtra('footage');
-  document.getElementById('footage-hours').value = '2';
-  calculateFootage();
-
-  if (!state.extraMulticam) toggleExtra('multicam');
-  state.cameraCount = 4; updateMulticamPrice();
-  document.getElementById('camera-count').textContent = '4';
-  if (!state.gifts.multicam) toggleGift('multicam');
-
-  if (!state.extraCover) toggleExtra('cover');
-  document.getElementById('cover-price-input').value = '500';
-
-  calculate();
-}
-
 updatePlanPriceLabels();
 calculate();
-fillSample();
 </script>
 </body>
 </html>
