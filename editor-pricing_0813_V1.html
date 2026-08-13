@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小玩剪輯報價計算機</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8f8f8;
+  --surface: #ffffff;
+  --surface2: #f4f4f4;
+  --border: #e8e8e8;
+  --border2: #e0e0e0;
+  --accent: #c4708a;
+  --accent-dim: rgba(196,112,138,0.08);
+  --text: #1a1a1a;
+  --text-mid: #666;
+  --text-dim: #999;
+  --danger: #b05040;
+  --gift: #a3486b;
+  --green: #5a8a6a;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  min-height: 100vh;
+  padding: 0 0 100px;
+  font-weight: 300;
+}
+
+/* Header */
+.page-header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 40px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.page-header::after { display: none; }
+.header-inner { max-width: 680px; margin: 0 auto; }
+.badge {
+  display: inline-block;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  padding: 0;
+  margin-bottom: 6px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+}
+h1 {
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  color: var(--text);
+  font-family: 'Noto Serif TC', Georgia, serif;
+}
+h1 em { color: #c491a4; font-style: normal; font-family: 'Noto Serif TC', Georgia, serif; font-size: 1.4em; }
+.header-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; font-weight: 300; letter-spacing: 1px; }
+
+/* Main */
+.main { max-width: 680px; margin: 0 auto; padding: 32px 20px; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 28px 28px 24px;
+  margin-bottom: 1px;
+  position: relative;
+  box-shadow: none;
+}
+.card-label {
+  position: static;
+  display: block;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  padding: 0;
+  margin-bottom: 10px;
+  font-family: 'Space Mono', monospace;
+}
+
+/* Step num */
+.step-num {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  background: transparent;
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.card-title {
+  display: flex; align-items: center;
+  font-size: 13px; font-weight: 500;
+  margin-bottom: 20px;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+
+/* Inputs */
+input, select, textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  border-radius: 0;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+input::placeholder { color: var(--text-dim); }
+
+/* Buttons */
+.btn {
+  cursor: pointer; border: none; border-radius: 0;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: 400; font-size: 12px;
+  padding: 10px 20px; transition: all 0.15s;
+  white-space: nowrap; letter-spacing: 0.5px;
+}
+.btn-primary { background: var(--text); color: var(--surface); }
+.btn-primary:hover { background: var(--accent); }
+.btn-ghost { background: transparent; color: var(--text-mid); border: 1px solid var(--border2); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid transparent; padding: 6px 10px; font-size: 12px; }
+.btn-danger:hover { border-color: var(--danger); }
+.btn-sm { padding: 7px 14px; font-size: 11px; }
+
+/* Plan rows */
+.plan-rows { display: flex; flex-direction: column; gap: 1px; }
+.plan-row { border: 1px solid var(--border2); overflow: hidden; transition: border-color 0.15s; }
+.plan-row.active { border-color: var(--accent); }
+.plan-row-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; cursor: pointer;
+  background: var(--surface2); transition: background 0.15s;
+}
+.plan-row-header:hover { background: #e8e4de; }
+.plan-row.active .plan-row-header { background: var(--accent-dim); }
+.plan-row-left { display: flex; align-items: center; gap: 12px; }
+.plan-letter-sm {
+  font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700;
+  color: var(--text-mid); width: 24px; text-align: center;
+}
+.plan-row.active .plan-letter-sm { color: var(--accent); }
+.plan-row-name { font-size: 13px; font-weight: 400; color: var(--text); }
+.plan-row-hint { font-size: 11px; color: var(--text-dim); font-family: 'Space Mono', monospace; }
+.plan-row.active .plan-row-hint { color: var(--accent); opacity: 0.7; }
+.plan-type-row {
+  display: none; gap: 1px; padding: 10px;
+  background: var(--surface); border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.plan-row.active .plan-type-row { display: flex; }
+.type-btn {
+  flex: 1; min-width: 120px;
+  border: 1px solid var(--border2);
+  padding: 12px 14px; cursor: pointer;
+  display: flex; flex-direction: column;
+  background: var(--surface2); transition: all 0.15s;
+}
+.type-btn:hover { border-color: var(--accent); }
+.type-btn.selected { background: var(--accent-dim); border-color: var(--accent); }
+.type-btn.selected .tb-label { color: var(--accent); }
+.type-btn.selected .tb-price { color: var(--accent); }
+.tb-label { font-size: 12px; font-weight: 400; color: var(--text-mid); }
+.tb-price { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--text-dim); margin-top: 6px; }
+.tb-price-wrap { display: flex; align-items: baseline; margin-top: 6px; }
+.tb-cur { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--text-dim); }
+.tb-price-input {
+  width: 72px; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700;
+  background: transparent; border: none; border-bottom: 1px solid var(--border2);
+  color: var(--text-dim); outline: none; padding: 1px 0 2px; margin-left: 1px;
+}
+.tb-price-input:hover { border-bottom-color: var(--text-dim); }
+.tb-price-input:focus { border-bottom-color: var(--accent); color: var(--text); }
+.type-btn.selected .tb-cur, .type-btn.selected .tb-price-input { color: var(--text); }
+.type-btn.selected .tb-price-input { border-bottom-color: var(--accent); }
+.tb-price-input::-webkit-outer-spin-button, .tb-price-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tb-price-input { -moz-appearance: textfield; }
+.tb-qi { font-size: 10px; opacity: 0.6; font-family: 'Noto Sans TC', sans-serif; margin-left: 3px; color: var(--text-dim); }
+
+/* 工商勾選 */
+.mini-check {
+  display: inline-flex; align-items: center; gap: 7px;
+  cursor: pointer; user-select: none;
+}
+.mini-box {
+  width: 13px; height: 13px; flex: none;
+  border: 1px solid var(--border2); border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; line-height: 1; color: #fff; transition: all 0.15s;
+}
+.mini-check:hover .mini-box { border-color: var(--accent); }
+.mini-check.active .mini-box { background: var(--accent); border-color: var(--accent); }
+.mini-label {
+  font-size: 12px; font-weight: 400; color: var(--text-dim);
+  letter-spacing: 0.3px; white-space: nowrap; transition: color 0.15s;
+}
+.mini-check:hover .mini-label { color: var(--text-mid); }
+.mini-check.active .mini-label { color: var(--accent); font-weight: 500; }
+
+.custom-input-btn { cursor: default; }
+.custom-input-btn.selected input { color: var(--text) !important; border-bottom-color: var(--accent) !important; }
+
+/* Service cards */
+.service-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; }
+.service-card {
+  cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface2); padding: 14px 16px; transition: all 0.15s;
+}
+.service-card:hover { border-color: var(--accent); }
+.service-card.active { background: var(--accent-dim); border-color: var(--accent); }
+.service-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.service-desc { font-size: 11px; color: var(--text-dim); }
+.service-card.active .service-title { color: var(--accent); }
+
+/* Duration */
+.duration-wrap { display: flex; align-items: center; gap: 14px; }
+.duration-input {
+  width: 90px; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 0;
+  font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700;
+  color: var(--text); padding: 8px 14px; outline: none; text-align: center;
+}
+.duration-input:focus { border-color: var(--accent); }
+.duration-unit { font-size: 13px; color: var(--text-dim); }
+.duration-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; font-family: 'Space Mono', monospace; }
+.duration-hint span { color: var(--accent); font-weight: 700; }
+
+/* Ad toggles */
+.ad-row { display: flex; flex-direction: column; gap: 1px; }
+.ad-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; row-gap: 8px;
+  border: 1px solid var(--border2); padding: 14px 16px; cursor: pointer;
+  transition: all 0.15s; background: var(--surface2);
+}
+.ad-toggle:hover { border-color: var(--accent); }
+.ad-toggle.active { border-color: var(--accent); background: var(--accent-dim); }
+.ad-name { font-size: 13px; font-weight: 400; color: var(--text); }
+.ad-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.ad-toggle.active .ad-name { color: var(--accent); }
+.ad-price { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); }
+.ad-toggle.active .ad-price { color: var(--accent); }
+.ad-check { display: none; }
+
+/* 未選取時整列偏灰，選取後轉為主色 */
+.ad-toggle { position: relative; }
+.ad-toggle::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: transparent; transition: background 0.15s;
+}
+.ad-toggle.active::before { background: var(--accent); }
+.ad-toggle.active .ad-desc { color: var(--accent); opacity: 0.75; }
+
+/* 贈送 */
+.gift-btn {
+  display: none; align-items: center; gap: 3px;
+  font-family: 'Noto Sans TC', sans-serif; font-size: 11px; font-weight: 500;
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--text-dim); border-radius: 3px; padding: 3px 8px;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap; line-height: 1.4;
+}
+.ad-toggle.active .gift-btn { display: inline-flex; }
+.gift-btn:hover { border-color: var(--gift); color: var(--gift); }
+.gift-btn.on { background: var(--gift); border-color: var(--gift); color: #fff; }
+.ad-price.gifted { text-decoration: line-through; opacity: 0.45; }
+
+/* 存成圖片 */
+.snap-btn {
+  position: absolute; top: 14px; right: 16px;
+  font-family: 'Noto Sans TC', sans-serif; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.5px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text-mid);
+  border-radius: 3px; padding: 5px 11px; cursor: pointer; transition: all 0.15s;
+}
+.snap-btn:hover { border-color: var(--accent); color: var(--accent); }
+.snap-btn:disabled { opacity: 0.5; cursor: default; }
+.result-card { position: relative; }
+.breakdown-row.gift span:first-child { color: var(--gift); }
+.breakdown-row .amt.gift { color: var(--gift); }
+.breakdown-row .amt .strike { text-decoration: line-through; opacity: 0.45; margin-right: 6px; color: var(--text-dim); }
+
+/* Divider */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 32px 0 16px; color: var(--text-dim); font-size: 10px;
+  letter-spacing: 2px; font-family: 'Space Mono', monospace;
+}
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border2); }
+
+/* Result */
+.result-card {
+  background: rgba(196,145,164,0.05); border: 1px solid rgba(196,145,164,0.25);
+  padding: 28px; margin-bottom: 1px;
+}
+.result-card::before { display: none; }
+.result-label {
+  font-size: 10px; font-family: 'Space Mono', monospace;
+  letter-spacing: 2px; color: var(--text-dim); margin-bottom: 20px;
+}
+.breakdown { margin-bottom: 20px; }
+.breakdown-row {
+  display: flex; justify-content: space-between;
+  font-size: 13px; padding: 9px 0;
+  border-bottom: 1px solid var(--border); color: var(--text-mid);
+}
+.breakdown-row:last-child { border-bottom: none; }
+.breakdown-row.highlight { color: var(--text); font-weight: 500; }
+.breakdown-row .amt { font-family: 'Space Mono', monospace; }
+.breakdown-row .amt.plus { color: var(--accent); }
+.total-line {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 14px 16px; border-top: 1px solid var(--border2);
+  background: rgba(196,145,164,0.18);
+  margin: 0 -28px -28px;
+}
+.t-duration { font-size: 11px; color: var(--text-mid); letter-spacing: 0.5px; white-space: nowrap; }
+.t-duration span { font-family: 'Space Mono', monospace; font-weight: 700; color: #c491a4; }
+
+.t-stack { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; justify-content: flex-end; }
+.t-sub { display: flex; align-items: baseline; gap: 7px; }
+.t-sub-label { font-size: 10px; letter-spacing: 1px; color: var(--text-dim); }
+.t-sub-amount {
+  font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 400;
+  color: var(--text-dim);
+}
+.t-main { display: flex; align-items: baseline; gap: 9px; }
+.t-main-label { font-size: 10px; letter-spacing: 1px; color: var(--text-mid); }
+.total-line .t-amount {
+  font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700;
+  color: #c491a4; letter-spacing: -1px; transition: all 0.3s; line-height: 1;
+}
+
+/* Copy area */
+.copy-area {
+  background: var(--surface); border: 1px solid var(--border2); padding: 20px; position: relative;
+}
+.copy-area .ca-label { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; font-family: 'Space Mono', monospace; margin-bottom: 12px; }
+.quote-text { font-size: 13px; line-height: 1.9; color: var(--text-mid); white-space: pre-wrap; font-weight: 300; }
+.copy-btn {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--text); color: var(--surface);
+  border: none; font-family: 'Space Mono', monospace; font-size: 10px;
+  padding: 6px 14px; cursor: pointer; letter-spacing: 1px; transition: all 0.15s;
+}
+.copy-btn:hover { background: var(--accent); }
+.copy-btn.copied { background: var(--green); }
+
+@media (max-width: 480px) {
+  .service-row { grid-template-columns: 1fr 1fr; }
+  .page-header { padding: 32px 20px 28px; }
+  .card { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="header-inner">
+    <div class="badge">FREELANCE VIDEO EDITOR · 2026</div>
+    <h1><em>小玩</em> 剪輯報價計算機</h1>
+    <div class="header-sub">選擇方案 · 輸入片長 · 自動結算</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Project name -->
+  <div class="card">
+    <div class="card-label">專案資訊</div>
+    <div class="card-title"><span class="step-num">✦</span>專案名稱</div>
+    <input type="text" id="project-name" placeholder="例：品牌宣傳影片 / 婚禮紀錄"
+      style="width:100%; font-size:15px; font-weight:500; padding:10px 14px;"
+      oninput="calculate()" />
+  </div>
+
+  <!-- Step 1: Plan + Service type combined -->
+  <div class="card">
+    <div class="card-label">STEP 01</div>
+    <div class="card-title" style="justify-content:space-between;">
+      <span style="display:flex; align-items:center;"><span class="step-num">1</span>選擇方案與服務類型</span>
+      <span class="mini-check" id="proj-type-ad" onclick="toggleProjAd()">
+        <span class="mini-box" id="check-projtype"></span>
+        <span class="mini-label">工商（含互惠）</span>
+      </span>
+    </div>
+
+    <!-- Plan rows -->
+    <div class="plan-rows" id="plan-rows">
+
+      <!-- Plan A -->
+      <div class="plan-row" id="planrow-A">
+        <div class="plan-row-header" onclick="selectPlan('A')">
+          <div class="plan-row-left">
+            <span class="plan-letter-sm">A</span>
+            <span class="plan-row-name">精緻</span>
+          </div>
+          <span class="plan-row-hint">選擇後展開服務類型 ▾</span>
+        </div>
+        <div class="plan-type-row" id="types-A">
+          <div class="type-btn" id="type-A-full" onclick="selectPlanType('A','full')">
+            <span class="tb-label">🎬 完整剪輯</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-A-full" value="10000" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('A','full',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+          <div class="type-btn" id="type-A-post" onclick="selectPlanType('A','post')">
+            <span class="tb-label">✂️ 純後製</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-A-post" value="8500" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('A','post',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan B -->
+      <div class="plan-row" id="planrow-B">
+        <div class="plan-row-header" onclick="selectPlan('B')">
+          <div class="plan-row-left">
+            <span class="plan-letter-sm">B</span>
+            <span class="plan-row-name">進階</span>
+          </div>
+          <span class="plan-row-hint">選擇後展開服務類型 ▾</span>
+        </div>
+        <div class="plan-type-row" id="types-B">
+          <div class="type-btn" id="type-B-full" onclick="selectPlanType('B','full')">
+            <span class="tb-label">🎬 完整剪輯</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-B-full" value="8000" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('B','full',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+          <div class="type-btn" id="type-B-post" onclick="selectPlanType('B','post')">
+            <span class="tb-label">✂️ 純後製</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-B-post" value="6500" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('B','post',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan C -->
+      <div class="plan-row" id="planrow-C">
+        <div class="plan-row-header" onclick="selectPlan('C')">
+          <div class="plan-row-left">
+            <span class="plan-letter-sm">C</span>
+            <span class="plan-row-name">基本</span>
+          </div>
+          <span class="plan-row-hint">選擇後展開服務類型 ▾</span>
+        </div>
+        <div class="plan-type-row" id="types-C">
+          <div class="type-btn" id="type-C-full" onclick="selectPlanType('C','full')">
+            <span class="tb-label">🎬 完整剪輯</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-C-full" value="6000" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('C','full',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+          <div class="type-btn" id="type-C-post" onclick="selectPlanType('C','post')">
+            <span class="tb-label">✂️ 純後製</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-C-post" value="5000" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('C','post',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan D -->
+      <div class="plan-row" id="planrow-D">
+        <div class="plan-row-header" onclick="selectPlan('D')">
+          <div class="plan-row-left">
+            <span class="plan-letter-sm">D</span>
+            <span class="plan-row-name">工商短影片／Reels</span>
+          </div>
+          <span class="plan-row-hint">選擇後展開服務類型 ▾</span>
+        </div>
+        <div class="plan-type-row" id="types-D">
+          <div class="type-btn" id="type-D-full" onclick="selectPlanType('D','full')">
+            <span class="tb-label">📢 工商短影片</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-D-full" value="3500" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('D','full',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+          <div class="type-btn" id="type-D-post" onclick="selectPlanType('D','post')">
+            <span class="tb-label">🎞 Reels</span>
+            <span class="tb-price-wrap"><span class="tb-cur">NT$</span><input type="number" class="tb-price-input" id="price-D-post" value="2500" min="0" step="100" onclick="event.stopPropagation()" oninput="editPlanPrice('D','post',this.value)" /><span class="tb-qi">起</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan Custom -->
+      <div class="plan-row" id="planrow-custom">
+        <div class="plan-row-header" onclick="selectPlan('custom')">
+          <div class="plan-row-left">
+            <span class="plan-letter-sm" style="font-size:14px;">✏️</span>
+            <span class="plan-row-name">自訂方案</span>
+          </div>
+          <span class="plan-row-hint">選擇後展開填寫 ▾</span>
+        </div>
+        <div class="plan-type-row" id="types-custom">
+          <div style="display:flex; flex-direction:column; gap:10px; width:100%; padding:4px 0;">
+
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+              <div class="type-btn custom-input-btn" id="type-custom-full" onclick="selectPlanType('custom','full')" style="flex:1; min-width:140px;">
+                <span class="tb-label">🎬 完整剪輯</span>
+                <input type="number" id="custom-full-price" placeholder="填入金額" min="0"
+                  onclick="event.stopPropagation(); selectPlanType('custom','full')"
+                  oninput="updateCustomPrice(); calculate()"
+                  style="width:100%; margin-top:6px; font-family:'Space Mono',monospace; font-size:16px; font-weight:700; background:transparent; border:none; border-bottom:1px solid var(--line); color:var(--ink); outline:none; padding:2px 0;" />
+              </div>
+              <div class="type-btn custom-input-btn" id="type-custom-post" onclick="selectPlanType('custom','post')" style="flex:1; min-width:140px;">
+                <span class="tb-label">✂️ 純後製</span>
+                <input type="number" id="custom-post-price" placeholder="填入金額" min="0"
+                  onclick="event.stopPropagation(); selectPlanType('custom','post')"
+                  oninput="updateCustomPrice(); calculate()"
+                  style="width:100%; margin-top:6px; font-family:'Space Mono',monospace; font-size:16px; font-weight:700; background:transparent; border:none; border-bottom:1px solid var(--line); color:var(--ink); outline:none; padding:2px 0;" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Step 4: Duration -->
+  <div class="card">
+    <div class="card-label">STEP 02</div>
+    <div class="card-title"><span class="step-num">2</span>成品時長</div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:var(--text-dim); white-space:nowrap;">底價</span>
+        <input class="duration-input" type="number" id="base-minutes" value="10" min="1" oninput="calculate()"
+          style="width:65px; font-size:18px;" />
+        <span class="duration-unit">分鐘</span>
+      </div>
+      <div style="color:var(--border2); font-size:16px;">·</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:var(--text-dim); white-space:nowrap;">影片長度</span>
+        <input class="duration-input" type="text" id="duration" value="10:00" placeholder="12:30" inputmode="numeric" oninput="calculate()"
+          style="width:88px; font-size:18px; letter-spacing:0.5px;" />
+        <span class="duration-unit">分:秒</span>
+      </div>
+      <div style="color:var(--border2); font-size:16px;">·</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:var(--text-dim); white-space:nowrap;">超時費</span>
+        <input type="number" id="overtime-rate-input" value="850" min="0"
+          style="width:70px; font-family:'Space Mono',monospace; font-size:18px; font-weight:700; padding:6px 8px;"
+          oninput="calculate()" />
+        <span class="duration-unit">元/分</span>
+      </div>
+    </div>
+    <div class="duration-hint" id="overtime-hint" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- Step 6: Extra add-ons -->
+  <div class="card">
+    <div class="card-label">STEP 03</div>
+    <div class="card-title"><span class="step-num">3</span>額外加價</div>
+    <div class="ad-row" id="extra-addons">
+
+      <!-- 工商置入 -->
+      <div class="ad-toggle" id="extra-adplace" onclick="toggleExtra('adplace')">
+        <div class="ad-info">
+          <div class="ad-name">工商置入</div>
+          <div class="ad-desc">勾選「工商」後自動帶入，金額可改</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
+          <div id="adplace-price-wrap" style="display:none; align-items:center; gap:6px;">
+            <span style="font-size:13px;color:var(--mid);">NT$</span>
+            <input type="number" id="adplace-price-input" value="3000" min="0" step="100"
+              style="width:80px; font-family:'Space Mono',monospace; font-size:15px; font-weight:700; background:transparent; border:none; border-bottom:1.5px solid var(--line); outline:none; color:var(--ink); padding:2px 0; text-align:right;"
+              oninput="calculate()" onclick="toggleExtra('adplace', true)" />
+          </div>
+          <button class="gift-btn" id="gift-adplace" onclick="event.stopPropagation(); toggleGift('adplace')" title="改列為贈送，不計入總價">🎁 送</button>
+          <div class="ad-check" id="check-adplace"></div>
+        </div>
+      </div>
+
+      <!-- Raw footage -->
+      <div class="ad-toggle" id="extra-footage" onclick="toggleExtra('footage')">
+        <div class="ad-info">
+          <div class="ad-name">毛片超時</div>
+          <div class="ad-desc" id="footage-desc">每 0.5hr = +$500</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
+          <div id="footage-input-wrap" style="display:none; align-items:center; gap:6px;">
+            <input type="number" id="footage-hours" placeholder="0" min="0" step="0.5"
+              style="width:60px; font-family:'Space Mono',monospace; font-size:15px; font-weight:700; background:transparent; border:none; border-bottom:1.5px solid var(--line); outline:none; color:var(--ink); padding:2px 4px; text-align:center;"
+              oninput="calculateFootage()" onclick="event.stopPropagation()" />
+            <span style="font-size:12px;color:var(--mid);">hr</span>
+          </div>
+          <span class="ad-price" id="footage-price">＋ NT$0</span>
+          <button class="gift-btn" id="gift-footage" onclick="event.stopPropagation(); toggleGift('footage')" title="改列為贈送，不計入總價">🎁 送</button>
+          <div class="ad-check" id="check-footage"></div>
+        </div>
+      </div>
+
+      <!-- Multi-camera -->
+      <div class="ad-toggle" id="extra-multicam" onclick="toggleExtra('multicam')">
+        <div class="ad-info">
+          <div class="ad-name">多機位</div>
+          <div class="ad-desc" id="multicam-desc">台數 − 1 × $500</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
+          <div id="multicam-count-wrap" style="display:none; align-items:center; gap:6px;">
+            <button onclick="event.stopPropagation(); changeCamera(-1)" style="width:26px;height:26px;border:1.5px solid var(--line);border-radius:4px;background:var(--paper);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">−</button>
+            <span id="camera-count" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:20px;text-align:center;">2</span>
+            <button onclick="event.stopPropagation(); changeCamera(1)" style="width:26px;height:26px;border:1.5px solid var(--line);border-radius:4px;background:var(--paper);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">＋</button>
+          </div>
+          <span class="ad-price" id="multicam-price">＋ NT$500</span>
+          <button class="gift-btn" id="gift-multicam" onclick="event.stopPropagation(); toggleGift('multicam')" title="改列為贈送，不計入總價">🎁 送</button>
+          <div class="ad-check" id="check-multicam"></div>
+        </div>
+      </div>
+
+      <!-- Cover image -->
+      <div class="ad-toggle" id="extra-cover" onclick="toggleExtra('cover')">
+        <div class="ad-info">
+          <div class="ad-name">封面圖製作</div>
+          <div class="ad-desc">縮圖設計</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
+          <span class="mini-check" id="cover-copy-check" onclick="toggleCoverCopy()" style="display:none;">
+            <span class="mini-box" id="check-cover-copy"></span>
+            <span class="mini-label">含文案</span>
+          </span>
+          <div id="cover-price-wrap" style="display:none; align-items:center; gap:6px;">
+            <span style="font-size:13px;color:var(--mid);">NT$</span>
+            <input type="number" id="cover-price-input" placeholder="500" value="500" min="0"
+              style="width:80px; font-family:'Space Mono',monospace; font-size:15px; font-weight:700; background:transparent; border:none; border-bottom:1.5px solid var(--line); outline:none; color:var(--ink); padding:2px 0; text-align:right;"
+              oninput="calculate()" onclick="toggleExtra('cover', true)" />
+          </div>
+          <button class="gift-btn" id="gift-cover" onclick="event.stopPropagation(); toggleGift('cover')" title="改列為贈送，不計入總價">🎁 送</button>
+          <div class="ad-check" id="check-cover"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Custom extra items -->
+    <div id="custom-extras-list" style="margin-top:8px; display:flex; flex-direction:column; gap:8px;"></div>
+    <button onclick="addCustomExtra()" style="margin-top:10px; width:100%; padding:10px; border:1.5px dashed var(--line); border-radius:6px; background:transparent; cursor:pointer; font-size:13px; color:var(--mid); font-family:'Noto Sans TC',sans-serif; transition:all 0.15s;"
+      onmouseover="this.style.borderColor='var(--ink)';this.style.color='var(--ink)'"
+      onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--mid)'">
+      ＋ 新增自訂加價項目
+    </button>
+  </div>
+
+  <!-- Schedule -->
+  <div class="card">
+    <div class="card-label">時程安排</div>
+    <div class="card-title" onclick="toggleSchedule()" style="cursor:pointer; user-select:none; justify-content:space-between; margin-bottom:0;">
+      <span><span class="step-num">📅</span>製作時程</span>
+      <span id="sched-chevron" style="font-size:11px; color:var(--text-dim);">▼</span>
+    </div>
+    <div id="sched-body" style="display:none; flex-direction:column; gap:10px; margin-top:16px;">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0; font-weight:600; color:var(--ink);">提供檔案</label>
+        <input type="date" id="sched-receive" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px; border-color:var(--gold);" />
+      </div>
+      <div id="urgent-auto-hint" style="display:none; font-size:12px; font-family:'Space Mono',monospace; color:var(--red); padding:6px 10px; background:rgba(212,138,0,0.08); border-radius:6px; border:1px solid var(--line);"></div>
+      <div style="height:2px; background:var(--line); border-radius:2px; margin:2px 0;"></div>
+      <div id="urgent-hint" style="display:none; font-size:12px; font-family:'Space Mono',monospace; padding:8px 12px; border-radius:6px; border:1px solid var(--line);"></div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">初剪交件</label>
+        <input type="date" id="sched-draft" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">初剪回饋</label>
+        <input type="date" id="sched-draft-fb" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">V1 交件</label>
+        <input type="date" id="sched-v1" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">V1 回饋</label>
+        <input type="date" id="sched-v1-fb" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">V2 交件</label>
+        <input type="date" id="sched-v2" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">V2 回饋</label>
+        <input type="date" id="sched-v2-fb" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">FINAL</label>
+        <input type="date" id="sched-final" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div id="custom-sched-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <button onclick="addCustomSched()"
+        style="width:100%; padding:9px; border:1px dashed var(--border2); background:transparent; cursor:pointer; font-size:12px; color:var(--text-dim); font-family:'Noto Sans TC',sans-serif; transition:all 0.15s;"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+        onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text-dim)'">
+        ＋ 新增時程項目
+      </button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="divider">報價結果</div>
+
+  <div class="result-card">
+    <div class="result-label">PRICE BREAKDOWN</div>
+    <button class="snap-btn" id="snap-btn" onclick="saveSnapshot()" title="輸出成 PNG 圖片">⬇ 存成圖片</button>
+    <div class="breakdown" id="breakdown">
+      <!-- injected -->
+    </div>
+    <div class="total-line">
+      <div style="display:flex; flex-direction:column; align-items:flex-start; gap:7px;">
+        <span class="t-duration">成品時長 <span id="total-duration-label">—</span></span>
+        <span class="mini-check active" id="tax-check" onclick="toggleTax()">
+          <span class="mini-box" id="check-tax">✓</span>
+          <span class="mini-label">顯示含稅</span>
+        </span>
+      </div>
+      <div class="t-stack">
+        <div class="t-sub" id="t-sub-row">
+          <span class="t-sub-label">未稅</span>
+          <span class="t-sub-amount" id="total-amount">—</span>
+        </div>
+        <div class="t-main">
+          <span class="t-main-label" id="t-main-label">含稅 ＋5%</span>
+          <span class="t-amount" id="total-main-amount">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="copy-area">
+    <div class="ca-label">QUOTE TEXT — 可複製傳給客戶</div>
+    <button class="copy-btn" id="copy-btn" onclick="copyQuote()">COPY</button>
+    <div class="quote-text" id="quote-text">請先選擇方案與服務類型</div>
+  </div>
+
+</div>
+
+<script>
+const PLANS = {
+  A: { name: 'A 方案', full: 10000, post: 8500, adFull: 13000, adPost: 11500 },
+  B: { name: 'B 方案', full: 8000,  post: 6500, adFull: 11000, adPost: 9500 },
+  C: { name: 'C 方案', full: 6000,  post: 5000, adFull: 8000,  adPost: 7000 },
+  D: { name: 'D 工商短影片／Reels', full: 3500, post: 2500 },
+  custom: { name: '自訂方案', full: 0, post: 0 },
+};
+const DEFAULT_PLANS = JSON.parse(JSON.stringify(PLANS));   // 供「還原預設價」使用
+const OVERTIME_RATES = { regular: 850, loyal: 800 };
+const URGENT_RATE = 1500;
+const FOOTAGE_FEE = 500;
+const CAM_FEE = 500;
+
+let customExtraId = 0;
+
+let state = {
+  plan: null,
+  type: null,
+  projType: null,
+  clientType: 'regular',
+  showTax: true,
+  extraAdPlace: false,
+  extraFootage: false,
+  extraMulticam: false,
+  cameraCount: 1,
+  extraCover: false,
+  coverCopy: false,
+  gifts: { adplace: false, footage: false, multicam: false, cover: false },
+  customExtras: [],
+};
+
+// ── Plan selection ──────────────────────────────────
+function selectPlan(p) {
+  if (state.plan === p) {
+    state.plan = null; state.type = null;
+    ['A','B','C','D','custom'].forEach(x => {
+      document.getElementById('planrow-'+x).classList.remove('active');
+      document.querySelectorAll('[id^="type-'+x+'-"]').forEach(el => el.classList.remove('selected'));
+    });
+    calculate(); return;
+  }
+  state.plan = p; state.type = null;
+  ['A','B','C','D','custom'].forEach(x => {
+    document.getElementById('planrow-'+x).classList.toggle('active', x===p);
+    document.querySelectorAll('[id^="type-'+x+'-"]').forEach(el => el.classList.remove('selected'));
+  });
+  // D plan auto-selects full type
+  if (p === 'D') { state.type = 'full'; document.getElementById('type-D-full').classList.add('selected'); }
+  calculate();
+}
+
+// 方案基本價（一律非工商價；工商已改成「額外加價」裡的獨立項目）
+function planBase(planKey, type) {
+  const p = PLANS[planKey];
+  if (!p) return 0;
+  return type === 'full' ? p.full : p.post;
+}
+
+// 勾選工商時要自動帶入的置入金額（依方案價目表的差額）
+function adPlaceDefault() {
+  const k = state.plan, t = state.type;
+  // 還沒選方案／服務類型時不亂猜金額，等選好再自動帶入
+  if (!k || !t || !DEFAULT_PLANS[k]) return 0;
+  const d = DEFAULT_PLANS[k];
+  const adField = t === 'full' ? 'adFull' : 'adPost';
+  if (d[adField] == null) return 0;
+  return d[adField] - d[t];
+}
+
+// 時程日期：補零 + 星期，例如 08/12（三）
+const WEEK_TW = ['日','一','二','三','四','五','六'];
+function fmtSchedDate(val) {
+  const p = String(val).split('-');
+  if (p.length < 3) return '';
+  const mm = String(parseInt(p[1])).padStart(2, '0');
+  const dd = String(parseInt(p[2])).padStart(2, '0');
+  const w = WEEK_TW[new Date(+p[0], +p[1] - 1, +p[2]).getDay()];
+  return { date: mm + '/' + dd, week: '（' + w + '）', full: mm + '/' + dd + '（' + w + '）' };
+}
+
+// 報價說明文字（依服務類型；D 方案沒有這組說明）
+// 基本方案的內容說明（放在明細第一列下方）
+function baseNotes(planKey, type, baseMins) {
+  if (planKey === 'D' || !type) return [];
+  const m = baseMins || 10;
+  if (type === 'full') {
+    return [
+      '完整剪輯含剪輯、配樂、音效、ES 效果、效果字及 CC 中文字幕',
+      '基本費用以成品 ' + m + ' 分鐘內、單機拍攝、毛片 1 小時內為計價基準',
+    ];
+  }
+  return [
+    '純後製含配樂、音效、ES 效果、效果字及 CC 中文字幕',
+    '基本費用以成品 ' + m + ' 分鐘內為計價基準',
+  ];
+}
+
+// 說明條款（放在圖卡下方）
+function serviceNotes() { return []; }
+
+// 只出現在報價單的條款（結算明細不適用）
+const QUOTE_ONLY_NOTES = ['最終費用以實際完成之成品內容為準'];
+
+// 服務類型顯示名稱（D 方案用不同字）
+function typeLabel(planKey, type) {
+  if (planKey === 'D') return type === 'full' ? '工商短影片' : 'Reels';
+  return type === 'full' ? '完整剪輯' : '純後製';
+}
+
+// 切換工商/非工商時，方案按鈕上的價格跟著換
+function updatePlanPriceLabels() {
+  ['A','B','C','D'].forEach(k => {
+    ['full','post'].forEach(t => {
+      const el = document.getElementById('price-' + k + '-' + t);
+      // 正在編輯的欄位不覆寫，避免游標跳掉
+      if (el && document.activeElement !== el) el.value = planBase(k, t);
+    });
+  });
+}
+
+// 手動修改方案價格
+function editPlanPrice(planKey, type, val) {
+  const v = parseFloat(val);
+  if (isNaN(v) || v < 0) return;
+  PLANS[planKey][type] = v;
+  calculate();
+}
+
+
+function selectPlanType(plan, type) {
+  if (state.plan !== plan) selectPlan(plan);
+  state.plan = plan; state.type = type;
+  ['full','post'].forEach(t => {
+    const el = document.getElementById('type-'+plan+'-'+t);
+    if (el) el.classList.toggle('selected', t === type);
+  });
+  updatePlanPriceLabels();
+  if (state.extraAdPlace) setAdPlace(true, true);
+  calculate();
+}
+
+
+function updateCustomPrice() {
+  PLANS.custom.full = parseFloat(document.getElementById('custom-full-price').value) || 0;
+  PLANS.custom.post = parseFloat(document.getElementById('custom-post-price').value) || 0;
+}
+
+// ── Client type ──────────────────────────────────────
+
+
+// ── Project type ─────────────────────────────────────
+// 封面圖是否含文案
+function toggleCoverCopy() {
+  state.coverCopy = !state.coverCopy;
+  const el = document.getElementById('cover-copy-check');
+  el.classList.toggle('active', state.coverCopy);
+  document.getElementById('check-cover-copy').textContent = state.coverCopy ? '✓' : '';
+  calculate();
+}
+
+// 含稅顯示開關
+function toggleTax() {
+  state.showTax = !state.showTax;
+  const box = document.getElementById('tax-check');
+  box.classList.toggle('active', state.showTax);
+  document.getElementById('check-tax').textContent = state.showTax ? '✓' : '';
+  calculate();
+}
+
+// 工商：單一勾選，勾起來就自動帶入「工商置入」加價項目
+function toggleProjAd() {
+  const on = state.projType !== 'ad';
+  state.projType = on ? 'ad' : 'none';
+  document.getElementById('proj-type-ad').classList.toggle('active', on);
+  document.getElementById('check-projtype').textContent = on ? '✓' : '';
+  setAdPlace(on, true);
+  calculate();
+}
+
+// 開關「工商置入」加價項目（autoFill=true 時同時帶入預設金額）
+function setAdPlace(on, autoFill) {
+  state.extraAdPlace = on;
+  document.getElementById('extra-adplace').classList.toggle('active', on);
+  document.getElementById('check-adplace').textContent = on ? '✓' : '';
+  document.getElementById('adplace-price-wrap').style.display = on ? 'flex' : 'none';
+  if (on && autoFill) {
+    // D 方案（工商短影片）本身已是工商價，帶入 0，避免重複加價
+    document.getElementById('adplace-price-input').value = adPlaceDefault();
+  }
+  if (!on) resetGift('adplace');
+}
+
+// ── Ad toggles (single select) ───────────────────────
+
+function resetGift(which) {
+  state.gifts[which] = false;
+  const btn = document.getElementById('gift-' + which);
+  if (btn) { btn.classList.remove('on'); btn.textContent = '🎁 送'; }
+  const pr = document.getElementById(which + '-price');
+  if (pr) pr.classList.remove('gifted');
+}
+
+// ── Extra toggles ────────────────────────────────────
+function toggleExtra(which, keepOpen) {
+  if (which === 'adplace') {
+    const on = keepOpen ? true : !state.extraAdPlace;
+    setAdPlace(on, false);
+    // 置入與「工商」勾選連動
+    state.projType = on ? 'ad' : 'none';
+    document.getElementById('proj-type-ad').classList.toggle('active', on);
+    document.getElementById('check-projtype').textContent = on ? '✓' : '';
+  } else if (which === 'footage') {
+    state.extraFootage = !state.extraFootage;
+    document.getElementById('extra-footage').classList.toggle('active', state.extraFootage);
+    document.getElementById('check-footage').textContent = state.extraFootage ? '✓' : '';
+    document.getElementById('footage-input-wrap').style.display = state.extraFootage ? 'flex' : 'none';
+    if (!state.extraFootage) {
+      document.getElementById('footage-hours').value = '';
+      document.getElementById('footage-price').textContent = '＋ NT$0';
+      resetGift('footage');
+    }
+  } else if (which === 'multicam') {
+    state.extraMulticam = !state.extraMulticam;
+    document.getElementById('extra-multicam').classList.toggle('active', state.extraMulticam);
+    document.getElementById('check-multicam').textContent = state.extraMulticam ? '✓' : '';
+    document.getElementById('multicam-count-wrap').style.display = state.extraMulticam ? 'flex' : 'none';
+    if (!state.extraMulticam) resetGift('multicam');
+    updateMulticamPrice();
+  } else if (which === 'cover') {
+    if (!keepOpen) state.extraCover = !state.extraCover;
+    else state.extraCover = true;
+    document.getElementById('extra-cover').classList.toggle('active', state.extraCover);
+    document.getElementById('check-cover').textContent = state.extraCover ? '✓' : '';
+    document.getElementById('cover-price-wrap').style.display = state.extraCover ? 'flex' : 'none';
+    document.getElementById('cover-copy-check').style.display = state.extraCover ? 'inline-flex' : 'none';
+    if (!state.extraCover) {
+      resetGift('cover');
+      state.coverCopy = false;
+      document.getElementById('cover-copy-check').classList.remove('active');
+      document.getElementById('check-cover-copy').textContent = '';
+    }
+  }
+  calculate();
+}
+
+// ── 贈送切換 ─────────────────────────────────────────
+function toggleGift(which) {
+  state.gifts[which] = !state.gifts[which];
+  const btn = document.getElementById('gift-' + which);
+  btn.classList.toggle('on', state.gifts[which]);
+  btn.textContent = state.gifts[which] ? '🎁 已贈送' : '🎁 送';
+  const pr = document.getElementById(which + '-price');
+  if (pr) pr.classList.toggle('gifted', state.gifts[which]);
+  calculate();
+}
+
+function changeCamera(delta) {
+  state.cameraCount = Math.max(1, state.cameraCount + delta);
+  document.getElementById('camera-count').textContent = state.cameraCount;
+  updateMulticamPrice();
+  calculate();
+}
+
+function updateMulticamPrice() {
+  const total = state.cameraCount * CAM_FEE;
+  document.getElementById('multicam-price').textContent = '＋ NT$' + total.toLocaleString();
+  document.getElementById('multicam-desc').textContent = state.cameraCount + ' 機 × $500';
+}
+
+// ── Custom extra items ───────────────────────────────
+let customSchedId = 0;
+let customScheds = [];
+
+function addCustomSched() {
+  const id = ++customSchedId;
+  customScheds.push({ id, label: '', date: '' });
+  renderCustomScheds();
+}
+
+function removeCustomSched(id) {
+  customScheds = customScheds.filter(s => s.id !== id);
+  renderCustomScheds();
+  calculate();
+}
+
+function updateCustomSched(id, field, val) {
+  const s = customScheds.find(x => x.id === id);
+  if (!s) return;
+  s[field] = val;
+  calculate();
+}
+
+function renderCustomScheds() {
+  const container = document.getElementById('custom-sched-list');
+  const dateStyle = "font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:120px;";
+  container.innerHTML = customScheds.map(s => `
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" placeholder="項目名稱" value="${s.label}"
+        oninput="updateCustomSched(${s.id}, 'label', this.value)"
+        style="width:110px; font-size:12px; flex-shrink:0;" />
+      <input type="date" value="${s.date}"
+        onchange="updateCustomSched(${s.id}, 'date', this.value)"
+        style="${dateStyle}" />
+      <button onclick="removeCustomSched(${s.id})"
+        style="border:none; background:transparent; color:var(--danger); cursor:pointer; font-size:15px; padding:2px 4px;">✕</button>
+    </div>`).join('');
+}
+
+function toggleSchedule() {
+  const body = document.getElementById('sched-body');
+  const chev = document.getElementById('sched-chevron');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'flex' : 'none';
+  chev.textContent = open ? '▲' : '▼';
+}
+
+function addCustomExtra() {
+  const id = ++customExtraId;
+  state.customExtras.push({ id, name: '', price: 0, gift: false, note: '' });
+  renderCustomExtras();
+}
+
+function removeCustomExtra(id) {
+  state.customExtras = state.customExtras.filter(e => e.id !== id);
+  renderCustomExtras();
+  calculate();
+}
+
+function renderCustomExtras() {
+  const container = document.getElementById('custom-extras-list');
+  container.innerHTML = state.customExtras.map(e => `
+    <div style="display:flex; gap:8px 8px; align-items:center; flex-wrap:wrap; background:var(--paper); border:1.5px solid var(--line); border-radius:6px; padding:10px 12px;">
+      <input type="text" placeholder="項目名稱" value="${e.name}"
+        oninput="updateCustomExtra(${e.id}, 'name', this.value)"
+        style="flex:2; min-width:80px; font-size:13px;" />
+      <span style="font-size:12px; color:var(--mid); white-space:nowrap;">NT$</span>
+      <input type="number" placeholder="金額" value="${e.price || ''}" min="0"
+        oninput="updateCustomExtra(${e.id}, 'price', this.value)"
+        style="width:90px; font-family:'Space Mono',monospace; font-size:14px; font-weight:700; ${e.gift ? 'text-decoration:line-through; opacity:0.5;' : ''}" />
+      <button class="gift-btn ${e.gift ? 'on' : ''}" style="display:inline-flex;"
+        onclick="toggleCustomGift(${e.id})" title="改列為贈送，不計入總價">${e.gift ? '🎁 已贈送' : '🎁 送'}</button>
+      <button onclick="removeCustomExtra(${e.id})"
+        style="flex-shrink:0; border:none; background:transparent; color:var(--danger); cursor:pointer; font-size:16px; padding:2px 4px; line-height:1;">✕</button>
+
+    </div>`).join('');
+}
+
+function toggleCustomGift(id) {
+  const e = state.customExtras.find(x => x.id === id);
+  if (!e) return;
+  e.gift = !e.gift;
+  renderCustomExtras();
+  calculate();
+}
+
+function updateCustomExtra(id, field, val) {
+  const e = state.customExtras.find(x => x.id === id);
+  if (!e) return;
+  if (field === 'price') e.price = parseFloat(val) || 0;
+  else e.name = val;
+  calculate();
+}
+
+// ── Format ───────────────────────────────────────────
+function calculateFootage() {
+  const hours = parseFloat(document.getElementById('footage-hours').value) || 0;
+  const units = Math.ceil(hours / 0.5);
+  const fee = units * 500;
+  document.getElementById('footage-price').textContent = '＋ NT$' + fee.toLocaleString();
+  document.getElementById('footage-desc').textContent = hours > 0 ? hours + 'hr = ' + units + '單位 × $500' : '每 0.5hr = +$500';
+  calculate();
+}
+
+
+// ── 報價明細 → PNG ───────────────────────────────────
+let lastQuote = null;
+
+function saveSnapshot() {
+  const btn = document.getElementById('snap-btn');
+  if (!lastQuote) {
+    btn.textContent = '請先選方案';
+    setTimeout(() => { btn.textContent = '⬇ 存成圖片'; }, 1600);
+    return;
+  }
+  try {
+    openSnapModal('quote');
+  } catch (e) {
+    console.error(e);
+    btn.textContent = '產生失敗';
+    setTimeout(() => { btn.textContent = '⬇ 存成圖片'; }, 1600);
+  }
+}
+
+function snapFileName(mode) {
+  const safe = String(lastQuote.title).replace(/[\/:*?"<>|\\]/g, '_').slice(0, 40);
+  const d = new Date();
+  const stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  return safe + (mode === 'settle' ? '_結算明細_' : '_報價單_') + stamp + '.png';
+}
+
+function openSnapModal(mode) {
+  closeSnapModal();
+  let curMode = mode || 'quote';
+  let cv = drawQuoteCard(lastQuote, curMode);
+  let dataUrl = cv.toDataURL('image/png');
+
+  const ov = document.createElement('div');
+  ov.id = 'snap-modal';
+  ov.style.cssText = 'position:fixed; inset:0; z-index:9999; background:rgba(26,26,26,0.55);' +
+    'display:flex; flex-direction:column; align-items:center; justify-content:flex-start;' +
+    'gap:14px; padding:20px 20px 28px; overflow:auto; -webkit-overflow-scrolling:touch;';
+  ov.onclick = function (e) { if (e.target === ov) closeSnapModal(); };
+
+  // 版型切換
+  const tabs = document.createElement('div');
+  tabs.style.cssText = 'display:flex; gap:0; border:1px solid rgba(255,255,255,0.4); border-radius:4px;' +
+    'overflow:hidden; position:sticky; top:0; z-index:3; flex:none;' +
+    'box-shadow:0 4px 16px rgba(0,0,0,0.35); background:rgba(26,26,26,0.9);';
+  const tabDefs = [['quote', '報價單'], ['settle', '結算明細']];
+  const tabBtns = {};
+  tabDefs.forEach(function (d) {
+    const t = document.createElement('button');
+    t.textContent = d[1];
+    t.style.cssText = "font-family:'Noto Sans TC',sans-serif; font-size:12.5px; letter-spacing:0.5px;" +
+      'padding:7px 20px; cursor:pointer; border:none; background:transparent; color:rgba(255,255,255,0.7); transition:all 0.15s;';
+    t.onclick = function () { setMode(d[0]); };
+    tabBtns[d[0]] = t;
+    tabs.appendChild(t);
+  });
+
+  const img = document.createElement('img');
+  img.alt = '報價明細';
+  img.style.cssText = 'max-width:min(500px,100%); width:100%; height:auto; display:block; flex:none;' +
+    'box-shadow:0 12px 40px rgba(0,0,0,0.28); background:#fff;';
+
+  const hint = document.createElement('div');
+  hint.style.cssText = "font-family:'Noto Sans TC',sans-serif; font-size:11px; color:rgba(255,255,255,0.6); text-align:center; max-width:600px; line-height:1.6;";
+
+  function setMode(m) {
+    curMode = m;
+    cv = drawQuoteCard(lastQuote, m);
+    dataUrl = cv.toDataURL('image/png');
+    img.src = dataUrl;
+    tabDefs.forEach(function (d) {
+      const on = d[0] === m;
+      tabBtns[d[0]].style.background = on ? '#ffffff' : 'transparent';
+      tabBtns[d[0]].style.color = on ? '#1a1a1a' : 'rgba(255,255,255,0.7)';
+      tabBtns[d[0]].style.fontWeight = on ? '600' : '400';
+    });
+    hint.textContent = m === 'settle'
+      ? '結算明細：只列實際製作內容與應付總額，適合案子完成後給客戶對帳'
+      : '報價單：附上計價規則說明，適合接案前先讓客戶了解費用怎麼算';
+  }
+
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;' +
+    'position:sticky; bottom:0; z-index:3; flex:none; padding:10px 14px; border-radius:6px;' +
+    'background:rgba(26,26,26,0.85);';
+
+  const mkBtn = function (label, primary, fn) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = "font-family:'Noto Sans TC',sans-serif; font-size:13px; letter-spacing:0.5px;" +
+      'border-radius:3px; padding:9px 18px; cursor:pointer; border:1px solid ' +
+      (primary ? '#c4708a; background:#c4708a; color:#fff;' : 'rgba(255,255,255,0.5); background:transparent; color:#fff;');
+    b.onclick = fn;
+    return b;
+  };
+
+  const dl = mkBtn('⬇ 下載 PNG', true, function () {
+    const a = document.createElement('a');
+    a.download = snapFileName(curMode);
+    a.href = dataUrl;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    dl.textContent = '✓ 已下載';
+    setTimeout(function () { dl.textContent = '⬇ 下載 PNG'; }, 1800);
+  });
+
+  const cp = mkBtn('⧉ 複製圖片', false, function () {
+    if (!navigator.clipboard || !window.ClipboardItem) { cp.textContent = '瀏覽器不支援'; return; }
+    cv.toBlob(function (blob) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        .then(function () { cp.textContent = '✓ 已複製'; setTimeout(function(){ cp.textContent='⧉ 複製圖片'; }, 1800); })
+        .catch(function () { cp.textContent = '複製失敗'; setTimeout(function(){ cp.textContent='⧉ 複製圖片'; }, 1800); });
+    });
+  });
+
+  bar.appendChild(dl);
+  bar.appendChild(cp);
+  bar.appendChild(mkBtn('關閉', false, closeSnapModal));
+
+  ov.appendChild(tabs);
+  ov.appendChild(img);
+  ov.appendChild(hint);
+  ov.appendChild(bar);
+  document.body.appendChild(ov);
+  setMode(curMode);
+  document.addEventListener('keydown', snapEsc);
+}
+
+function snapEsc(e) { if (e.key === 'Escape') closeSnapModal(); }
+
+function closeSnapModal() {
+  const ov = document.getElementById('snap-modal');
+  if (ov) ov.remove();
+  document.removeEventListener('keydown', snapEsc);
+}
+
+function drawQuoteCard(q, mode) {
+  const isSettle = mode === 'settle';
+  const W = 700;
+  const PAD = 36;
+  const ROW_H = 58;
+  const ROW_H_NOTE = 80;
+  const HEAD_H = 131;
+  const TOTAL_H = 82;
+  const FOOT_H = 68;
+  const NOTE_LH = 26;
+
+  const SANS = "'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif";
+  const MONO = "'Space Mono', ui-monospace, monospace";
+
+  // 先用暫時的 context 量測說明文字要斷成幾行
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = '400 14px ' + SANS;
+  // 報價單：服務內容 + 計價規則；結算明細：只列服務內容
+  const wrapNote = function (t) { return wrapCJK(measure, t, W - PAD * 2 - 14); };
+
+  // 價格註腳：緊接在總價之後
+  const priceNotes = (q.notes || []).map(wrapNote);
+  const priceNoteLines = priceNotes.reduce(function (n, l) { return n + l.length; }, 0);
+  const PRICE_NOTES_H = priceNoteLines
+    ? (30 + 28 + priceNoteLines * NOTE_LH + (priceNotes.length - 1) * 4 + 8) : 0;
+
+  // 時程註腳：緊接在時程之後
+  const schedNoteRaw = (!isSettle && (q.sched || []).some(function (it) { return it.who === '客戶'; }))
+    ? ['回饋請於標示日期當天提供；未如期回饋時，後續交件日將依延遲天數順延'] : [];
+  const schedNotes = schedNoteRaw.map(wrapNote);
+  const schedNoteLines = schedNotes.reduce(function (n, l) { return n + l.length; }, 0);
+  const SCHED_NOTES_H = schedNoteLines ? (34 + schedNoteLines * 22) : 0;
+
+  // 報價單才顯示費率參考列
+  const paidRows = q.rows.filter(function (r) { return !r.gift; });
+  const giftRows = q.rows.filter(function (r) { return r.gift; });
+
+  // 三層：實收項目 → 費率參考 → 贈送
+  const rateRows = isSettle ? [] : (q.rateRows || []);
+  const drawRows = paidRows.concat(rateRows, giftRows);
+
+  // 製作時程（只放在報價單，兩欄排列）
+  const sched = isSettle ? [] : (q.sched || []);
+  // 單排時間軸：8 個節點剛好排滿一行；超過 8 個自動折成兩排
+  const schedPerRow = sched.length > 8 ? Math.ceil(sched.length / 2) : sched.length;
+  const schedBands = sched.length ? Math.ceil(sched.length / schedPerRow) : 0;
+  const SCHED_BAND_H = 106;
+  const hasFb = sched.some(function (it) { return it.who === '客戶'; });
+  const SCHED_H = sched.length ? (44 + 24 + schedBands * SCHED_BAND_H) : 0;
+
+  // 備註每行是一組片段：[{t,c}, ...]，c 決定顏色
+  const noteLinesOf = function (r) {
+    if (!r.note) return [];
+    const arr = Array.isArray(r.note) ? r.note : [r.note];
+    return arr
+      .map(function (ln) {
+        if (typeof ln === 'string') return ln ? { align: 'sub', kind: 'user', segs: [{ t: ln, c: 'user' }] } : null;
+        if (Array.isArray(ln)) return { align: 'sub', kind: 'user', segs: ln };
+        return ln && ln.segs ? ln : null;
+      })
+      .filter(Boolean);
+  };
+  const NOTE_GAP2 = 25;
+  const rowH = function (r) {
+    const n = noteLinesOf(r).length;
+    return n ? ROW_H + 4 + n * NOTE_GAP2 : ROW_H;
+  };
+  const rowsH = drawRows.reduce(function (a, r) { return a + rowH(r); }, 0);
+
+
+  const H = HEAD_H + rowsH + 18 + TOTAL_H + PRICE_NOTES_H + SCHED_H + SCHED_NOTES_H + FOOT_H;
+
+  const dpr = 1.65;
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const c = cv.getContext('2d');
+  c.scale(dpr, dpr);
+  const INK = '#1a1a1a', MID = '#666', DIM = '#999';
+  const ACCENT = '#c4708a', ACCENT2 = '#c491a4', DANGER = '#a3486b', LINE = '#eeeeee';
+
+  // 底
+  c.fillStyle = '#ffffff';
+  c.fillRect(0, 0, W, H);
+  // 左側強調條
+  c.fillStyle = ACCENT;
+  c.fillRect(0, 0, 5, H);
+
+  let y = 44;
+
+  // 抬頭（靠右）
+  c.textAlign = 'right';
+  c.fillStyle = ACCENT;
+  c.font = '600 11.5px ' + MONO;
+  c.letterSpacing = '2px';
+  c.fillText(isSettle ? 'STATEMENT' : 'QUOTATION', W - PAD, y - 14);
+  c.letterSpacing = '0px';
+  c.font = '700 17px ' + SANS;
+  c.fillStyle = INK;
+  c.fillText(isSettle ? '小玩剪輯結算明細' : '小玩剪輯報價單', W - PAD, y + 6);
+  c.textAlign = 'left';
+
+  // 標題
+  y += 34;
+  c.fillStyle = ACCENT;
+  c.font = '700 31px ' + SANS;
+  c.fillText(clip(c, q.title, W - PAD * 2), PAD, y);
+
+  // 分隔線
+  y += 30;
+  c.strokeStyle = LINE; c.lineWidth = 1;
+  line(c, PAD, y, W - PAD, y);
+
+  // 明細列
+  let rowTop = y;
+  drawRows.forEach((r, i) => {
+    const h = rowH(r);
+    // 有備註時把「標題＋備註」當成一個區塊一起置中
+    const nLines = noteLinesOf(r);
+    const cy = nLines.length
+      ? rowTop + (h - nLines.length * NOTE_GAP2) / 2 + 5
+      : rowTop + h / 2 + 5.5;
+    const isBase = r.cls === 'highlight';
+
+    c.textAlign = 'left';
+    c.fillStyle = r.gift ? DANGER : (isBase ? INK : MID);
+    c.font = (isBase ? '700 18px ' : '400 17px ') + SANS;
+    const label = (r.gift ? '🎁 ' : '') + r.label;
+    c.fillText(clip(c, label, r.sub ? 166 : W - PAD * 2 - 180), PAD, cy);
+    if (r.sub) {
+      c.fillStyle = DIM;
+      c.font = '400 15px ' + SANS;
+      c.fillText(clip(c, r.sub, 290), PAD + 176, cy);
+    }
+
+    c.textAlign = 'right';
+    if (r.rateText) {
+      // 「+NT$850 / 1 分鐘」→ 金額維持大小，單位縮小
+      const parts = String(r.rateText).split(' / ');
+      let rx = W - PAD;
+      if (parts.length === 2) {
+        c.fillStyle = ACCENT;
+        c.font = '400 13px ' + SANS;
+        const unit = ' / ' + parts[1];
+        c.fillText(unit, rx, cy);
+        rx -= c.measureText(unit).width;
+      }
+      c.fillStyle = ACCENT;
+      c.font = '400 18px ' + MONO;
+      c.fillText(parts[0], rx, cy);
+    } else if (r.gift) {
+      c.fillStyle = DANGER;
+      c.font = '700 16.5px ' + SANS;
+      c.fillText('贈送', W - PAD, cy);
+      const gw = c.measureText('贈送').width + 10;
+      c.fillStyle = DIM;
+      c.font = '400 17px ' + MONO;
+      const txt = fmt(r.amt);
+      c.fillText(txt, W - PAD - gw, cy);
+      const tw = c.measureText(txt).width;
+      c.strokeStyle = DIM;
+      line(c, W - PAD - gw - tw, cy - 5, W - PAD - gw, cy - 5);
+    } else if (r.dash) {
+      c.fillStyle = DIM;
+      c.font = '400 17px ' + MONO;
+      c.fillText('—', W - PAD, cy);
+    } else {
+      c.fillStyle = isBase ? INK : ACCENT;
+      c.font = (isBase ? '700 20px ' : '400 18px ') + MONO;
+      c.fillText((r.sign || '') + fmt(r.amt), W - PAD, cy);
+    }
+    c.textAlign = 'left';
+
+    if (nLines.length) {
+      c.textAlign = 'left';
+      c.fillStyle = DIM;
+      c.font = '400 14px ' + SANS;
+      nLines.forEach(function (ln, li) {
+        const x0 = (ln.align === 'sub') ? PAD + 176 : PAD;
+        const ny = cy + NOTE_GAP2 * (li + 1);
+        const isCalc = ln.kind === 'calc';
+        const isUser = ln.kind === 'user';
+
+        // 試算：淡底色圈起來，跟上面的規則明顯分開
+        if (isCalc) {
+          let wsum = 0;
+          ln.segs.forEach(function (sg) {
+            c.font = ((sg.c === 'key') ? '700 14px ' : '400 14px ') + SANS;
+            wsum += c.measureText(sg.t).width;
+          });
+          c.fillStyle = 'rgba(196,112,138,0.09)';
+          roundRect(c, x0 - 8, ny - 14, wsum + 16, 21, 3);
+          c.fill();
+        }
+
+        let nx = x0;
+        if (isUser) {
+          c.fillStyle = DIM;
+          c.font = '400 13.5px ' + SANS;
+          c.fillText('※', nx, ny);
+          nx += 16;
+        }
+        ln.segs.forEach(function (sg) {
+          if (sg.c === 'key') { c.fillStyle = ACCENT; c.font = '700 14px ' + SANS; }
+          else if (isCalc)    { c.fillStyle = MID;    c.font = '400 14px ' + SANS; }
+          else                { c.fillStyle = DIM;    c.font = '400 13.5px ' + SANS; }
+          c.fillText(sg.t, nx, ny);
+          nx += c.measureText(sg.t).width;
+        });
+      });
+    }
+
+    rowTop += h;
+    if (i < drawRows.length - 1) {
+      c.strokeStyle = LINE;
+      line(c, PAD, rowTop, W - PAD, rowTop);
+    }
+  });
+
+  y += rowsH + 18;
+
+  // 總計
+  c.fillStyle = '#faf9f7';
+  c.fillRect(PAD - 18, y, W - (PAD - 18) * 2, TOTAL_H - 18);
+  const mainY = y + 42;
+
+  c.fillStyle = MID;
+  c.font = '500 14px ' + SANS;
+  c.letterSpacing = '1px';
+  c.fillText(isSettle ? '應付總額' : '總報價', PAD, mainY - 2);
+  c.letterSpacing = '0px';
+
+  // 一行排完：未稅在前，含稅在後
+  c.textAlign = 'right';
+  let x = W - PAD;
+
+  c.fillStyle = ACCENT;
+  c.font = '700 32px ' + MONO;
+  const mainAmt = fmt(q.showTax ? q.totalTax : q.total);
+  c.fillText(mainAmt, x, mainY);
+  x -= c.measureText(mainAmt).width + 10;
+
+  c.fillStyle = MID;
+  c.font = '500 13.5px ' + SANS;
+  const mainLbl = q.showTax ? '含稅 ＋5%' : '未稅';
+  c.fillText(mainLbl, x, mainY);
+  x -= c.measureText(mainLbl).width + 22;
+
+  if (q.showTax) {
+    c.fillStyle = ACCENT2;
+    c.font = '400 18px ' + MONO;
+    c.fillText(fmt(q.total), x, mainY);
+    x -= c.measureText(fmt(q.total)).width + 8;
+    c.font = '400 13.5px ' + SANS;
+    c.fillText('未稅', x, mainY);
+  }
+  c.textAlign = 'left';
+
+
+
+  y += TOTAL_H;
+
+  // 價格註腳（緊接總價）
+  if (priceNoteLines) {
+    y += 30;
+    c.strokeStyle = LINE; c.lineWidth = 1;
+    line(c, PAD, y, W - PAD, y);
+    y += 28;
+    c.font = '400 14px ' + SANS;
+    priceNotes.forEach(function (lines, gi) {
+      lines.forEach(function (ln, li) {
+        c.fillStyle = DIM;
+        if (li === 0) c.fillText('・', PAD, y);
+        c.fillStyle = MID;
+        c.fillText(ln, PAD + 14, y);
+        y += NOTE_LH;
+      });
+      if (gi < priceNotes.length - 1) y += 4;
+    });
+    y += 8;
+  }
+
+  // 製作時程（單排時間軸）
+  if (sched.length) {
+    y += 44;
+    c.fillStyle = ACCENT;
+    c.font = '600 11px ' + MONO;
+    c.letterSpacing = '2px';
+    c.fillText('SCHEDULE', PAD, y);
+    c.letterSpacing = '0px';
+    c.fillStyle = MID;
+    c.font = '500 14px ' + SANS;
+    c.fillText('製作時程', PAD + 74, y);
+    c.font = '400 13px ' + SANS;
+    c.fillStyle = ACCENT;
+    c.fillText('● 小玩', PAD + 140, y);
+    c.fillStyle = INK;
+    c.fillText('○', PAD + 200, y);
+    c.fillStyle = MID;
+    c.fillText(' 客戶', PAD + 212, y);
+    y += 24;
+
+    const colW = (W - PAD * 2) / schedPerRow;
+    c.textAlign = 'center';
+
+    for (let b = 0; b < schedBands; b++) {
+      const items = sched.slice(b * schedPerRow, (b + 1) * schedPerRow);
+      const top = y + b * SCHED_BAND_H;
+      const lineY = top + 50;
+
+      // 軸線
+      c.strokeStyle = '#e8e8e8';
+      c.lineWidth = 1;
+      line(c, PAD + colW / 2, lineY, PAD + colW * (items.length - 0.5), lineY);
+
+      items.forEach(function (it, i) {
+        const cx = PAD + colW * (i + 0.5);
+        const isCli = it.who === '客戶';
+        const name = it.label;
+
+        // 小玩的節點＝桃紅（實心），客戶的節點＝墨色（空心）
+        const strong = isCli ? INK : ACCENT;
+        const soft = isCli ? MID : ACCENT2;
+
+        // 日期（上）
+        c.fillStyle = strong;
+        c.font = '700 19px ' + MONO;
+        c.fillText(it.date, cx, top + 16);
+        c.fillStyle = soft;
+        c.font = '400 13.5px ' + SANS;
+        c.fillText(it.week || '', cx, top + 33);
+
+        // 節點
+        c.beginPath();
+        c.arc(cx, lineY, 4.5, 0, Math.PI * 2);
+        if (isCli) {
+          c.fillStyle = '#ffffff'; c.fill();
+          c.strokeStyle = INK; c.lineWidth = 1.5; c.stroke();
+        } else {
+          c.fillStyle = ACCENT; c.fill();
+        }
+
+        // 說明（下）
+        c.fillStyle = strong;
+        c.font = '500 15px ' + SANS;
+        c.fillText(clip(c, name, colW - 2), cx, lineY + 28);
+        c.fillStyle = soft;
+        c.font = '400 13.5px ' + SANS;
+        c.fillText(it.who, cx, lineY + 47);
+      });
+    }
+    c.textAlign = 'left';
+    y += schedBands * SCHED_BAND_H;
+  }
+
+  // 時程註腳（緊貼時程）
+  if (schedNoteLines) {
+    y += 34;
+    c.font = '400 13.5px ' + SANS;
+    schedNotes.forEach(function (lines) {
+      lines.forEach(function (ln, li) {
+        c.fillStyle = ACCENT2;
+        if (li === 0) c.fillText('※', PAD, y);
+        c.fillStyle = DIM;
+        c.fillText(ln, PAD + 16, y);
+        y += 22;
+      });
+    });
+  }
+
+  // 頁尾
+  const d = new Date();
+  const ds = d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+  y += 30;
+  c.strokeStyle = LINE; c.lineWidth = 1;
+  line(c, PAD, y, W - PAD, y);
+  y += 22;
+
+  c.fillStyle = DIM;
+  c.font = '400 13.5px ' + SANS;
+  if (isSettle) {
+    c.fillText('結算日期 ' + ds + '　·　本明細為專案實際製作內容與金額', PAD, y);
+  } else {
+    c.fillText('報價日期 ' + ds + '　·　最終費用以實際完成之成品內容為準', PAD, y);
+  }
+
+  return cv;
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
+}
+
+function line(c, x1, y1, x2, y2) {
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+}
+
+// 中英混排斷行（中文逐字、英數以詞為單位）
+function wrapCJK(c, text, maxW) {
+  const out = [];
+  let cur = '';
+  const tokens = String(text).match(/[A-Za-z0-9$%.,:+\-]+|\s+|[^\s]/g) || [];
+  tokens.forEach(function (tk) {
+    const test = cur + tk;
+    if (c.measureText(test).width > maxW && cur !== '') {
+      out.push(cur.replace(/\s+$/, ''));
+      cur = /^\s+$/.test(tk) ? '' : tk;
+    } else {
+      cur = test;
+    }
+  });
+  if (cur.trim() !== '') out.push(cur.replace(/\s+$/, ''));
+  return out.length ? out : [''];
+}
+
+function clip(c, text, maxW) {
+  if (c.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && c.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+
+// 影片長度 → 分鐘（計算方式比照 Edit Tracker）
+// 秒數 >= 30 進位成一整分；0 < 秒 < 30 記 0.5 分；之後再無條件捨去取整數分
+function parseLen(str) {
+  const raw = String(str || '').trim();
+  if (!raw) return 0;
+  const parts = raw.split(':');
+  if (parts.length >= 3) {
+    const hh = parseInt(parts[0]) || 0, mm = parseInt(parts[1]) || 0, ss = parseInt(parts[2]) || 0;
+    const m = hh * 60 + mm;
+    return ss >= 30 ? m + 1 : m + (ss > 0 ? 0.5 : 0);
+  }
+  if (parts.length === 2) {
+    const m = parseInt(parts[0]) || 0, ss = parseInt(parts[1]) || 0;
+    return ss >= 30 ? m + 1 : m + (ss > 0 ? 0.5 : 0);
+  }
+  return parseFloat(raw) || 0;
+}
+
+// 顯示用：把輸入正規化成 m:ss
+function fmtLen(str) {
+  const raw = String(str || '').trim();
+  if (!raw) return '—';
+  if (raw.indexOf(':') < 0) {
+    const n = parseFloat(raw) || 0;
+    const m = Math.floor(n), ss = Math.round((n - m) * 60);
+    return m + ':' + String(ss).padStart(2, '0');
+  }
+  return raw;
+}
+
+function fmt(n) { return 'NT$' + Number(n).toLocaleString('zh-TW'); }
+
+// ── Main calculate ───────────────────────────────────
+function calculate() {
+  const projName = document.getElementById('project-name').value.trim();
+  const noteOf = id => {
+    const el = document.getElementById('note-' + id);
+    return el ? el.value.trim() : '';
+  };
+  const durRaw = document.getElementById('duration').value;
+  const durMins = parseLen(durRaw);          // 含 0.5 分的原始值
+  const durWhole = Math.floor(durMins);      // 計費用：無條件捨去
+  const durLabel = fmtLen(durRaw);
+
+  const baseMins = parseFloat(document.getElementById('base-minutes').value) || 10;
+  const OVERTIME_RATE = parseFloat(document.getElementById('overtime-rate-input').value) || 850;
+
+  // Overtime hint
+  const hint = document.getElementById('overtime-hint');
+  const overMins = Math.max(0, durWhole - baseMins);
+  if (overMins > 0) {
+    hint.innerHTML = durLabel + ' → 計 ' + durWhole + ' 分鐘，超過 ' + baseMins + ' 分鐘 → <span>+' + overMins + ' 分鐘 × $' + OVERTIME_RATE.toLocaleString() + ' = +$' + (overMins*OVERTIME_RATE).toLocaleString() + '</span>';
+  } else {
+    hint.innerHTML = '超過 ' + baseMins + ' 分鐘後，每分鐘 ＋ $' + OVERTIME_RATE.toLocaleString() + '（秒數 ≥ 30 進位成一分鐘）';
+  }
+
+  // Urgent fee
+  // Auto-calc urgent fee from 拿到檔案 → V1 交件
+  const receiveVal = document.getElementById('sched-receive').value;
+  const v1Val = document.getElementById('sched-v1').value;
+  const urgentThreshold = state.type === 'post' ? 7 : 10;
+  let urgentFee = 0;
+  let deliveryDays = null;
+  const autoHint = document.getElementById('urgent-auto-hint');
+  const urgentHint = document.getElementById('urgent-hint');
+  if (receiveVal && v1Val) {
+    const receiveDate = new Date(receiveVal);
+    const v1Date = new Date(v1Val);
+    deliveryDays = Math.round((v1Date - receiveDate) / (1000 * 60 * 60 * 24));
+    const shortage = urgentThreshold - deliveryDays;
+    if (shortage > 0) {
+      urgentFee = shortage * URGENT_RATE;
+      autoHint.style.display = 'none';
+      autoHint.innerHTML = '⚡ 工作天 ' + deliveryDays + ' 天，少 ' + shortage + ' 天 → 加急費 +$' + urgentFee.toLocaleString();
+      urgentHint.style.display = 'block';
+      urgentHint.style.background = 'rgba(212,138,0,0.08)';
+      urgentHint.style.color = 'var(--red)';
+      urgentHint.innerHTML = '⚡ 工作天 ' + deliveryDays + ' 天，少 ' + shortage + ' 天 → 加急費 +$' + urgentFee.toLocaleString();
+    } else {
+      autoHint.style.display = 'none';
+      autoHint.innerHTML = '✓ 工作天 ' + deliveryDays + ' 天，無加急費';
+      urgentHint.style.display = 'block';
+      urgentHint.style.background = 'rgba(100,180,100,0.08)';
+      urgentHint.style.color = '#2d7a4f';
+      urgentHint.innerHTML = '✓ 工作天 ' + deliveryDays + ' 天，無加急費';
+    }
+  } else {
+    autoHint.style.display = 'none';
+    urgentHint.style.display = 'none';
+    urgentHint.innerHTML = '';
+  }
+
+  if (!state.plan || !state.type) {
+    document.getElementById('total-amount').textContent = '—';
+    document.getElementById('total-main-amount').textContent = '—';
+    document.getElementById('quote-text').textContent = '請先選擇方案與服務類型';
+    document.getElementById('breakdown').innerHTML = '';
+    return;
+  }
+
+  const plan = PLANS[state.plan];
+  const base = planBase(state.plan, state.type);
+  const adPlaceFee = state.extraAdPlace ? (parseFloat(document.getElementById('adplace-price-input').value) || 0) : 0;
+  const overtime = Math.max(0, durWhole - baseMins) * OVERTIME_RATE;
+  const footageHours = state.extraFootage ? (parseFloat(document.getElementById('footage-hours').value) || 0) : 0;
+  const footageUnits = Math.ceil(footageHours / 0.5);
+  const footageFee = footageUnits * FOOTAGE_FEE;
+  // update footage price display
+  if (state.extraFootage) {
+    document.getElementById('footage-price').textContent = '＋ NT$' + footageFee.toLocaleString();
+  } else {
+    document.getElementById('footage-price').textContent = '＋ NT$0';
+  }
+  const multicamFee = state.extraMulticam ? state.cameraCount * CAM_FEE : 0;
+  const coverFee = state.extraCover ? (parseFloat(document.getElementById('cover-price-input').value) || 0) : 0;
+
+  // 贈送：原價保留供顯示，實收為 0
+  const g = state.gifts;
+  const adPlaceCharge  = g.adplace  ? 0 : adPlaceFee;
+  const footageCharge  = g.footage  ? 0 : footageFee;
+  const multicamCharge = g.multicam ? 0 : multicamFee;
+  const coverCharge    = g.cover    ? 0 : coverFee;
+  const customTotal = state.customExtras.reduce((s, e) => s + (e.gift ? 0 : (e.price || 0)), 0);
+  const giftTotal =
+    (g.adplace ? adPlaceFee : 0) +
+    (g.footage ? footageFee : 0) +
+    (g.multicam ? multicamFee : 0) +
+    (g.cover ? coverFee : 0) +
+    state.customExtras.reduce((s, e) => s + (e.gift ? (e.price || 0) : 0), 0);
+
+  const total = base + overtime + adPlaceCharge + urgentFee + footageCharge + multicamCharge + coverCharge + customTotal;
+
+  // Breakdown rows
+  let rows = [];
+  rows.push({
+    label: typeLabel(state.plan, state.type) + ' ' + baseMins + ' 分鐘' +
+           '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）',
+    note: baseNotes(state.plan, state.type, baseMins).map(t => ({ align: 'left', segs: [{ t: t, c: 'user' }] })),
+    amt: base, cls: 'highlight'
+  });
+
+  // 超時／加購：中欄放「規則」，備註行放「本次算法」
+  if (state.plan !== 'D' && state.type) {
+    const overMin = Math.max(0, durWhole - baseMins);
+    const K = t => ({ t: t, c: 'key' });      // 數值：桃紅
+    const P = t => ({ t: t, c: 'plain' });    // 其餘：灰
+    const U = t => ({ t: t, c: 'user' });
+
+    rows.push({
+      label: '超時費',
+      sub: '超過 ' + baseMins + ' 分鐘，每分鐘 $' + OVERTIME_RATE.toLocaleString(),
+      note: overMin > 0
+        ? [{ align: 'sub', kind: 'calc', segs: [P('此次成品長度 '), K(durLabel), P('，超出 '),
+             K(overMin + ' 分鐘'), P(' × $' + OVERTIME_RATE.toLocaleString())] }]
+        : [],
+      amt: overtime, sign: '+',
+      rateText: overMin > 0 ? '' : '+' + fmt(OVERTIME_RATE) + ' / 1 分鐘'
+    });
+
+    if (state.type === 'full') {
+      const fUnits = Math.ceil(footageHours / 0.5);
+      rows.push({
+        label: '毛片超時',
+        sub: '超過 1 小時，每 0.5 小時 $500',
+        note: [
+          { align: 'sub', kind: 'calc', segs: footageHours > 0
+            ? [P('此次毛片總時長 '), K((1 + footageHours) + ' 小時'), P('，超出 '),
+               K(footageHours + ' 小時'), P(' = ' + fUnits + ' × $500')]
+            : [P('此次毛片總時長 '), K('1 小時'), P('，未超出')] },
+          noteOf('footage') ? { align: 'sub', kind: 'user', segs: [U(noteOf('footage'))] } : null
+        ].filter(Boolean),
+        amt: footageFee, sign: '+', gift: g.footage,
+        rateText: footageHours > 0 ? '' : '+NT$500 / 0.5 小時'
+      });
+
+      const cams = state.extraMulticam ? state.cameraCount : 1;
+      rows.push({
+        label: '多機位',
+        sub: '第 2 機起，每加 1 機 $500',
+        note: [
+          { align: 'sub', kind: 'calc', segs: cams > 1
+            ? [P('此次拍攝機位 '), K(cams + ' 機'), P('，加收 '), K((cams - 1) + ' 機'), P(' × $500')]
+            : [P('此次拍攝機位 '), K('1 機'), P('，未加收')] },
+          noteOf('multicam') ? { align: 'sub', kind: 'user', segs: [U(noteOf('multicam'))] } : null
+        ].filter(Boolean),
+        amt: multicamFee, sign: '+', gift: g.multicam,
+        rateText: cams > 1 ? '' : '+NT$500 / 機'
+      });
+    }
+  }
+  if (adPlaceFee) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
+  if (urgentFee > 0) rows.push({ label: '加急費（少' + (urgentThreshold - deliveryDays) + '天 × $' + URGENT_RATE.toLocaleString() + '）', amt: urgentFee, sign: '+' });
+  const coverLabel = '封面圖製作';
+  if (coverFee) rows.push({
+    label: coverLabel,
+    sub: state.coverCopy ? '含封面文案' : '不含封面文案',
+    note: noteOf('cover'), amt: coverFee, sign: '+', gift: g.cover
+  });
+  state.customExtras.forEach(e => {
+    if (e.price > 0) rows.push({ label: e.name || '自訂項目', note: e.note || '', amt: e.price, sign: '+', gift: e.gift });
+  });
+
+  // 贈送項目一律排到最下面
+  rows = rows.filter(r => !r.gift).concat(rows.filter(r => r.gift));
+
+  const subHtml = r => r.sub
+    ? '<span style="color:var(--text-dim); font-size:12px; margin-left:2px;">' + r.sub + '</span>'
+    : '';
+  // 備註行可能是字串、片段陣列，或 {align, kind, segs} 物件
+  const noteHtml = r => {
+    const raw = r.note ? (Array.isArray(r.note) ? r.note : [r.note]) : [];
+    const lines = raw.map(ln => {
+      if (typeof ln === 'string') return ln ? { kind: 'user', segs: [{ t: ln }] } : null;
+      if (Array.isArray(ln)) return { kind: 'user', segs: ln };
+      return (ln && ln.segs) ? ln : null;
+    }).filter(Boolean);
+    if (!lines.length) return '';
+    return lines.map(ln => {
+      const inner = ln.segs.map(sg => sg.c === 'key'
+        ? '<b style="color:var(--accent);">' + sg.t + '</b>'
+        : sg.t).join('');
+      if (ln.kind === 'calc') {
+        return '<div style="display:inline-block; font-size:11.5px; color:var(--text-mid); margin-top:3px;' +
+               'background:rgba(196,112,138,0.09); border-radius:3px; padding:2px 7px; line-height:1.6;">' + inner + '</div>';
+      }
+      return '<div style="font-size:11px; color:var(--text-dim); margin-top:2px; line-height:1.6;">' +
+             (ln.kind === 'user' && ln.align === 'sub' ? '※ ' : '') + inner + '</div>';
+    }).join('');
+  };
+  document.getElementById('breakdown').innerHTML = rows.map(r => {
+    if (r.gift) {
+      return '<div class="breakdown-row gift"><span>🎁 ' + r.label + subHtml(r) + noteHtml(r) + '</span>' +
+             '<span class="amt gift"><span class="strike">' + fmt(r.amt) + '</span>贈送</span></div>';
+    }
+    return '<div class="breakdown-row ' + (r.cls||'') + '"><span>' + r.label + subHtml(r) + noteHtml(r) + '</span><span class="amt ' + (r.sign?'plus':'') + '">' + (r.sign||'') + fmt(r.amt) + '</span></div>';
+  }).join('');
+
+  const totalTax = Math.round(total * 1.05);
+  const showTax = state.showTax;
+  document.getElementById('t-sub-row').style.display = showTax ? 'flex' : 'none';
+  document.getElementById('t-main-label').textContent = showTax ? '含稅 ＋5%' : '未稅';
+  document.getElementById('total-amount').textContent = fmt(total);
+  document.getElementById('total-main-amount').textContent = fmt(showTax ? totalTax : total);
+  document.getElementById('total-duration-label').textContent = durLabel;
+
+  lastQuote = {
+    title: projName || plan.name,
+    meta: '',
+    rows: rows,
+    total: total,
+    totalTax: totalTax,
+    showTax: showTax,
+    giftTotal: giftTotal,
+    notes: serviceNotes(state.plan, state.type, baseMins),
+    // 沒有實際超時時，報價單仍列出超時費率供客戶參考
+    specLead: (state.plan && state.type && state.plan !== 'D')
+      ? (state.type === 'full'
+          ? '基本費用以成品 ' + baseMins + ' 分鐘內、單機拍攝、毛片 1 小時內為計價基準；超出部分依下列費率加計'
+          : '基本費用以成品 ' + baseMins + ' 分鐘內為計價基準；超出部分依下列費率加計')
+      : '',
+    spec: (function () {
+      if (!state.plan || !state.type || state.plan === 'D') return [];
+      const rows = [];
+      const overMin = Math.max(0, durWhole - baseMins);
+      rows.push({
+        label: '成品長度', now: durLabel,
+        over: overMin > 0
+          ? '超出 ' + overMin + ' 分鐘 · 每 1 分鐘 $' + OVERTIME_RATE.toLocaleString()
+          : '未超出',
+        amt: overtime
+      });
+      if (state.type === 'full') {
+        rows.push({
+          label: '毛片總量', now: (1 + footageHours) + ' 小時',
+          over: footageHours > 0
+            ? '超出 ' + footageHours + ' 小時 · 每 0.5 小時 $500'
+            : '未超出',
+          amt: footageFee, gift: g.footage, note: noteOf('footage')
+        });
+        const cams = state.extraMulticam ? state.cameraCount : 1;
+        rows.push({
+          label: '拍攝機位', now: cams + ' 機',
+          over: cams > 1 ? '多 ' + (cams - 1) + ' 機 · 每加 1 機 $500' : '未超出',
+          amt: multicamFee, gift: g.multicam, note: noteOf('multicam')
+        });
+      }
+      return rows;
+    })(),
+    rateRows: [],
+  };
+
+  // Quote text
+  let quote = projName ? '【' + projName + '_報價】\n' : '【剪輯報價】\n';
+  quote += typeLabel(state.plan, state.type) +
+           '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）　片長 ' + durLabel + '\n\n';
+  quote += '基本報價：' + fmt(base) + '\n';
+  if (overtime <= 0) quote += '超時費：' + fmt(OVERTIME_RATE) + ' / 1m（成片超過 ' + baseMins + 'm 後加收）\n';
+  quote += '\n';
+  // Extra items
+  const extraLines = [];
+  if (overtime > 0) extraLines.push('成品超時 ' + overMins + ' 分鐘（每 1 分鐘 $' + OVERTIME_RATE.toLocaleString() + '）：+' + fmt(overtime));
+  if (urgentFee > 0) extraLines.push('加急費（工作天 ' + deliveryDays + '天）：+' + fmt(urgentFee));
+  const giftLines = [];
+  const pushExtra = (label, amt, isGift, note) => {
+    if (!amt) return;
+    const tail = note ? '\n　　' + note : '';
+    if (isGift) giftLines.push(label + '：' + fmt(amt) + ' → 本次贈送' + tail);
+    else extraLines.push(label + '：+' + fmt(amt) + tail);
+  };
+  pushExtra('工商置入', adPlaceFee, g.adplace, noteOf('adplace'));
+  pushExtra('毛片超時 ' + footageHours + 'hr', footageFee, g.footage, noteOf('footage'));
+  pushExtra('多機位 ' + state.cameraCount + ' 機', multicamFee, g.multicam, noteOf('multicam'));
+  pushExtra(coverLabel, coverFee, g.cover, noteOf('cover'));
+  state.customExtras.forEach(e => { pushExtra(e.name || '自訂項目', e.price, e.gift, e.note); });
+  if (extraLines.length) quote += extraLines.map(l => '・' + l).join('\n') + '\n';
+  if (giftLines.length) {
+    quote += '\n【本次贈送】\n' + giftLines.map(l => '・' + l).join('\n') + '\n\n';
+  }
+  quote += showTax
+    ? '總報價：' + fmt(totalTax) + '（含稅）／ ' + fmt(total) + '（未稅）\n'
+    : '總報價：' + fmt(total) + '\n';
+  // Schedule
+  const schedFields = [
+    ['sched-receive','提供檔案','客戶'],
+    ['sched-draft','初剪交件','小玩'], ['sched-draft-fb','初剪回饋','客戶'],
+    ['sched-v1','V1 交件','小玩'],     ['sched-v1-fb','V1 回饋','客戶'],
+    ['sched-v2','V2 交件','小玩'],     ['sched-v2-fb','V2 回饋','客戶'],
+    ['sched-final','FINAL','小玩']
+  ];
+  const schedPairs = schedFields.map(([id, label, who]) => {
+    const val = document.getElementById(id).value;
+    if (!val) return null;
+    const d = fmtSchedDate(val);
+    return d ? { label: label, who: who, date: d.date, week: d.week, full: d.full } : null;
+  }).filter(Boolean);
+  customScheds.forEach(s => {
+    if (s.label && s.date) {
+      const d = fmtSchedDate(s.date);
+      if (d) schedPairs.push({ label: s.label, who: '小玩', date: d.date, week: d.week, full: d.full });
+    }
+  });
+  const schedLines = schedPairs.map((p, i) => (i + 1) + '. ' + p.label + '｜' + p.who + '　' + p.full);
+  if (lastQuote) lastQuote.sched = schedPairs;
+
+  const notes = serviceNotes(state.plan, state.type, baseMins);
+  if (notes.length) {
+    quote += '――――――――――\n';
+    quote += notes.map(l => '・' + l).join('\n') + '\n';
+  }
+  if (schedLines.length) {
+    quote += '\n――――――――――\n【時程安排】\n' + schedLines.map(l => '・' + l).join('\n') + '\n';
+    if (schedPairs.some(p => /回饋/.test(p.label))) {
+      quote += '※ 回饋請於標示日期當天提供；未如期回饋時，後續交件日將依延遲天數順延。\n';
+    }
+  }
+
+  document.getElementById('quote-text').textContent = quote;
+}
+
+function copyQuote() {
+  const text = document.getElementById('quote-text').textContent;
+  const btn = document.getElementById('copy-btn');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => fallbackCopy(text, btn));
+  } else {
+    fallbackCopy(text, btn);
+  }
+}
+
+function fallbackCopy(text, btn) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  btn.textContent = 'COPIED ✓';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+}
+
+// ── 預覽用範例資料（確認版面用；不需要時把 fillSample() 這一行刪掉即可）──
+function fillSample() {
+  document.getElementById('project-name').value = '單程旅行社-社長接體';
+  document.getElementById('duration').value = '10:00';
+
+  const dates = {
+    'sched-receive': '2026-07-22', 'sched-draft': '2026-09-17',
+    'sched-draft-fb': '2026-09-21', 'sched-v1': '2026-10-13',
+    'sched-v1-fb': '2026-10-16', 'sched-v2': '2026-10-20',
+    'sched-v2-fb': '2026-10-21', 'sched-final': '2026-10-23'
+  };
+  Object.keys(dates).forEach(function (k) {
+    const el = document.getElementById(k);
+    if (el) el.value = dates[k];
+  });
+
+  selectPlanType('A', 'full');
+  if (state.projType === 'ad') toggleProjAd();
+
+  if (!state.extraFootage) toggleExtra('footage');
+  document.getElementById('footage-hours').value = '2';
+  calculateFootage();
+
+  if (!state.extraMulticam) toggleExtra('multicam');
+  state.cameraCount = 4; updateMulticamPrice();
+  document.getElementById('camera-count').textContent = '4';
+  if (!state.gifts.multicam) toggleGift('multicam');
+
+  if (!state.extraCover) toggleExtra('cover');
+  document.getElementById('cover-price-input').value = '500';
+
+  calculate();
+}
+
+updatePlanPriceLabels();
+calculate();
+fillSample();
+</script>
+</body>
+</html>
