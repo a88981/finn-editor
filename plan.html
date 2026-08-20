@@ -189,6 +189,29 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .nextfree.rush{border-style:dashed;background:transparent;margin-top:-8px}
 .nextfree.rush .nf-k{color:var(--ink-light)}
 .nextfree.rush .nf-d{font-size:13px;color:var(--ink-soft)}
+.feas-form{display:flex;flex-direction:column;gap:9px;margin:4px 0 14px}
+.feas-f{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft)}
+.feas-f>span:first-child{min-width:104px}
+.feas-f .fc{flex:1}
+.feas-seg{display:flex;gap:5px}
+.feas-verdict{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;border-radius:5px;padding:10px 13px;margin-bottom:11px;border:0.5px solid}
+.feas-verdict .fs-i{font-size:14px}
+.feas-verdict .fs-t{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500}
+.feas-verdict .fs-n{font-size:11px;opacity:.8;margin-left:auto}
+.fs-ok{background:#f2f8f1;border-color:#cfe3cb;color:#3d6b38}
+.fs-tight{background:var(--yellow-lightest);border-color:var(--yellow-pale);color:var(--yellow-mid)}
+.fs-over{background:#fdece9;border-color:#f3ccc4;color:var(--red)}
+.feas-plan{border:0.5px solid var(--line);border-radius:4px;padding:8px 12px;margin-bottom:11px}
+.fp-r{display:flex;font-size:11.5px;padding:3px 0;gap:10px}
+.fp-r .k{min-width:64px;color:var(--ink-light)}
+.fp-r .v{color:var(--ink);font-variant-numeric:tabular-nums}
+.feas-clash{font-size:11px;line-height:1.75;color:var(--red);background:#fdece9;border-radius:4px;padding:9px 12px;margin-bottom:11px}
+.feas-tbl{border:0.5px solid var(--line);border-radius:4px;padding:8px 12px;margin-bottom:11px}
+.ft-h{font-size:10.5px;color:var(--ink-light);margin-bottom:5px}
+.ft-r{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:3px 0;color:var(--ink-soft)}
+.ft-r.on{color:var(--ink);font-weight:500}
+.feas-say{font-size:12px;line-height:1.8;color:var(--ink);background:#FCFCFA;border-left:2px solid var(--yellow);padding:9px 13px;margin-bottom:6px}
+.feas-empty{font-size:12px;color:var(--ink-light);padding:16px 0;text-align:center}
 </style>
 </head>
 <body>
@@ -198,7 +221,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V26";
+var PLAN_BUILD="V27";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -547,6 +570,7 @@ function render(){
   html+='</div>';
   if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
   html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
+  html+='<button class="btn" onclick="openFeas()" title="給一個交件日，試算能不能接">🧮 試算新案</button>';
   html+='<button class="btn" onclick="openExport()" title="把待執行的案整理成 Prompt，複製給 Claude 排">📋 產生 Prompt</button>';
   html+='<button class="btn" onclick="openImport()" title="把 Claude 排好的 JSON 貼回來，一鍵填入">📥 貼上排程</button>';
   html+='<button class="btn primary" id="save-btn-top" onclick="saveAll()" style="margin-left:auto" '+(dirty===0?'disabled':'')+'>💾 存回 Notion'+(dirty>0?' ('+dirty+')':'')+'</button>';
@@ -634,6 +658,7 @@ function render(){
   }
   
   // 產生 Prompt / 貼上排程
+  if(state.feas){html+=renderFeas();}
   if(state.exp){html+=renderExport();}
   if(state.imp){html+=renderImport();}
   
@@ -1022,6 +1047,225 @@ function rushWindows(limit){
   }
   if(seg){seg.open=true; out.push(seg);}
   return out;
+}
+
+/* ── 新案可行性試算 ──────────────────────────────────────
+   給一個想答應客戶的交件日，往回推需要多少工作天、
+   塞得下塞不下、會跟哪幾個案在哪幾天打架。             */
+var FEAS_SCENARIOS = [
+  {label:"寬鬆", cut:7, v1:10, fb:3},
+  {label:"標準", cut:5, v1:7,  fb:2},
+  {label:"最緊", cut:3, v1:5,  fb:1}
+];
+
+function isWorkdayD(d){var w=d.getDay();return w!==0&&w!==6&&!isOffDay(dstr(d));}
+function shiftDay(ds,n){var d=toDate(ds);if(!d)return null;d.setDate(d.getDate()+n);return dstr(d);}
+function workdaysBack(toStr,n){
+  var out=[],c=toDate(toStr),g=0;
+  if(!c)return out;
+  while(out.length<n&&g++<900){
+    if(isWorkdayD(c))out.unshift(dstr(c));
+    c.setDate(c.getDate()-1);
+  }
+  return out;
+}
+function workdaysFwd(fromStr,n){
+  var out=[],c=toDate(fromStr),g=0;
+  if(!c)return out;
+  while(out.length<n&&g++<900){
+    if(isWorkdayD(c))out.push(dstr(c));
+    c.setDate(c.getDate()+1);
+  }
+  return out;
+}
+function workdayList(a,b){
+  var out=[],c=toDate(a),end=toDate(b),g=0;
+  if(!c||!end)return out;
+  while(c<=end&&g++<900){
+    if(isWorkdayD(c))out.push(dstr(c));
+    c.setDate(c.getDate()+1);
+  }
+  return out;
+}
+function longSpans(){
+  return pendingProjects().filter(function(p){return !isShort(p);})
+    .map(function(p){var sp=busySpan(p);if(sp)sp.name=p.name||"(未命名)";return sp;})
+    .filter(function(x){return !!x;});
+}
+function runningOn(spans,ds){
+  var hit=[];
+  spans.forEach(function(sp){if(ds>=sp.s&&ds<=sp.e)hit.push(sp.name);});
+  return hit;
+}
+/* 連續的日子併成區間，方便講「8/20–8/28 這段」 */
+function groupDays(days){
+  var out=[];
+  days.forEach(function(d){
+    var last=out[out.length-1];
+    if(last&&workdayList(last.e,d).length===2)last.e=d;
+    else out.push({s:d,e:d});
+  });
+  return out;
+}
+
+function calcFeas(f){
+  if(!f.date)return {err:"請先填想答應的交件日"};
+  if(!toDate(f.date))return {err:"交件日格式看不懂"};
+  var startFrom=f.start||PLAN_PREFS.start||todayStr();
+  var spans=f.short?[]:longSpans();
+
+  var scens=f.short?[{label:"短影",cut:0,v1:0,fb:1}]:FEAS_SCENARIOS;
+  var runs=scens.map(function(sc){
+    var v1Due,finalDue;
+    if(f.kind==="v1"){
+      v1Due=f.date;
+      finalDue=workdaysFwd(shiftDay(f.date,1),sc.fb).pop()||f.date;
+    }else{
+      finalDue=f.date;
+      v1Due=workdaysBack(shiftDay(f.date,-1),sc.fb)[0]||null;
+    }
+    if(!v1Due)return {sc:sc,status:"bad",reason:"算不出 V1 交件日"};
+
+    var need=f.short?2:(sc.cut+sc.v1);
+    var pool=workdayList(startFrom,v1Due);
+    if(pool.length<need){
+      return {sc:sc,status:"short",need:need,avail:pool.length,v1Due:v1Due,finalDue:finalDue};
+    }
+    /* 在可用範圍內找同時量最低的擺法，同分取最早開工(留最多緩衝) */
+    var best=null;
+    for(var i=0;i+need<=pool.length;i++){
+      var blk=pool.slice(i,i+need), peak=0;
+      blk.forEach(function(d){var r=runningOn(spans,d).length;if(r>peak)peak=r;});
+      if(!best||peak<best.peak)best={peak:peak,blk:blk};
+      if(best.peak===0)break;
+    }
+    var clash=[],names={};
+    best.blk.forEach(function(d){
+      var on=runningOn(spans,d);
+      if(on.length>=2){clash.push(d);on.forEach(function(n){names[n]=1;});}
+    });
+    var blkEnd=best.blk[best.blk.length-1];
+    /* 提早做完的話，離承諾的交件日還剩幾個工作天緩衝 */
+    var slack=Math.max(0,workdayList(blkEnd,v1Due).length-1);
+    var out={
+      sc:sc, status:(best.peak<=1?"ok":(best.peak===2?"tight":"over")),
+      peak:best.peak, need:need, avail:pool.length, slack:slack,
+      start:best.blk[0], end:blkEnd, v1Due:v1Due, finalDue:finalDue,
+      short:!!f.short,
+      clash:groupDays(clash), clashNames:Object.keys(names)
+    };
+    if(!f.short){
+      var cutDays=best.blk.slice(0,sc.cut), v1Days=best.blk.slice(sc.cut);
+      out.cutS=cutDays[0]; out.cutE=cutDays[cutDays.length-1];
+      out.v1S=v1Days[0];   out.v1E=v1Days[v1Days.length-1];
+    }
+    return out;
+  });
+
+  var pick=null;
+  ["ok","tight","over"].forEach(function(st){
+    if(!pick)pick=runs.filter(function(r){return r.status===st;})[0]||null;
+  });
+  return {runs:runs, pick:pick, spans:spans.length,
+          allShort:runs.every(function(r){return r.status==="short";})};
+}
+
+/* ── 試算視窗 ────────────────────────────────────────── */
+function openFeas(){
+  state.feas={kind:"final", date:"", start:PLAN_PREFS.start||todayStr(), short:false};
+  state.skipScroll=true;
+  render();
+}
+function closeFeas(){state.feas=null;state.skipScroll=true;render();}
+function setFeas(k,v){
+  if(!state.feas)return;
+  state.feas[k]=v;
+  render();
+}
+var FEAS_MARK={
+  ok:{icon:"\u2705", txt:"\u53ef\u4ee5\u63a5", cls:"fs-ok"},
+  tight:{icon:"\u26a0", txt:"\u52c9\u5f37\u53ef\u63a5", cls:"fs-tight"},
+  over:{icon:"\u2716", txt:"\u4e0d\u5efa\u8b70\u63a5", cls:"fs-over"}
+};
+
+function renderFeas(){
+  var f=state.feas;
+  var h='<div class="modal-overlay">';
+  h+='<div class="modal"><div class="modal-title">\ud83e\uddee \u8a66\u7b97\u65b0\u6848</div>';
+  h+='<div class="modal-sub">\u5148\u586b\u5ba2\u6236\u60f3\u8981\u7684\u4ea4\u4ef6\u65e5\uff0c\u770b\u5854\u4e0d\u5854\u5f97\u4e0b\u3001\u6703\u8ddf\u54ea\u5e7e\u6848\u6253\u67b6</div>';
+
+  h+='<div class="feas-form">';
+  h+='<label class="feas-f"><span>\u5ba2\u6236\u60f3\u8981\u7684\u65e5\u671f</span>';
+  h+='<input type="date" class="fc" value="'+escAttr(f.date)+'" onchange="setFeas(\'date\',this.value)"></label>';
+
+  h+='<label class="feas-f"><span>\u9019\u500b\u65e5\u671f\u662f</span><span class="feas-seg">';
+  h+='<button class="mode-b'+(f.kind==="final"?" on":"")+'" onclick="setFeas(\'kind\',\'final\')">Final \u4ea4\u4ef6</button>';
+  h+='<button class="mode-b'+(f.kind==="v1"?" on":"")+'" onclick="setFeas(\'kind\',\'v1\')">V1 \u4ea4\u4ef6</button>';
+  h+='</span></label>';
+
+  h+='<label class="feas-f"><span>\u7247\u578b</span><span class="feas-seg">';
+  h+='<button class="mode-b'+(!f.short?" on":"")+'" onclick="setFeas(\'short\',false)">\u9577\u7247</button>';
+  h+='<button class="mode-b'+(f.short?" on":"")+'" onclick="setFeas(\'short\',true)">\u77ed\u5f71</button>';
+  h+='</span></label>';
+
+  h+='<label class="feas-f"><span>\u6700\u5feb\u53ef\u4ee5\u958b\u5de5</span>';
+  h+='<input type="date" class="fc" value="'+escAttr(f.start)+'" onchange="setFeas(\'start\',this.value)"></label>';
+  h+='</div>';
+
+  var r=calcFeas(f);
+  if(r.err){
+    h+='<div class="feas-empty">'+escapeHtml(r.err)+'</div>';
+  }else if(r.allShort){
+    var x=r.runs[r.runs.length-1];
+    h+='<div class="feas-verdict fs-over"><span class="fs-i">\u2716</span><span class="fs-t">\u63a5\u4e0d\u4e86</span>';
+    h+='<span class="fs-n">\u5c31\u7b97\u7528\u6700\u7dca\u7684\u6642\u7a0b\u4e5f\u8981 '+x.need+' \u500b\u5de5\u4f5c\u5929\uff0c\u5230 '+x.v1Due+' \u53ea\u5269 '+x.avail+' \u500b</span></div>';
+    h+='<div class="feas-say">\u8ddf\u5ba2\u6236\u8aaa\uff1a\u9019\u500b\u65e5\u671f\u771f\u7684\u6392\u4e0d\u4e0b\uff0c\u81f3\u5c11\u8981\u518d\u7d66\u6211 '+(x.need-x.avail)+' \u500b\u5de5\u4f5c\u5929\u3002</div>';
+  }else{
+    var p=r.pick, mk=FEAS_MARK[p.status];
+    h+='<div class="feas-verdict '+mk.cls+'"><span class="fs-i">'+mk.icon+'</span><span class="fs-t">'+mk.txt+'</span>';
+    h+='<span class="fs-n">'+(p.short?"\u77ed\u5f71\u4e0d\u5360\u9577\u7247\u984d\u5ea6":"\u81f3\u5c11\u8981\u7528\u300c"+p.sc.label+"\u300d\u6642\u7a0b")+'</span></div>';
+
+    h+='<div class="feas-plan">';
+    if(p.short){
+      h+='<div class="fp-r"><span class="k">\u5de5\u4f5c</span><span class="v">'+p.start+' \u2192 '+p.end+'</span></div>';
+    }else{
+      h+='<div class="fp-r"><span class="k">\u521d\u526a</span><span class="v">'+p.cutS+' \u2192 '+p.cutE+'</span></div>';
+      h+='<div class="fp-r"><span class="k">V1/ES</span><span class="v">'+p.v1S+' \u2192 '+p.v1E+'</span></div>';
+    }
+    h+='<div class="fp-r"><span class="k">V1 \u4ea4\u4ef6</span><span class="v">'+p.v1Due+'</span></div>';
+    h+='<div class="fp-r"><span class="k">Final</span><span class="v">'+p.finalDue+'</span></div>';
+    h+='<div class="fp-r"><span class="k">\u7de9\u885d</span><span class="v">'+(p.slack?("\u63d0\u65e9 "+p.slack+" \u500b\u5de5\u4f5c\u5929\u505a\u5b8c"):"\u6c92\u6709\uff0c\u5361\u6b7b")+'</span></div>';
+    h+='</div>';
+
+    if(p.clash.length){
+      h+='<div class="feas-clash"><b>\u6703\u8ddf\u9019\u5e7e\u6848\u649e\u5728\u4e00\u8d77</b><br>';
+      h+=escapeHtml(p.clashNames.join("\u3001"))+'<br>';
+      h+='\u91cd\u758a\u671f\u9593\uff1a'+p.clash.map(function(g){return g.s===g.e?g.s:(g.s+" \u2192 "+g.e);}).join("\u3001");
+      h+='<br>\u90a3\u5e7e\u5929\u540c\u6642\u6703\u8dd1 '+(p.peak+1)+' \u652f\u9577\u7247'+(p.peak+1>3?"\uff08\u8d85\u904e 3 \u652f\u4e0a\u9650\uff09":"\uff08\u4e0a\u9650\u662f 3 \u652f\uff09")+'</div>';
+    }
+
+    if(!p.short&&r.runs.length>1){
+      h+='<div class="feas-tbl"><div class="ft-h">\u4e09\u7a2e\u6642\u7a0b\u5206\u5225\u6703\u600e\u6a23</div>';
+      r.runs.forEach(function(x){
+        var lab=x.sc.label+'\uff08\u521d\u526a'+x.sc.cut+'\uff0bV1 '+x.sc.v1+'\uff09';
+        var val;
+        if(x.status==="short")val='\u5de5\u4f5c\u5929\u4e0d\u5920\uff08\u8981 '+x.need+'\uff0c\u53ea\u6709 '+x.avail+'\uff09';
+        else val=FEAS_MARK[x.status].txt+'\u30fb\u540c\u6642\u6700\u591a '+(x.peak+1)+' \u652f';
+        h+='<div class="ft-r'+(x===p?" on":"")+'"><span class="k">'+lab+'</span><span class="v">'+val+'</span></div>';
+      });
+      h+='</div>';
+    }
+
+    var say;
+    if(p.status==="ok")say="\u53ef\u4ee5\u63a5\u3002"+(p.slack>=3?"\u800c\u4e14\u9084\u6709\u7de9\u885d\uff0c\u4e0d\u6025\u3002":"\u4f46\u5225\u518d\u63a5\u5225\u7684\u3002");
+    else if(p.status==="tight")say="\u53ef\u4ee5\u63a5\uff0c\u4f46\u90a3\u6bb5\u671f\u9593\u6703\u540c\u6642\u8dd1 3 \u652f\uff0c\u5df2\u7d93\u662f\u4e0a\u9650\u3002\u53ef\u4ee5\u554f\u5ba2\u6236\u80fd\u4e0d\u80fd\u5f80\u5f8c\u632a\u5e7e\u5929\u3002";
+    else say="\u4e0d\u5efa\u8b70\u63a5\u3002\u90a3\u6bb5\u671f\u9593\u5df2\u7d93\u6709 "+p.peak+" \u652f\u5728\u8dd1\uff0c\u518d\u63a5\u5c31\u8d85\u904e 3 \u652f\u4e0a\u9650\u4e86\u3002";
+    h+='<div class="feas-say">'+say+'</div>';
+  }
+
+  h+='<div class="modal-btns"><button class="btn" onclick="closeFeas()">\u95dc\u9589</button></div>';
+  h+='</div></div>';
+  return h;
 }
 
 function offLines(){
