@@ -706,7 +706,11 @@ input::placeholder { color: var(--text-dim); }
         <input type="date" id="sched-final" onchange="calculate()"
           style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
       </div>
-      <div id="custom-sched-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <datalist id="who-presets">
+      <option value="小玩"></option><option value="創作者"></option>
+      <option value="客戶"></option><option value="廠商"></option>
+    </datalist>
+    <div id="custom-sched-list" style="display:flex; flex-direction:column; gap:8px;"></div>
       <button onclick="addCustomSched()"
         style="width:100%; padding:9px; border:1px dashed var(--border2); background:transparent; cursor:pointer; font-size:12px; color:var(--text-dim); font-family:'Noto Sans TC',sans-serif; transition:all 0.15s;"
         onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
@@ -1030,8 +1034,15 @@ let customScheds = [];
 
 function addCustomSched() {
   const id = ++customSchedId;
-  customScheds.push({ id, label: '', date: '' });
+  customScheds.push({ id, label: '', date: '', who: '小玩' });
   renderCustomScheds();
+}
+
+// 三方各自的顏色（供網頁欄位使用）
+function whoColor(who) {
+  if (who === '小玩') return 'var(--accent)';
+  if (who === '創作者') return 'var(--ink)';
+  return '#7d8fa3';
 }
 
 function removeCustomSched(id) {
@@ -1040,10 +1051,15 @@ function removeCustomSched(id) {
   calculate();
 }
 
-function updateCustomSched(id, field, val) {
+function updateCustomSched(id, field, val, el) {
   const s = customScheds.find(x => x.id === id);
   if (!s) return;
   s[field] = val;
+  if (field === 'who' && el) {
+    const col = whoColor(val || '小玩');
+    el.style.borderColor = col;
+    el.style.color = col;
+  }
   calculate();
 }
 
@@ -1058,6 +1074,11 @@ function renderCustomScheds() {
       <input type="date" value="${s.date}"
         onchange="updateCustomSched(${s.id}, 'date', this.value)"
         style="${dateStyle}" />
+      <input type="text" list="who-presets" value="${s.who || '小玩'}" placeholder="負責方"
+        oninput="updateCustomSched(${s.id}, 'who', this.value, this)"
+        style="flex-shrink:0; width:88px; font-size:12px; font-weight:500; text-align:center;
+        border:1px solid ${whoColor(s.who || '小玩')}; color:${whoColor(s.who || '小玩')};
+        border-radius:3px; padding:5px 6px;" />
       <button onclick="removeCustomSched(${s.id})"
         style="border:none; background:transparent; color:var(--danger); cursor:pointer; font-size:15px; padding:2px 4px;">✕</button>
     </div>`).join('');
@@ -1292,7 +1313,7 @@ function drawQuoteCard(q, mode) {
     ? (30 + 28 + priceNoteLines * NOTE_LH + (priceNotes.length - 1) * 4 + 8) : 0;
 
   // 時程註腳：緊接在時程之後
-  const schedNoteRaw = (!isSettle && (q.sched || []).some(function (it) { return it.who === '客戶'; }))
+  const schedNoteRaw = (!isSettle && (q.sched || []).some(function (it) { return it.who !== '小玩'; }))
     ? ['回饋請於標示日期當天提供；未如期回饋時，後續交件日將依延遲天數順延'] : [];
   const schedNotes = schedNoteRaw.map(wrapNote);
   const schedNoteLines = schedNotes.reduce(function (n, l) { return n + l.length; }, 0);
@@ -1312,8 +1333,9 @@ function drawQuoteCard(q, mode) {
   const schedPerRow = sched.length > 8 ? Math.ceil(sched.length / 2) : sched.length;
   const schedBands = sched.length ? Math.ceil(sched.length / schedPerRow) : 0;
   const SCHED_BAND_H = 106;
-  const hasFb = sched.some(function (it) { return it.who === '客戶'; });
-  const SCHED_H = sched.length ? (44 + 24 + schedBands * SCHED_BAND_H) : 0;
+  const SCHED_BAND_GAP = 36;   // 折成兩排時，排與排之間的距離
+  const hasFb = sched.some(function (it) { return it.who !== '小玩'; });
+  const SCHED_H = sched.length ? (44 + 24 + schedBands * SCHED_BAND_H + Math.max(0, schedBands - 1) * SCHED_BAND_GAP) : 0;
 
   // 備註每行是一組片段：[{t,c}, ...]，c 決定顏色
   const noteLinesOf = function (r) {
@@ -1599,11 +1621,21 @@ function drawQuoteCard(q, mode) {
     c.fillText('製作時程', PAD + 74, y);
     c.font = '400 13px ' + SANS;
     c.fillStyle = ACCENT;
-    c.fillText('● 小玩', PAD + 140, y);
-    c.fillStyle = INK;
-    c.fillText('○', PAD + 200, y);
-    c.fillStyle = MID;
-    c.fillText(' 客戶', PAD + 212, y);
+    const used = [];
+    if (sched.some(function (it) { return it.who === '小玩'; })) used.push(['●', '小玩', ACCENT, MID]);
+    if (sched.some(function (it) { return it.who === '創作者'; })) used.push(['○', '創作者', INK, MID]);
+    const thirdItem = sched.find(function (it) { return it.who !== '小玩' && it.who !== '創作者'; });
+    if (thirdItem) used.push(['◇', thirdItem.who, '#7d8fa3', MID]);
+
+    let lx = PAD + 140;
+    used.forEach(function (u) {
+      c.fillStyle = u[2];
+      c.fillText(u[0], lx, y);
+      lx += c.measureText(u[0]).width + 3;
+      c.fillStyle = u[3];
+      c.fillText(u[1], lx, y);
+      lx += c.measureText(u[1]).width + 16;
+    });
     y += 24;
 
     const colW = (W - PAD * 2) / schedPerRow;
@@ -1611,7 +1643,7 @@ function drawQuoteCard(q, mode) {
 
     for (let b = 0; b < schedBands; b++) {
       const items = sched.slice(b * schedPerRow, (b + 1) * schedPerRow);
-      const top = y + b * SCHED_BAND_H;
+      const top = y + b * (SCHED_BAND_H + SCHED_BAND_GAP);
       const lineY = top + 50;
 
       // 軸線
@@ -1621,12 +1653,14 @@ function drawQuoteCard(q, mode) {
 
       items.forEach(function (it, i) {
         const cx = PAD + colW * (i + 0.5);
-        const isCli = it.who === '客戶';
+        const role = (it.who === '小玩') ? 'us' : (it.who === '創作者' ? 'creator' : 'third');
+        const THIRD = '#7d8fa3';
+        const roleColor = role === 'us' ? ACCENT : (role === 'creator' ? INK : THIRD);
+        const roleSoft  = role === 'us' ? ACCENT2 : (role === 'creator' ? MID : '#a3b0bf');
         const name = it.label;
 
-        // 小玩的節點＝桃紅（實心），客戶的節點＝墨色（空心）
-        const strong = isCli ? INK : ACCENT;
-        const soft = isCli ? MID : ACCENT2;
+        const strong = roleColor;
+        const soft = roleSoft;
 
         // 日期（上）
         c.fillStyle = strong;
@@ -1638,12 +1672,23 @@ function drawQuoteCard(q, mode) {
 
         // 節點
         c.beginPath();
-        c.arc(cx, lineY, 4.5, 0, Math.PI * 2);
-        if (isCli) {
+        if (role === 'us') {
+          // 小玩：實心圓
+          c.arc(cx, lineY, 4.5, 0, Math.PI * 2);
+          c.fillStyle = ACCENT; c.fill();
+        } else if (role === 'creator') {
+          // 創作者：空心圓
+          c.arc(cx, lineY, 4.5, 0, Math.PI * 2);
           c.fillStyle = '#ffffff'; c.fill();
           c.strokeStyle = INK; c.lineWidth = 1.5; c.stroke();
         } else {
-          c.fillStyle = ACCENT; c.fill();
+          // 第三方：菱形
+          const d = 5.2;
+          c.moveTo(cx, lineY - d); c.lineTo(cx + d, lineY);
+          c.lineTo(cx, lineY + d); c.lineTo(cx - d, lineY);
+          c.closePath();
+          c.fillStyle = '#ffffff'; c.fill();
+          c.strokeStyle = THIRD; c.lineWidth = 1.6; c.stroke();
         }
 
         // 說明（下）
@@ -1656,7 +1701,7 @@ function drawQuoteCard(q, mode) {
       });
     }
     c.textAlign = 'left';
-    y += schedBands * SCHED_BAND_H;
+    y += schedBands * SCHED_BAND_H + Math.max(0, schedBands - 1) * SCHED_BAND_GAP;
   }
 
   // 時程註腳（緊貼時程）
@@ -2076,10 +2121,10 @@ function calculate() {
     : '總報價：' + fmt(total) + '\n';
   // Schedule
   const schedFields = [
-    ['sched-receive','提供檔案','客戶'],
-    ['sched-draft','初剪交件','小玩'], ['sched-draft-fb','初剪回饋','客戶'],
-    ['sched-v1','V1 交件','小玩'],     ['sched-v1-fb','V1 回饋','客戶'],
-    ['sched-v2','V2 交件','小玩'],     ['sched-v2-fb','V2 回饋','客戶'],
+    ['sched-receive','提供檔案','創作者'],
+    ['sched-draft','初剪交件','小玩'], ['sched-draft-fb','初剪回饋','創作者'],
+    ['sched-v1','V1 交件','小玩'],     ['sched-v1-fb','V1 回饋','創作者'],
+    ['sched-v2','V2 交件','小玩'],     ['sched-v2-fb','V2 回饋','創作者'],
     ['sched-final','FINAL','小玩']
   ];
   const schedPairs = schedFields.map(([id, label, who], i) => {
