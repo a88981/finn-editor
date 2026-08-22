@@ -1335,7 +1335,11 @@ function drawQuoteCard(q, mode) {
   const rowsH = drawRows.reduce(function (a, r) { return a + rowH(r); }, 0);
 
 
-  const H = HEAD_H + rowsH + 18 + TOTAL_H + PRICE_NOTES_H + SCHED_H + SCHED_NOTES_H + FOOT_H;
+  const fRows = q.floatRows || [];
+  const FLOAT_ROW_H = 34;
+  const FLOAT_H = fRows.length ? (30 + 26 + fRows.length * FLOAT_ROW_H + 8) : 0;
+
+  const H = HEAD_H + rowsH + 18 + TOTAL_H + FLOAT_H + PRICE_NOTES_H + SCHED_H + SCHED_NOTES_H + FOOT_H;
 
   const dpr = 800 / W;   // 輸出固定 800px 寬
   const cv = document.createElement('canvas');
@@ -1525,6 +1529,42 @@ function drawQuoteCard(q, mode) {
 
 
   y += TOTAL_H;
+
+  // 浮動加價項目：尚未確定，未計入總價
+  if (fRows.length) {
+    y += 30;
+    c.strokeStyle = LINE; c.lineWidth = 1;
+    line(c, PAD, y - 8, W - PAD, y - 8);
+    c.fillStyle = MID;
+    c.font = '500 13.5px ' + SANS;
+    c.fillText('以下項目視實際狀況加計，未列入上方金額', PAD, y + 8);
+    y += 26;
+
+    fRows.forEach(function (fr, i) {
+      const fy = y + i * FLOAT_ROW_H + 10;
+      c.textAlign = 'left';
+      c.fillStyle = MID;
+      c.font = '400 16px ' + SANS;
+      c.fillText(fr.label, PAD, fy);
+
+      c.fillStyle = DIM;
+      c.font = '400 14px ' + SANS;
+      c.fillText(clip(c, fr.sub, 290), PAD + 176, fy);
+
+      c.textAlign = 'right';
+      const parts = String(fr.rate).split(' / ');
+      let rx = W - PAD;
+      c.fillStyle = DIM;
+      c.font = '400 12.5px ' + SANS;
+      const unit = ' / ' + parts[1];
+      c.fillText(unit, rx, fy);
+      rx -= c.measureText(unit).width;
+      c.font = '400 16px ' + MONO;
+      c.fillText(parts[0], rx, fy);
+      c.textAlign = 'left';
+    });
+    y += fRows.length * FLOAT_ROW_H + 8;
+  }
 
   // 價格註腳（緊接總價）
   if (priceNoteLines) {
@@ -1833,53 +1873,73 @@ function calculate() {
     amt: base, cls: 'highlight'
   });
 
-  // 超時／加購：中欄放「規則」，備註行放「本次算法」
+  // 超時／加購：確定發生的計入明細，未發生的只列費率（浮動項目）
+  const floatRows = [];
   if (state.plan !== 'D' && state.type) {
     const overMin = Math.max(0, durWhole - baseMins);
-    const K = t => ({ t: t, c: 'key' });      // 數值：桃紅
-    const P = t => ({ t: t, c: 'plain' });    // 其餘：灰
+    const K = t => ({ t: t, c: 'key' });
+    const P = t => ({ t: t, c: 'plain' });
     const U = t => ({ t: t, c: 'user' });
 
-    rows.push({
-      label: '超時費',
-      sub: '超過 ' + baseMins + ' 分鐘，每分鐘 $' + OVERTIME_RATE.toLocaleString(),
-      note: overMin > 0
-        ? [{ align: 'sub', kind: 'calc', segs: [P('此次成品長度 '), K(durLabel), P('，超出 '),
-             K(overMin + ' 分鐘'), P(' × $' + OVERTIME_RATE.toLocaleString())] }]
-        : [],
-      amt: overtime, sign: '+',
-      rateText: overMin > 0 ? '' : '+' + fmt(OVERTIME_RATE) + ' / 1 分鐘'
-    });
+    // 成品超時
+    if (overMin > 0) {
+      rows.push({
+        label: '超時費',
+        sub: '超過 ' + baseMins + ' 分鐘，每分鐘 $' + OVERTIME_RATE.toLocaleString(),
+        note: [{ align: 'sub', kind: 'calc', segs: [P('此次成品長度 '), K(durLabel), P('，超出 '),
+                 K(overMin + ' 分鐘'), P(' × $' + OVERTIME_RATE.toLocaleString())] }],
+        amt: overtime, sign: '+'
+      });
+    } else {
+      floatRows.push({
+        label: '超時費',
+        sub: '超過 ' + baseMins + ' 分鐘，每分鐘加收',
+        rate: fmt(OVERTIME_RATE) + ' / 1 分鐘'
+      });
+    }
 
     if (state.type === 'full') {
-      const fUnits = Math.ceil(footageHours / 0.5);
-      rows.push({
-        label: '毛片超時',
-        sub: '超過 1 小時，每 0.5 小時 $500',
-        note: [
-          { align: 'sub', kind: 'calc', segs: footageHours > 0
-            ? [P('此次毛片總時長 '), K((1 + footageHours) + ' 小時'), P('，超出 '),
-               K(footageHours + ' 小時'), P(' = ' + fUnits + ' × $500')]
-            : [P('此次毛片總時長 '), K('1 小時'), P('，未超出')] },
-          noteOf('footage') ? { align: 'sub', kind: 'user', segs: [U(noteOf('footage'))] } : null
-        ].filter(Boolean),
-        amt: footageFee, sign: '+', gift: g.footage,
-        rateText: footageHours > 0 ? '' : '+NT$500 / 0.5 小時'
-      });
+      // 毛片超時
+      if (footageFee > 0) {
+        const fUnits = Math.ceil(footageHours / 0.5);
+        rows.push({
+          label: '毛片超時',
+          sub: '超過 1 小時，每 0.5 小時 $500',
+          note: [
+            { align: 'sub', kind: 'calc', segs: [P('此次毛片總時長 '), K((1 + footageHours) + ' 小時'),
+              P('，超出 '), K(footageHours + ' 小時'), P(' = ' + fUnits + ' × $500')] },
+            noteOf('footage') ? { align: 'sub', kind: 'user', segs: [U(noteOf('footage'))] } : null
+          ].filter(Boolean),
+          amt: footageFee, sign: '+', gift: g.footage
+        });
+      } else {
+        floatRows.push({
+          label: '毛片超時',
+          sub: '超過 1 小時，每 0.5 小時加收',
+          rate: 'NT$500 / 0.5 小時'
+        });
+      }
 
+      // 多機位
       const cams = state.extraMulticam ? state.cameraCount : 1;
-      rows.push({
-        label: '多機位',
-        sub: '第 2 機起，每加 1 機 $500',
-        note: [
-          { align: 'sub', kind: 'calc', segs: cams > 1
-            ? [P('此次拍攝機位 '), K(cams + ' 機'), P('，加收 '), K((cams - 1) + ' 機'), P(' × $500')]
-            : [P('此次拍攝機位 '), K('1 機'), P('，未加收')] },
-          noteOf('multicam') ? { align: 'sub', kind: 'user', segs: [U(noteOf('multicam'))] } : null
-        ].filter(Boolean),
-        amt: multicamFee, sign: '+', gift: g.multicam,
-        rateText: cams > 1 ? '' : '+NT$500 / 機'
-      });
+      if (multicamFee > 0) {
+        rows.push({
+          label: '多機位',
+          sub: '第 2 機起，每加 1 機 $500',
+          note: [
+            { align: 'sub', kind: 'calc', segs: [P('此次拍攝機位 '), K(cams + ' 機'), P('，加收 '),
+              K((cams - 1) + ' 機'), P(' × $500')] },
+            noteOf('multicam') ? { align: 'sub', kind: 'user', segs: [U(noteOf('multicam'))] } : null
+          ].filter(Boolean),
+          amt: multicamFee, sign: '+', gift: g.multicam
+        });
+      } else {
+        floatRows.push({
+          label: '多機位',
+          sub: '第 2 機起，每加 1 機加收',
+          rate: 'NT$500 / 機'
+        });
+      }
     }
   }
   if (adPlaceFee) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
@@ -1981,6 +2041,7 @@ function calculate() {
       return rows;
     })(),
     rateRows: [],
+    floatRows: floatRows,
   };
 
   // Quote text
