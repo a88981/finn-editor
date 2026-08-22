@@ -664,6 +664,13 @@ input::placeholder { color: var(--text-dim); }
     </div>
     <div id="sched-body" style="display:none; flex-direction:column; gap:10px; margin-top:16px;">
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">創作者名稱</label>
+        <input type="text" id="sched-creator" placeholder="創作者（不填則顯示「創作者」）"
+          oninput="renderCustomScheds(); calculate();"
+          style="font-size:13px; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="height:1px; background:var(--line); margin:2px 0 4px;"></div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0; font-weight:600; color:var(--ink);">提供檔案</label>
         <input type="date" id="sched-receive" onchange="calculate()"
           style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px; border-color:var(--gold);" />
@@ -706,10 +713,7 @@ input::placeholder { color: var(--text-dim); }
         <input type="date" id="sched-final" onchange="calculate()"
           style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
       </div>
-      <datalist id="who-presets">
-      <option value="小玩"></option><option value="創作者"></option>
-      <option value="客戶"></option><option value="廠商"></option>
-    </datalist>
+      <datalist id="who-presets"></datalist>
     <div id="custom-sched-list" style="display:flex; flex-direction:column; gap:8px;"></div>
       <button onclick="addCustomSched()"
         style="width:100%; padding:9px; border:1px dashed var(--border2); background:transparent; cursor:pointer; font-size:12px; color:var(--text-dim); font-family:'Noto Sans TC',sans-serif; transition:all 0.15s;"
@@ -1038,10 +1042,16 @@ function addCustomSched() {
   renderCustomScheds();
 }
 
+// 創作者顯示名稱（未填則用「創作者」）
+function creatorName() {
+  const el = document.getElementById('sched-creator');
+  return (el && el.value.trim()) || '創作者';
+}
+
 // 三方各自的顏色（供網頁欄位使用）
 function whoColor(who) {
   if (who === '小玩') return 'var(--accent)';
-  if (who === '創作者') return 'var(--ink)';
+  if (who === creatorName()) return 'var(--ink)';
   return '#7d8fa3';
 }
 
@@ -1064,6 +1074,10 @@ function updateCustomSched(id, field, val, el) {
 }
 
 function renderCustomScheds() {
+  const dl = document.getElementById('who-presets');
+  if (dl) dl.innerHTML = ['小玩', creatorName(), '客戶', '廠商']
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .map(v => '<option value="' + v + '"></option>').join('');
   const container = document.getElementById('custom-sched-list');
   const dateStyle = "font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:120px;";
   container.innerHTML = customScheds.map(s => `
@@ -1313,7 +1327,7 @@ function drawQuoteCard(q, mode) {
     ? (30 + 28 + priceNoteLines * NOTE_LH + (priceNotes.length - 1) * 4 + 8) : 0;
 
   // 時程註腳：緊接在時程之後
-  const schedNoteRaw = (!isSettle && (q.sched || []).some(function (it) { return it.who !== '小玩'; }))
+  const schedNoteRaw = (!isSettle && (q.sched || []).some(function (it) { return it.role !== 'us'; }))
     ? ['回饋請於標示日期當天提供；未如期回饋時，後續交件日將依延遲天數順延'] : [];
   const schedNotes = schedNoteRaw.map(wrapNote);
   const schedNoteLines = schedNotes.reduce(function (n, l) { return n + l.length; }, 0);
@@ -1334,7 +1348,7 @@ function drawQuoteCard(q, mode) {
   const schedBands = sched.length ? Math.ceil(sched.length / schedPerRow) : 0;
   const SCHED_BAND_H = 106;
   const SCHED_BAND_GAP = 36;   // 折成兩排時，排與排之間的距離
-  const hasFb = sched.some(function (it) { return it.who !== '小玩'; });
+  const hasFb = sched.some(function (it) { return it.role !== 'us'; });
   const SCHED_H = sched.length ? (44 + 24 + schedBands * SCHED_BAND_H + Math.max(0, schedBands - 1) * SCHED_BAND_GAP) : 0;
 
   // 備註每行是一組片段：[{t,c}, ...]，c 決定顏色
@@ -1622,9 +1636,10 @@ function drawQuoteCard(q, mode) {
     c.font = '400 13px ' + SANS;
     c.fillStyle = ACCENT;
     const used = [];
-    if (sched.some(function (it) { return it.who === '小玩'; })) used.push(['●', '小玩', ACCENT, MID]);
-    if (sched.some(function (it) { return it.who === '創作者'; })) used.push(['○', '創作者', INK, MID]);
-    const thirdItem = sched.find(function (it) { return it.who !== '小玩' && it.who !== '創作者'; });
+    if (sched.some(function (it) { return it.role === 'us'; })) used.push(['●', '小玩', ACCENT, MID]);
+    const cItem = sched.find(function (it) { return it.role === 'creator'; });
+    if (cItem) used.push(['○', cItem.who, INK, MID]);
+    const thirdItem = sched.find(function (it) { return it.role === 'third'; });
     if (thirdItem) used.push(['◇', thirdItem.who, '#7d8fa3', MID]);
 
     let lx = PAD + 140;
@@ -1653,7 +1668,7 @@ function drawQuoteCard(q, mode) {
 
       items.forEach(function (it, i) {
         const cx = PAD + colW * (i + 0.5);
-        const role = (it.who === '小玩') ? 'us' : (it.who === '創作者' ? 'creator' : 'third');
+        const role = it.role || (it.who === '小玩' ? 'us' : 'third');
         const THIRD = '#7d8fa3';
         const roleColor = role === 'us' ? ACCENT : (role === 'creator' ? INK : THIRD);
         const roleSoft  = role === 'us' ? ACCENT2 : (role === 'creator' ? MID : '#a3b0bf');
@@ -2120,23 +2135,27 @@ function calculate() {
     ? '總報價：' + fmt(totalTax) + '（含稅）／ ' + fmt(total) + '（未稅）\n'
     : '總報價：' + fmt(total) + '\n';
   // Schedule
+  const CREATOR = creatorName();
   const schedFields = [
-    ['sched-receive','提供檔案','創作者'],
-    ['sched-draft','初剪交件','小玩'], ['sched-draft-fb','初剪回饋','創作者'],
-    ['sched-v1','V1 交件','小玩'],     ['sched-v1-fb','V1 回饋','創作者'],
-    ['sched-v2','V2 交件','小玩'],     ['sched-v2-fb','V2 回饋','創作者'],
+    ['sched-receive','提供檔案',CREATOR],
+    ['sched-draft','初剪交件','小玩'], ['sched-draft-fb','初剪回饋',CREATOR],
+    ['sched-v1','V1 交件','小玩'],     ['sched-v1-fb','V1 回饋',CREATOR],
+    ['sched-v2','V2 交件','小玩'],     ['sched-v2-fb','V2 回饋',CREATOR],
     ['sched-final','FINAL','小玩']
   ];
   const schedPairs = schedFields.map(([id, label, who], i) => {
     const val = document.getElementById(id).value;
     if (!val) return null;
     const d = fmtSchedDate(val);
-    return d ? { label: label, who: who, date: d.date, week: d.week, full: d.full, raw: val, ord: i } : null;
+    const role = (who === '小玩') ? 'us' : (who === CREATOR ? 'creator' : 'third');
+    return d ? { label: label, who: who, role: role, date: d.date, week: d.week, full: d.full, raw: val, ord: i } : null;
   }).filter(Boolean);
   customScheds.forEach((s, i) => {
     if (s.label && s.date) {
       const d = fmtSchedDate(s.date);
-      if (d) schedPairs.push({ label: s.label, who: s.who || '小玩', date: d.date, week: d.week, full: d.full, raw: s.date, ord: 100 + i });
+      const w = s.who || '小玩';
+      const role = (w === '小玩') ? 'us' : (w === CREATOR ? 'creator' : 'third');
+      if (d) schedPairs.push({ label: s.label, who: w, role: role, date: d.date, week: d.week, full: d.full, raw: s.date, ord: 100 + i });
     }
   });
   // 依日期排序，同一天則維持原本的階段順序
