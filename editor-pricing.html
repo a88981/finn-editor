@@ -2021,18 +2021,20 @@ function calculate() {
     ['sched-v2','V2 交件','小玩'],     ['sched-v2-fb','V2 回饋','客戶'],
     ['sched-final','FINAL','小玩']
   ];
-  const schedPairs = schedFields.map(([id, label, who]) => {
+  const schedPairs = schedFields.map(([id, label, who], i) => {
     const val = document.getElementById(id).value;
     if (!val) return null;
     const d = fmtSchedDate(val);
-    return d ? { label: label, who: who, date: d.date, week: d.week, full: d.full } : null;
+    return d ? { label: label, who: who, date: d.date, week: d.week, full: d.full, raw: val, ord: i } : null;
   }).filter(Boolean);
-  customScheds.forEach(s => {
+  customScheds.forEach((s, i) => {
     if (s.label && s.date) {
       const d = fmtSchedDate(s.date);
-      if (d) schedPairs.push({ label: s.label, who: '小玩', date: d.date, week: d.week, full: d.full });
+      if (d) schedPairs.push({ label: s.label, who: s.who || '小玩', date: d.date, week: d.week, full: d.full, raw: s.date, ord: 100 + i });
     }
   });
+  // 依日期排序，同一天則維持原本的階段順序
+  schedPairs.sort((a, b) => (a.raw < b.raw ? -1 : a.raw > b.raw ? 1 : a.ord - b.ord));
   const schedLines = schedPairs.map((p, i) => (i + 1) + '. ' + p.label + '｜' + p.who + '　' + p.full);
   if (lastQuote) lastQuote.sched = schedPairs;
 
