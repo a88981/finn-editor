@@ -222,7 +222,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V29";
+var PLAN_BUILD="V30";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -1233,8 +1233,22 @@ function calcEarliest(f){
     var v1Due=got.blk[got.blk.length-1];
     var finalDue=workdaysFwd(shiftDay(v1Due,1),pl.sc.fb).pop()||v1Due;
     var d=toDate(finalDue), wd=d?d.getDay():-1;
+    /* 開工日被往後推的話，是誰擋住的 */
+    var blockedBy=[], blockPeak=0, waited=0;
+    if(got.blk[0]>startFrom){
+      var gap=workdayList(startFrom,got.blk[0]);
+      gap.pop();
+      waited=gap.length;
+      gap.forEach(function(ds){
+        var on=runningOn(spans,ds);
+        if(on.length>blockPeak)blockPeak=on.length;
+        on.forEach(function(nm){if(blockedBy.indexOf(nm)<0)blockedBy.push(nm);});
+      });
+    }
     return {
       plan:pl, need:pl.need, start:got.blk[0], peak:got.peak,
+      waited:waited, blockedBy:blockedBy, blockPeak:blockPeak,
+      askedStart:startFrom,
       v1Due:v1Due, finalDue:finalDue,
       concurrent:got.peak+1,
       cutS:(!isShortJob&&!isPost)?got.blk[0]:null,
@@ -1259,6 +1273,13 @@ function renderEarliest(f){
   h+='<span class="fs-t">'+safe.finalDue+' \u53ef\u4ee5\u4ea4</span>';
   h+='<span class="fs-n">\u9019\u662f\u4e0d\u52c9\u5f37\u3001\u4e0d\u8d85\u904e 2 \u652f\u540c\u6642\u9032\u884c\u7684\u7b97\u6cd5</span></div>';
 
+  if(safe.waited){
+    h+='<div class="feas-clash" style="color:var(--ink-soft);background:var(--yellow-lightest)">';
+    h+='<b>\u70ba\u4ec0\u9ebc\u4e0d\u662f\u5f9e '+safe.askedStart+' \u958b\u5de5\uff1f</b><br>';
+    h+=safe.askedStart+' \u5230 '+safe.start+' \u4e4b\u9593\u9019 '+safe.waited+' \u500b\u5de5\u4f5c\u5929\uff0c\u624b\u4e0a\u540c\u6642\u6700\u591a\u6709 '+safe.blockPeak+' \u652f\u9577\u7247\u5728\u8dd1\uff0c\u518d\u585e\u5c31\u6703\u8d85\u984d\u3002<br>';
+    if(safe.blockedBy.length)h+='\u5361\u4f4f\u7684\u662f\uff1a'+escapeHtml(safe.blockedBy.join("\u3001"))+'<br>';
+    h+='\u60f3\u63d0\u524d\u7684\u8a71\uff0c\u5f97\u5148\u628a\u9019\u5e7e\u652f\u5f80\u524d\u8d95\u3001\u6216\u8005\u63a5\u53d7\u4e0b\u9762\u300c\u6700\u5feb(\u6025\u4ef6)\u300d\u90a3\u4e00\u5217\u7684\u64e0\u6cd5\u3002</div>';
+  }
   h+='<div class="feas-tbl"><div class="ft-h">\u5e7e\u7a2e\u505a\u6cd5\u5206\u5225\u80fd\u7d66\u5230\u4ec0\u9ebc\u65e5\u671f</div>';
   e.rows.forEach(function(x){
     if(x.none){
@@ -1266,14 +1287,16 @@ function renderEarliest(f){
       return;
     }
     var lab=x.plan.title+'\uff08'+x.need+' \u500b\u5de5\u4f5c\u5929\uff09';
-    var val='Final '+x.finalDue+'\u30fbV1 \u4ea4 '+x.v1Due;
+    var val='\u958b\u5de5 '+x.start+'\u30fbFinal '+x.finalDue;
     if(x.concurrent>=3)val+='\u30fb\u540c\u6642 '+x.concurrent+' \u652f';
     h+='<div class="ft-r'+(x===safe?" on":"")+'"><span class="k">'+lab+'</span><span class="v">'+val+'</span></div>';
   });
   h+='</div>';
 
   h+='<div class="feas-plan">';
-  h+='<div class="fp-r"><span class="k">\u958b\u5de5</span><span class="v">'+safe.start+'</span></div>';
+  h+='<div class="fp-r"><span class="k">\u958b\u5de5</span><span class="v">'+safe.start
+     +(safe.waited?'\uff08\u4f60\u586b\u7684\u662f '+safe.askedStart+'\uff0c\u5f80\u5f8c\u63a8\u4e86 '+safe.waited+' \u500b\u5de5\u4f5c\u5929\uff09':'')
+     +'</span></div>';
   if(e.solid){
     h+='<div class="fp-r"><span class="k">\u5f8c\u88fd\u5de5\u4f5c</span><span class="v">'+safe.start+' \u2192 '+safe.v1Due+'</span></div>';
   }else{
