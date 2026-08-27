@@ -356,6 +356,26 @@ input::placeholder { color: var(--text-dim); }
 }
 
 /* Copy area */
+.save-btn {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  border-radius: 3px; padding: 8px 16px; cursor: pointer; transition: opacity 0.15s;
+}
+.save-btn:hover { opacity: 0.85; }
+.save-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border: 1px solid var(--border2); border-radius: 3px; padding: 10px 12px;
+  background: var(--surface2);
+}
+.save-row .sr-name { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; min-width: 120px; }
+.save-row .sr-time { font-size: 11px; color: var(--text-dim); font-family: 'Space Mono', monospace; }
+.save-row button {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 12px;
+  border: 1px solid var(--border2); background: var(--surface); color: var(--text-mid);
+  border-radius: 3px; padding: 5px 12px; cursor: pointer;
+}
+.save-row button:hover { border-color: var(--accent); color: var(--accent); }
+
 .copy-area {
   background: var(--surface); border: 1px solid var(--border2); padding: 20px; position: relative;
 }
@@ -758,6 +778,22 @@ input::placeholder { color: var(--text-dim); }
     <div class="ca-label">QUOTE TEXT — 可複製傳給客戶</div>
     <button class="copy-btn" id="copy-btn" onclick="copyQuote()">COPY</button>
     <div class="quote-text" id="quote-text">請先選擇方案與服務類型</div>
+  </div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title" style="justify-content:space-between;">
+      <span style="display:flex; align-items:center;"><span class="step-num">💾</span>存檔紀錄</span>
+      <span id="autosave-hint" style="font-size:11px; color:var(--text-dim); font-weight:400;"></span>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <input type="text" id="save-name" placeholder="存檔名稱（留空用專案名稱）"
+        style="flex:1; min-width:180px; font-size:13px; padding:8px 12px;" />
+      <button class="save-btn" onclick="saveRecord()">＋ 儲存目前內容</button>
+    </div>
+    <div id="save-list" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
+    <div style="font-size:11px; color:var(--text-dim); margin-top:12px; line-height:1.6;">
+      資料只存在這台電腦的瀏覽器裡，不會上傳。關掉頁面後再開會自動回到上次的內容。
+    </div>
   </div>
 
 </div>
@@ -2176,6 +2212,7 @@ function calculate() {
   }
 
   document.getElementById('quote-text').textContent = quote;
+  saveDraft();
 }
 
 function copyQuote() {
@@ -2206,6 +2243,182 @@ function fallbackCopy(text, btn) {
   setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
 }
 
+
+// ── 本機存檔 ──────────────────────────────────────────
+const LS_DRAFT = 'xw-pricing-draft';
+const LS_SAVES = 'xw-pricing-saves';
+
+const SAVE_INPUTS = [
+  'project-name', 'duration', 'base-minutes', 'overtime-rate-input',
+  'adplace-price-input', 'footage-hours', 'cover-price-input',
+  'sched-creator', 'sched-receive', 'sched-draft', 'sched-draft-fb',
+  'sched-v1', 'sched-v1-fb', 'sched-v2', 'sched-v2-fb', 'sched-final',
+  'custom-full-price', 'custom-post-price'
+];
+
+function collectState() {
+  const inputs = {};
+  SAVE_INPUTS.forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) inputs[id] = el.value;
+  });
+  ['A','B','C','D'].forEach(function (k) {
+    ['full','post'].forEach(function (t) {
+      const el = document.getElementById('price-' + k + '-' + t);
+      if (el) inputs['price-' + k + '-' + t] = el.value;
+    });
+  });
+  return {
+    v: 1,
+    inputs: inputs,
+    state: JSON.parse(JSON.stringify(state)),
+    plans: JSON.parse(JSON.stringify(PLANS)),
+    customScheds: JSON.parse(JSON.stringify(customScheds)),
+    savedAt: Date.now()
+  };
+}
+
+function applyState(data) {
+  if (!data || !data.inputs) return;
+  Object.keys(data.inputs).forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.value = data.inputs[id];
+  });
+  if (data.plans) Object.keys(data.plans).forEach(function (k) { PLANS[k] = data.plans[k]; });
+  const st = data.state || {};
+  customScheds = data.customScheds || [];
+  customSchedId = customScheds.reduce(function (m, s) { return Math.max(m, s.id); }, 0);
+  customExtraId = (st.customExtras || []).reduce(function (m, e) { return Math.max(m, e.id); }, 0);
+
+  // 先把所有開關歸零，再依存檔還原
+  state.gifts = { adplace: false, footage: false, multicam: false, cover: false };
+  state.customExtras = st.customExtras || [];
+  state.cameraCount = st.cameraCount || 1;
+  state.coverCopy = false;
+  state.showTax = true;
+  ['adplace','footage','multicam','cover'].forEach(function (k) {
+    const cap = k === 'adplace' ? 'AdPlace' : k.charAt(0).toUpperCase() + k.slice(1);
+    if (state['extra' + cap]) toggleExtra(k);
+  });
+  if (state.projType === 'ad') toggleProjAd();
+
+  // 還原方案與類型
+  if (st.plan && st.type) selectPlanType(st.plan, st.type);
+  if (st.projType === 'ad') toggleProjAd();
+  if (st.extraAdPlace && !state.extraAdPlace) toggleExtra('adplace');
+  if (st.extraFootage && !state.extraFootage) toggleExtra('footage');
+  if (st.extraMulticam && !state.extraMulticam) toggleExtra('multicam');
+  if (st.extraCover && !state.extraCover) toggleExtra('cover');
+
+  state.cameraCount = st.cameraCount || 1;
+  const cc = document.getElementById('camera-count');
+  if (cc) cc.textContent = state.cameraCount;
+  updateMulticamPrice();
+  calculateFootage();
+
+  if (st.coverCopy && !state.coverCopy) toggleCoverCopy();
+  if (st.showTax === false && state.showTax) toggleTax();
+  ['adplace','footage','multicam','cover'].forEach(function (k) {
+    if (st.gifts && st.gifts[k] && !state.gifts[k]) toggleGift(k);
+  });
+
+  // 還原後重新帶入 adplace 金額（避免被 setAdPlace 覆寫）
+  if (data.inputs['adplace-price-input']) {
+    document.getElementById('adplace-price-input').value = data.inputs['adplace-price-input'];
+  }
+
+  renderCustomExtras();
+  renderCustomScheds();
+  updatePlanPriceLabels();
+  calculate();
+}
+
+let draftTimer = null;
+function saveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(function () {
+    try {
+      localStorage.setItem(LS_DRAFT, JSON.stringify(collectState()));
+      const h = document.getElementById('autosave-hint');
+      if (h) {
+        h.textContent = '已自動儲存 ' + new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch (e) { /* 隱私模式或空間不足時略過 */ }
+  }, 400);
+}
+
+function loadSaves() {
+  try { return JSON.parse(localStorage.getItem(LS_SAVES) || '[]'); }
+  catch (e) { return []; }
+}
+
+function renderSaves() {
+  const box = document.getElementById('save-list');
+  if (!box) return;
+  const list = loadSaves();
+  if (!list.length) {
+    box.innerHTML = '<div style="font-size:12px; color:var(--text-dim);">還沒有存檔</div>';
+    return;
+  }
+  box.innerHTML = list.map(function (r, i) {
+    const d = new Date(r.savedAt);
+    const ts = (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return '<div class="save-row">' +
+      '<span class="sr-name">' + r.name + '</span>' +
+      '<span class="sr-time">' + ts + '</span>' +
+      '<button onclick="loadRecord(' + i + ')">讀取</button>' +
+      '<button onclick="deleteRecord(' + i + ')" style="color:var(--danger);">刪除</button>' +
+      '</div>';
+  }).join('');
+}
+
+function saveRecord() {
+  const nameEl = document.getElementById('save-name');
+  const projEl = document.getElementById('project-name');
+  const name = (nameEl.value.trim() || projEl.value.trim() || '未命名報價');
+  const list = loadSaves();
+  const data = collectState();
+  data.name = name;
+  const idx = list.findIndex(function (r) { return r.name === name; });
+  if (idx >= 0) {
+    if (!confirm('已有同名存檔「' + name + '」，要覆蓋嗎？')) return;
+    list[idx] = data;
+  } else {
+    list.unshift(data);
+  }
+  try {
+    localStorage.setItem(LS_SAVES, JSON.stringify(list.slice(0, 30)));
+    nameEl.value = '';
+    renderSaves();
+  } catch (e) { alert('儲存失敗，瀏覽器空間可能已滿。'); }
+}
+
+function loadRecord(i) {
+  const r = loadSaves()[i];
+  if (!r) return;
+  applyState(r);
+  saveDraft();
+}
+
+function deleteRecord(i) {
+  const list = loadSaves();
+  if (!list[i]) return;
+  if (!confirm('要刪除存檔「' + list[i].name + '」嗎？')) return;
+  list.splice(i, 1);
+  localStorage.setItem(LS_SAVES, JSON.stringify(list));
+  renderSaves();
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(LS_DRAFT);
+    if (raw) applyState(JSON.parse(raw));
+  } catch (e) { /* 略過損壞的資料 */ }
+}
+
+renderSaves();
+restoreDraft();
 updatePlanPriceLabels();
 calculate();
 </script>
