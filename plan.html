@@ -189,6 +189,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .nextfree.rush{border-style:dashed;background:transparent;margin-top:-8px}
 .nextfree.rush .nf-k{color:var(--ink-light)}
 .nextfree.rush .nf-d{font-size:13px;color:var(--ink-soft)}
+.feas-mode{margin-bottom:11px}
 .feas-form{display:flex;flex-direction:column;gap:9px;margin:4px 0 14px}
 .feas-f{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft)}
 .feas-f>span:first-child{min-width:104px}
@@ -221,7 +222,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V28";
+var PLAN_BUILD="V29";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -1182,9 +1183,121 @@ function calcFeas(f){
           allShort:runs.every(function(r){return r.status==="short";})};
 }
 
+/* ── 反過來問：客戶問我最快什麼時候能交 ──────────────────
+   不給日期，從開工日往後找第一個排得下的位置，回推交件日。 */
+function findEarliestBlock(spans,need,limit,startFrom){
+  var pool=[],c=toDate(startFrom),g=0;
+  if(!c)return null;
+  while(pool.length<400&&g++<900){
+    if(isWorkdayD(c))pool.push(dstr(c));
+    c.setDate(c.getDate()+1);
+  }
+  for(var i=0;i+need<=pool.length;i++){
+    var blk=pool.slice(i,i+need), ok=true, peak=0;
+    for(var k=0;k<blk.length;k++){
+      var r=runningOn(spans,blk[k]).length;
+      if(r>peak)peak=r;
+      if(r>limit){ok=false;break;}
+    }
+    if(ok)return {blk:blk,peak:peak};
+  }
+  return null;
+}
+
+function calcEarliest(f){
+  var ty=feasType(f);
+  var isShortJob=(ty==="short"), isPost=(ty==="post");
+  var spans=isShortJob?[]:longSpans();
+  var startFrom=f.start||PLAN_PREFS.start||todayStr();
+
+  var plans;
+  if(isShortJob){
+    plans=[{key:"only", title:"短影", sc:{label:"短影",fb:1}, need:2, limit:2}];
+  }else if(isPost){
+    plans=[
+      {key:"safe",  title:"最保守", sc:FEAS_POST[0], need:FEAS_POST[0].tot, limit:1},
+      {key:"std",   title:"標準",   sc:FEAS_POST[1], need:FEAS_POST[1].tot, limit:1},
+      {key:"rush",  title:"最快(急件)", sc:FEAS_POST[2], need:FEAS_POST[2].tot, limit:2}
+    ];
+  }else{
+    plans=[
+      {key:"safe", title:"最保守", sc:FEAS_SCENARIOS[0], need:FEAS_SCENARIOS[0].cut+FEAS_SCENARIOS[0].v1, limit:1},
+      {key:"std",  title:"標準",   sc:FEAS_SCENARIOS[1], need:FEAS_SCENARIOS[1].cut+FEAS_SCENARIOS[1].v1, limit:1},
+      {key:"rush", title:"最快(急件)", sc:FEAS_SCENARIOS[2], need:FEAS_SCENARIOS[2].cut+FEAS_SCENARIOS[2].v1, limit:2}
+    ];
+  }
+
+  var rows=plans.map(function(pl){
+    var got=findEarliestBlock(spans,pl.need,pl.limit,startFrom);
+    if(!got)return {plan:pl,none:true};
+    var v1Due=got.blk[got.blk.length-1];
+    var finalDue=workdaysFwd(shiftDay(v1Due,1),pl.sc.fb).pop()||v1Due;
+    var d=toDate(finalDue), wd=d?d.getDay():-1;
+    return {
+      plan:pl, need:pl.need, start:got.blk[0], peak:got.peak,
+      v1Due:v1Due, finalDue:finalDue,
+      concurrent:got.peak+1,
+      cutS:(!isShortJob&&!isPost)?got.blk[0]:null,
+      cutE:(!isShortJob&&!isPost)?got.blk[pl.sc.cut-1]:null,
+      v1S:(!isShortJob&&!isPost)?got.blk[pl.sc.cut]:null,
+      v1E:(!isShortJob&&!isPost)?v1Due:null,
+      badDay:(wd===1||wd===5)?WD_CH[wd]:null
+    };
+  });
+  return {rows:rows, ptype:ty, solid:(isShortJob||isPost)};
+}
+
+/* 「最快什麼時候能交」的結果區 */
+function renderEarliest(f){
+  var e=calcEarliest(f), h='';
+  var live=e.rows.filter(function(x){return !x.none;});
+  if(!live.length){
+    return '<div class="feas-empty">\u4e00\u5e74\u5167\u90fd\u627e\u4e0d\u5230\u6392\u5f97\u4e0b\u7684\u4f4d\u7f6e\uff0c\u624b\u4e0a\u5be6\u5728\u592a\u6eff\u4e86\u3002</div>';
+  }
+  var safe=live[0];
+  h+='<div class="feas-verdict fs-ok"><span class="fs-i">\ud83d\uddd3</span>';
+  h+='<span class="fs-t">'+safe.finalDue+' \u53ef\u4ee5\u4ea4</span>';
+  h+='<span class="fs-n">\u9019\u662f\u4e0d\u52c9\u5f37\u3001\u4e0d\u8d85\u904e 2 \u652f\u540c\u6642\u9032\u884c\u7684\u7b97\u6cd5</span></div>';
+
+  h+='<div class="feas-tbl"><div class="ft-h">\u5e7e\u7a2e\u505a\u6cd5\u5206\u5225\u80fd\u7d66\u5230\u4ec0\u9ebc\u65e5\u671f</div>';
+  e.rows.forEach(function(x){
+    if(x.none){
+      h+='<div class="ft-r"><span class="k">'+x.plan.title+'</span><span class="v">\u4e00\u5e74\u5167\u6392\u4e0d\u4e0b</span></div>';
+      return;
+    }
+    var lab=x.plan.title+'\uff08'+x.need+' \u500b\u5de5\u4f5c\u5929\uff09';
+    var val='Final '+x.finalDue+'\u30fbV1 \u4ea4 '+x.v1Due;
+    if(x.concurrent>=3)val+='\u30fb\u540c\u6642 '+x.concurrent+' \u652f';
+    h+='<div class="ft-r'+(x===safe?" on":"")+'"><span class="k">'+lab+'</span><span class="v">'+val+'</span></div>';
+  });
+  h+='</div>';
+
+  h+='<div class="feas-plan">';
+  h+='<div class="fp-r"><span class="k">\u958b\u5de5</span><span class="v">'+safe.start+'</span></div>';
+  if(e.solid){
+    h+='<div class="fp-r"><span class="k">\u5f8c\u88fd\u5de5\u4f5c</span><span class="v">'+safe.start+' \u2192 '+safe.v1Due+'</span></div>';
+  }else{
+    h+='<div class="fp-r"><span class="k">\u521d\u526a</span><span class="v">'+safe.cutS+' \u2192 '+safe.cutE+'</span></div>';
+    h+='<div class="fp-r"><span class="k">V1/ES</span><span class="v">'+safe.v1S+' \u2192 '+safe.v1E+'</span></div>';
+  }
+  h+='<div class="fp-r"><span class="k">V1 \u4ea4\u4ef6</span><span class="v">'+safe.v1Due+'</span></div>';
+  h+='<div class="fp-r"><span class="k">Final</span><span class="v">'+safe.finalDue+(safe.badDay?'\uff08\u661f\u671f'+safe.badDay+'\uff09':'')+'</span></div>';
+  h+='</div>';
+
+  var rush=live[live.length-1];
+  var say='\u8ddf\u5ba2\u6236\u8aaa\uff1a\u6b63\u5e38\u505a\u7684\u8a71 '+safe.finalDue+' \u53ef\u4ee5\u4ea4\u3002';
+  if(rush!==safe&&rush.finalDue<safe.finalDue){
+    say+='\u5982\u679c\u771f\u7684\u5f88\u6025\uff0c\u6700\u5feb\u53ef\u4ee5\u58d3\u5230 '+rush.finalDue
+        +'\uff0c\u4f46\u90a3\u6bb5\u671f\u9593\u624b\u4e0a\u6703\u540c\u6642\u8dd1 '+rush.concurrent+' \u652f\uff0c\u54c1\u8cea\u8207\u5f48\u6027\u90fd\u6703\u53d7\u5f71\u97ff\u3002';
+  }
+  if(safe.badDay)say+='\uff08'+safe.finalDue+' \u662f\u661f\u671f'+safe.badDay+'\uff0c\u9700\u8981\u7684\u8a71\u53ef\u4ee5\u5f80\u524d\u5f8c\u632a\u4e00\u5929\uff09';
+  h+='<div class="feas-say">'+say+'</div>';
+  return h;
+}
+
 /* ── 試算視窗 ────────────────────────────────────────── */
 function openFeas(){
-  state.feas={kind:"final", date:"", start:PLAN_PREFS.start||todayStr(), ptype:"long"};
+  state.feas={mode:"check", kind:"final", date:"", start:PLAN_PREFS.start||todayStr(), ptype:"long"};
   state.skipScroll=true;
   render();
 }
@@ -1204,16 +1317,25 @@ function renderFeas(){
   var f=state.feas;
   var h='<div class="modal-overlay">';
   h+='<div class="modal"><div class="modal-title">\ud83e\uddee \u8a66\u7b97\u65b0\u6848</div>';
-  h+='<div class="modal-sub">\u5148\u586b\u5ba2\u6236\u60f3\u8981\u7684\u4ea4\u4ef6\u65e5\uff0c\u770b\u5854\u4e0d\u5854\u5f97\u4e0b\u3001\u6703\u8ddf\u54ea\u5e7e\u6848\u6253\u67b6</div>';
+  var ask=(f.mode==="ask");
+  h+='<div class="modal-sub">'+(ask
+    ?"\u7531\u6211\u5f9e\u73fe\u6709\u6392\u7a0b\u5f80\u5f8c\u627e\uff0c\u7b97\u51fa\u6700\u5feb\u80fd\u7d66\u7684\u4ea4\u4ef6\u65e5"
+    :"\u5148\u586b\u5ba2\u6236\u60f3\u8981\u7684\u4ea4\u4ef6\u65e5\uff0c\u770b\u5854\u4e0d\u5854\u5f97\u4e0b\u3001\u6703\u8ddf\u54ea\u5e7e\u6848\u6253\u67b6")+'</div>';
+
+  h+='<div class="feas-seg feas-mode">';
+  h+='<button class="mode-b'+(!ask?" on":"")+'" onclick="setFeas(\'mode\',\'check\')">\u5ba2\u6236\u7d66\u4e86\u65e5\u671f</button>';
+  h+='<button class="mode-b'+(ask?" on":"")+'" onclick="setFeas(\'mode\',\'ask\')">\u5ba2\u6236\u554f\u6211\u6700\u5feb\u4f55\u6642\u4ea4</button>';
+  h+='</div>';
 
   h+='<div class="feas-form">';
-  h+='<label class="feas-f"><span>\u5ba2\u6236\u60f3\u8981\u7684\u65e5\u671f</span>';
-  h+='<input type="date" class="fc" value="'+escAttr(f.date)+'" onchange="setFeas(\'date\',this.value)"></label>';
-
-  h+='<label class="feas-f"><span>\u9019\u500b\u65e5\u671f\u662f</span><span class="feas-seg">';
-  h+='<button class="mode-b'+(f.kind==="final"?" on":"")+'" onclick="setFeas(\'kind\',\'final\')">Final \u4ea4\u4ef6</button>';
-  h+='<button class="mode-b'+(f.kind==="v1"?" on":"")+'" onclick="setFeas(\'kind\',\'v1\')">V1 \u4ea4\u4ef6</button>';
-  h+='</span></label>';
+  if(!ask){
+    h+='<label class="feas-f"><span>\u5ba2\u6236\u60f3\u8981\u7684\u65e5\u671f</span>';
+    h+='<input type="date" class="fc" value="'+escAttr(f.date)+'" onchange="setFeas(\'date\',this.value)"></label>';
+    h+='<label class="feas-f"><span>\u9019\u500b\u65e5\u671f\u662f</span><span class="feas-seg">';
+    h+='<button class="mode-b'+(f.kind==="final"?" on":"")+'" onclick="setFeas(\'kind\',\'final\')">Final \u4ea4\u4ef6</button>';
+    h+='<button class="mode-b'+(f.kind==="v1"?" on":"")+'" onclick="setFeas(\'kind\',\'v1\')">V1 \u4ea4\u4ef6</button>';
+    h+='</span></label>';
+  }
 
   h+='<label class="feas-f"><span>\u7247\u578b</span><span class="feas-seg">';
   var ty=feasType(f);
@@ -1225,6 +1347,13 @@ function renderFeas(){
   h+='<label class="feas-f"><span>\u6700\u5feb\u53ef\u4ee5\u958b\u5de5</span>';
   h+='<input type="date" class="fc" value="'+escAttr(f.start)+'" onchange="setFeas(\'start\',this.value)"></label>';
   h+='</div>';
+
+  if(ask){
+    h+=renderEarliest(f);
+    h+='<div class="modal-btns"><button class="btn" onclick="closeFeas()">\u95dc\u9589</button></div>';
+    h+='</div></div>';
+    return h;
+  }
 
   var r=calcFeas(f);
   if(r.err){
