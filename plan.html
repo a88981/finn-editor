@@ -190,6 +190,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .nextfree.rush .nf-k{color:var(--ink-light)}
 .nextfree.rush .nf-d{font-size:13px;color:var(--ink-soft)}
 .feas-mode{margin-bottom:11px}
+.fs-rush{background:#fdece9;border-color:#f3ccc4;color:var(--red)}
+.rush-line .rush-box{display:flex;align-items:center;gap:6px;flex:1;font-size:11px;color:var(--ink-light)}
+.rush-line input{margin:0;cursor:pointer}
 .feas-form{display:flex;flex-direction:column;gap:9px;margin:4px 0 14px}
 .feas-f{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft)}
 .feas-f>span:first-child{min-width:104px}
@@ -222,7 +225,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V30";
+var PLAN_BUILD="V31";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -1318,9 +1321,135 @@ function renderEarliest(f){
   return h;
 }
 
+/* ── 加急：無視同時進行的上限，硬排 ────────────────────
+   只在勾了「加急」時才會用到。一定會附上違反了什麼。 */
+function rushScenario(ty){
+  if(ty==="short")return {label:"短影",cut:0,v1:0,fb:1,need:2};
+  if(ty==="post"){var p=FEAS_POST[2];return {label:p.label,fb:p.fb,tot:p.tot,need:p.tot};}
+  var s=FEAS_SCENARIOS[2];
+  return {label:s.label,cut:s.cut,v1:s.v1,fb:s.fb,need:s.cut+s.v1};
+}
+/* 從指定日開始，完全不管同時量，直接佔 need 個工作天 */
+function rushBlock(need,startFrom){
+  var out=[],c=toDate(startFrom),g=0;
+  if(!c)return null;
+  while(out.length<need&&g++<900){
+    if(isWorkdayD(c))out.push(dstr(c));
+    c.setDate(c.getDate()+1);
+  }
+  return out.length===need?out:null;
+}
+/* 這個排法踩到了什麼，逐條列出來 */
+function rushWarnings(o){
+  var w=[];
+  if(o.concurrent>3)w.push("\u540c\u6642\u9032\u884c "+o.concurrent+" \u652f\u9577\u7247\uff0c\u8d85\u904e 3 \u652f\u786c\u4e0a\u9650");
+  else if(o.concurrent===3)w.push("\u540c\u6642\u9032\u884c 3 \u652f\u9577\u7247\uff0c\u5df2\u7d93\u662f\u4e0a\u9650\uff0c\u6c92\u6709\u4efb\u4f55\u4f59\u88d5");
+  if(o.fb<3)w.push("\u56de\u994b\u671f\u53ea\u7559 "+o.fb+" \u500b\u5de5\u4f5c\u5929\uff08\u5b89\u5168\u503c\u662f 3 \u5929\uff09\uff0c\u5ba2\u6236\u4e00\u62d6\u5c31\u5361\u6b7b");
+  if(!o.slack)w.push("\u6c92\u6709\u4efb\u4f55\u7de9\u885d\uff0c\u4e2d\u9593\u51fa\u4efb\u4f55\u72c0\u6cc1\u90fd\u6703\u903e\u671f");
+  if(o.badDays&&o.badDays.length)w.push("\u4ea4\u4ef6\u65e5\u843d\u5728\u60f3\u907f\u958b\u7684\u661f\u671f\uff1a"+o.badDays.join("\u3001"));
+  if(o.names&&o.names.length)w.push("\u9019\u6bb5\u671f\u9593\u6703\u8ddf\u9019\u5e7e\u6848\u91cd\u758a\uff1a"+o.names.join("\u3001"));
+  return w;
+}
+/* 加急排法的完整結果 */
+function calcRush(f){
+  var ty=feasType(f);
+  var sc=rushScenario(ty);
+  var spans=(ty==="short")?[]:longSpans();
+  var startFrom=f.start||PLAN_PREFS.start||todayStr();
+  var blk;
+
+  if(f.mode==="ask"){
+    blk=rushBlock(sc.need,startFrom);
+  }else{
+    /* 客戶給了日期：從交件日往回抓，抓不滿就從開工日往後排 */
+    var v1D=(f.kind==="v1")?f.date:(workdaysBack(shiftDay(f.date,-1),sc.fb)[0]||null);
+    if(!v1D)return null;
+    var pool=workdayList(startFrom,v1D);
+    blk=(pool.length>=sc.need)?pool.slice(pool.length-sc.need):rushBlock(sc.need,startFrom);
+  }
+  if(!blk)return null;
+
+  var v1Due=blk[blk.length-1];
+  var finalDue, forcedDate=null;
+  if(f.mode!=="ask"&&f.kind==="final"&&f.date){
+    finalDue=f.date;
+    var chk=workdaysFwd(shiftDay(v1Due,1),sc.fb).pop();
+    if(chk&&chk>f.date){forcedDate=chk;finalDue=chk;}
+  }else if(f.mode!=="ask"&&f.kind==="v1"&&f.date){
+    v1Due=f.date;
+    finalDue=workdaysFwd(shiftDay(v1Due,1),sc.fb).pop()||v1Due;
+  }else{
+    finalDue=workdaysFwd(shiftDay(v1Due,1),sc.fb).pop()||v1Due;
+  }
+
+  var peak=0,names=[];
+  blk.forEach(function(ds){
+    var on=runningOn(spans,ds);
+    if(on.length>peak)peak=on.length;
+    on.forEach(function(n){if(names.indexOf(n)<0)names.push(n);});
+  });
+  var badDays=[];
+  [["V1 \u4ea4",v1Due],["Final",finalDue]].forEach(function(x){
+    var d=toDate(x[1]);
+    if(!d)return;
+    var wd=d.getDay();
+    if(wd===1||wd===5)badDays.push(x[0]+" "+x[1]+"("+WD_CH[wd]+")");
+  });
+  var o={
+    sc:sc, ty:ty, need:sc.need, fb:sc.fb,
+    start:blk[0], end:v1Due, v1Due:v1Due, finalDue:finalDue,
+    concurrent:peak+1, names:names, badDays:badDays,
+    slack:Math.max(0,workdayList(v1Due,v1Due).length-1),
+    forcedDate:forcedDate,
+    solid:(ty==="short"||ty==="post")
+  };
+  if(!o.solid){
+    o.cutS=blk[0]; o.cutE=blk[sc.cut-1];
+    o.v1S=blk[sc.cut]; o.v1E=v1Due;
+  }
+  o.warns=rushWarnings(o);
+  return o;
+}
+
+function renderRush(f){
+  var o=calcRush(f);
+  if(!o)return '<div class="feas-empty">\u52a0\u6025\u4e5f\u7b97\u4e0d\u51fa\u4f86\uff0c\u8acb\u78ba\u8a8d\u65e5\u671f\u3002</div>';
+  var h='';
+  h+='<div class="feas-verdict fs-rush"><span class="fs-i">\ud83d\udd25</span>';
+  h+='<span class="fs-t">'+(o.forcedDate?'\u52a0\u6025\u4e5f\u8d95\u4e0d\u4e0a':'\u52a0\u6025\uff1aFinal '+o.finalDue)+'</span>';
+  h+='<span class="fs-n">'+(o.forcedDate?'\u6700\u5feb\u53ea\u80fd '+o.forcedDate:'\u5df2\u7d93\u7121\u8996\u540c\u6642\u9032\u884c\u4e0a\u9650\uff0c\u786c\u6392\u51fa\u4f86\u7684')+'</span></div>';
+
+  h+='<div class="feas-plan">';
+  h+='<div class="fp-r"><span class="k">\u958b\u5de5</span><span class="v">'+o.start+'</span></div>';
+  if(o.solid){
+    h+='<div class="fp-r"><span class="k">\u5f8c\u88fd\u5de5\u4f5c</span><span class="v">'+o.start+' \u2192 '+o.end+'\uff08'+o.need+' \u500b\u5de5\u4f5c\u5929\uff09</span></div>';
+  }else{
+    h+='<div class="fp-r"><span class="k">\u521d\u526a</span><span class="v">'+o.cutS+' \u2192 '+o.cutE+'</span></div>';
+    h+='<div class="fp-r"><span class="k">V1/ES</span><span class="v">'+o.v1S+' \u2192 '+o.v1E+'</span></div>';
+  }
+  h+='<div class="fp-r"><span class="k">V1 \u4ea4\u4ef6</span><span class="v">'+o.v1Due+'</span></div>';
+  h+='<div class="fp-r"><span class="k">Final</span><span class="v">'+o.finalDue+'</span></div>';
+  h+='</div>';
+
+  if(o.forcedDate){
+    h+='<div class="feas-clash"><b>\u9023\u52a0\u6025\u90fd\u8d95\u4e0d\u4e0a</b><br>';
+    h+='\u5c31\u7b97\u73fe\u5728\u958b\u5de5\u3001\u56de\u994b\u671f\u53ea\u7559 '+o.fb+' \u5929\uff0cFinal \u6700\u5feb\u4e5f\u8981 '+o.forcedDate;
+    h+='\uff0c\u6bd4\u4f60\u8f38\u5165\u7684 '+f.date+' \u665a\u3002\u9019\u500b\u65e5\u671f\u771f\u7684\u505a\u4e0d\u5230\u3002</div>';
+  }
+
+  h+='<div class="feas-clash"><b>\u52a0\u6025\u7684\u4ee3\u50f9</b><br>';
+  if(o.warns.length)h+='\u30fb'+o.warns.map(function(x){return escapeHtml(x);}).join('<br>\u30fb');
+  else h+='\u9019\u6b21\u6c92\u6709\u8e29\u5230\u4ec0\u9ebc\uff0c\u5176\u5be6\u4e0d\u7528\u52a0\u6025\u4e5f\u63a5\u5f97\u4e0b\u3002';
+  h+='</div>';
+
+  h+='<div class="feas-say">\u52a0\u6025\u662f\u628a\u898f\u5247\u95dc\u6389\u786c\u6392\u51fa\u4f86\u7684\uff0c\u4e0d\u4ee3\u8868\u771f\u7684\u505a\u5f97\u5b8c\u3002';
+  h+='\u7b54\u61c9\u4e4b\u524d\u5148\u770b\u4e00\u4e0b\u4e0a\u9762\u90a3\u5e7e\u689d\uff0c\u78ba\u5b9a\u90fd\u80fd\u627f\u64d4\u518d\u8aaa\u3002</div>';
+  return h;
+}
+
 /* ── 試算視窗 ────────────────────────────────────────── */
 function openFeas(){
-  state.feas={mode:"check", kind:"final", date:"", start:PLAN_PREFS.start||todayStr(), ptype:"long"};
+  state.feas={mode:"check", kind:"final", date:"", start:PLAN_PREFS.start||todayStr(), ptype:"long", rush:false};
   state.skipScroll=true;
   render();
 }
@@ -1369,7 +1498,17 @@ function renderFeas(){
 
   h+='<label class="feas-f"><span>\u6700\u5feb\u53ef\u4ee5\u958b\u5de5</span>';
   h+='<input type="date" class="fc" value="'+escAttr(f.start)+'" onchange="setFeas(\'start\',this.value)"></label>';
+  h+='<label class="feas-f rush-line"><span>\u52a0\u6025</span>';
+  h+='<span class="rush-box"><input type="checkbox"'+(f.rush?" checked":"")+' onchange="setFeas(\'rush\',this.checked)">';
+  h+='<span>\u7121\u8996\u540c\u6642\u9032\u884c\u4e0a\u9650\uff0c\u76f4\u63a5\u786c\u6392</span></span></label>';
   h+='</div>';
+
+  if(f.rush){
+    h+=renderRush(f);
+    h+='<div class="modal-btns"><button class="btn" onclick="closeFeas()">\u95dc\u9589</button></div>';
+    h+='</div></div>';
+    return h;
+  }
 
   if(ask){
     h+=renderEarliest(f);
