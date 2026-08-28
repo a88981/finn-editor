@@ -703,6 +703,11 @@ input::placeholder { color: var(--text-dim); }
       <div style="height:2px; background:var(--line); border-radius:2px; margin:2px 0;"></div>
       <div id="urgent-hint" style="display:none; font-size:12px; font-family:'Space Mono',monospace; padding:8px 12px; border-radius:6px; border:1px solid var(--line);"></div>
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">開始剪輯</label>
+        <input type="date" id="sched-start" onchange="calculate()"
+          style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <label style="font-size:12px; color:var(--mid); width:110px; flex-shrink:0;">初剪交件</label>
         <input type="date" id="sched-draft" onchange="calculate()"
           style="font-size:13px; font-family:'Space Mono',monospace; padding:6px 10px; flex:1; min-width:140px;" />
