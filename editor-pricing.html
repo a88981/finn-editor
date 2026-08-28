@@ -1101,6 +1101,14 @@ function addCustomSched() {
   renderCustomScheds();
 }
 
+// 各版本階段的內容說明（放在時程下方，低調呈現）
+const STAGE_INFO = [
+  ['初剪（順剪）', '無 B-Roll 或換鏡位，僅確認段落是否 OK'],
+  ['V1（後製）', '小白字、效果字、ES、音效、音樂'],
+  ['V2 – V3', '修改版本'],
+  ['FINAL', '完成可上片']
+];
+
 // 創作者顯示名稱（未填則用「創作者」）
 function creatorName() {
   const el = document.getElementById('sched-creator');
@@ -1392,6 +1400,17 @@ function drawQuoteCard(q, mode) {
   const schedNoteLines = schedNotes.reduce(function (n, l) { return n + l.length; }, 0);
   const SCHED_NOTES_H = schedNoteLines ? (34 + schedNoteLines * 22) : 0;
 
+  // 階段說明
+  const stageRows = (!isSettle && (q.sched || []).length) ? STAGE_INFO : [];
+  const STAGE_ROW_H = 54;
+  const STAGE_PAD = 20;
+  const stageRowsN = Math.ceil(stageRows.length / 2);
+  // 從框頂到最後一行文字下緣的距離
+  const stageContentEnd = STAGE_PAD + 15 + 28
+    + (stageRowsN - 1) * STAGE_ROW_H + 21 + 3;
+  const STAGE_BOX_H = stageContentEnd + STAGE_PAD;
+  const STAGE_H = stageRows.length ? (30 + STAGE_BOX_H) : 0;
+
   // 報價單才顯示費率參考列
   const paidRows = q.rows.filter(function (r) { return !r.gift; });
   const giftRows = q.rows.filter(function (r) { return r.gift; });
@@ -1434,7 +1453,7 @@ function drawQuoteCard(q, mode) {
   const FLOAT_ROW_H = 34;
   const FLOAT_H = fRows.length ? (30 + 26 + fRows.length * FLOAT_ROW_H + 8) : 0;
 
-  const H = HEAD_H + rowsH + 18 + TOTAL_H + FLOAT_H + PRICE_NOTES_H + SCHED_H + SCHED_NOTES_H + FOOT_H;
+  const H = HEAD_H + rowsH + 18 + TOTAL_H + FLOAT_H + PRICE_NOTES_H + SCHED_H + SCHED_NOTES_H + STAGE_H + FOOT_H;
 
   const dpr = 800 / W;   // 輸出固定 800px 寬
   const cv = document.createElement('canvas');
@@ -1778,7 +1797,7 @@ function drawQuoteCard(q, mode) {
     y += schedBands * SCHED_BAND_H + Math.max(0, schedBands - 1) * SCHED_BAND_GAP;
   }
 
-  // 時程註腳（緊貼時程）
+  // 時程註腳（緊接時間軸，說的就是上面那些日期）
   if (schedNoteLines) {
     y += 34;
     c.font = '400 13.5px ' + SANS;
@@ -1787,10 +1806,40 @@ function drawQuoteCard(q, mode) {
         c.fillStyle = ACCENT2;
         if (li === 0) c.fillText('※', PAD, y);
         c.fillStyle = DIM;
-        c.fillText(ln, PAD + 16, y);
+        c.fillText(ln, PAD + 18, y);
         y += 22;
       });
     });
+    y -= 22;
+  }
+
+  // 剪輯階段說明（淺底色區塊）
+  if (stageRows.length) {
+    y += 30;
+    const rowsN = stageRowsN;
+    const boxTop = y;
+    c.fillStyle = 'rgba(196,112,138,0.055)';
+    roundRect(c, PAD - 16, boxTop, W - (PAD - 16) * 2, STAGE_BOX_H, 4);
+    c.fill();
+
+    y = boxTop + STAGE_PAD + 15;
+    c.fillStyle = ACCENT;
+    c.font = '700 14.5px ' + SANS;
+    c.fillText('剪輯階段說明', PAD, y);
+    y += 28;
+
+    const colW = (W - PAD * 2) / 2;
+    stageRows.forEach(function (sr, i) {
+      const cx = PAD + (i % 2) * colW;
+      const cy2 = y + Math.floor(i / 2) * STAGE_ROW_H;
+      c.fillStyle = MID;
+      c.font = '500 14px ' + SANS;
+      c.fillText((i + 1) + '. ' + sr[0], cx, cy2);
+      c.fillStyle = '#a8a8a8';
+      c.font = '400 13px ' + SANS;
+      c.fillText(clip(c, sr[1], colW - 34), cx + 18, cy2 + 21);
+    });
+    y = boxTop + STAGE_BOX_H;
   }
 
   // 頁尾
@@ -2241,6 +2290,8 @@ function calculate() {
     if (schedPairs.some(p => /回饋/.test(p.label))) {
       quote += '※ 回饋請於標示日期當天提供；未如期回饋時，後續交件日將依延遲天數順延。\n';
     }
+    quote += '\n【剪輯階段說明】\n';
+    quote += STAGE_INFO.map(x => '・' + x[0] + '：' + x[1]).join('\n') + '\n';
   }
 
   document.getElementById('quote-text').textContent = quote;
