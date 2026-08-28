@@ -649,6 +649,10 @@ input::placeholder { color: var(--text-dim); }
           <div class="ad-desc">縮圖設計</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
+          <span class="mini-check" id="cover-pending-check" onclick="toggleCoverPending()" style="display:none;" title="勾選後改列在下方「視實際狀況加計」，不計入總價">
+            <span class="mini-box" id="check-cover-pending"></span>
+            <span class="mini-label">未確定</span>
+          </span>
           <span class="mini-check" id="cover-copy-check" onclick="toggleCoverCopy()" style="display:none;">
             <span class="mini-box" id="check-cover-copy"></span>
             <span class="mini-label">含文案</span>
@@ -826,6 +830,7 @@ let state = {
   cameraCount: 1,
   extraCover: false,
   coverCopy: false,
+  coverPending: false,
   gifts: { adplace: false, footage: false, multicam: false, cover: false },
   customExtras: [],
 };
@@ -959,6 +964,15 @@ function toggleCoverCopy() {
   calculate();
 }
 
+// 封面圖：是否為未確定項目（改列到浮動區）
+function toggleCoverPending() {
+  state.coverPending = !state.coverPending;
+  const el = document.getElementById('cover-pending-check');
+  el.classList.toggle('active', state.coverPending);
+  document.getElementById('check-cover-pending').textContent = state.coverPending ? '✓' : '';
+  calculate();
+}
+
 // 含稅顯示開關
 function toggleTax() {
   state.showTax = !state.showTax;
@@ -1034,10 +1048,14 @@ function toggleExtra(which, keepOpen) {
     document.getElementById('check-cover').textContent = state.extraCover ? '✓' : '';
     document.getElementById('cover-price-wrap').style.display = state.extraCover ? 'flex' : 'none';
     document.getElementById('cover-copy-check').style.display = state.extraCover ? 'inline-flex' : 'none';
+    document.getElementById('cover-pending-check').style.display = state.extraCover ? 'inline-flex' : 'none';
     if (!state.extraCover) {
       resetGift('cover');
       state.coverCopy = false;
       document.getElementById('cover-copy-check').classList.remove('active');
+      state.coverPending = false;
+      document.getElementById('cover-pending-check').classList.remove('active');
+      document.getElementById('check-cover-pending').textContent = '';
       document.getElementById('check-cover-copy').textContent = '';
     }
   }
@@ -1949,13 +1967,13 @@ function calculate() {
   const adPlaceCharge  = g.adplace  ? 0 : adPlaceFee;
   const footageCharge  = g.footage  ? 0 : footageFee;
   const multicamCharge = g.multicam ? 0 : multicamFee;
-  const coverCharge    = g.cover    ? 0 : coverFee;
+  const coverCharge    = (g.cover || state.coverPending) ? 0 : coverFee;
   const customTotal = state.customExtras.reduce((s, e) => s + (e.gift ? 0 : (e.price || 0)), 0);
   const giftTotal =
     (g.adplace ? adPlaceFee : 0) +
     (g.footage ? footageFee : 0) +
     (g.multicam ? multicamFee : 0) +
-    (g.cover ? coverFee : 0) +
+    ((g.cover && !state.coverPending) ? coverFee : 0) +
     state.customExtras.reduce((s, e) => s + (e.gift ? (e.price || 0) : 0), 0);
 
   const total = base + overtime + adPlaceCharge + urgentFee + footageCharge + multicamCharge + coverCharge + customTotal;
@@ -2041,11 +2059,19 @@ function calculate() {
   if (adPlaceFee) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
   if (urgentFee > 0) rows.push({ label: '加急費（少' + (urgentThreshold - deliveryDays) + '天 × $' + URGENT_RATE.toLocaleString() + '）', amt: urgentFee, sign: '+' });
   const coverLabel = '封面圖製作';
-  if (coverFee) rows.push({
-    label: coverLabel,
-    sub: state.coverCopy ? '含封面文案' : '不含封面文案',
-    note: noteOf('cover'), amt: coverFee, sign: '+', gift: g.cover
-  });
+  if (coverFee && state.coverPending) {
+    floatRows.push({
+      label: coverLabel,
+      sub: (state.coverCopy ? '含封面文案' : '不含封面文案') + '，視需求加購',
+      rate: fmt(coverFee) + ' / 張'
+    });
+  } else if (coverFee) {
+    rows.push({
+      label: coverLabel,
+      sub: state.coverCopy ? '含封面文案' : '不含封面文案',
+      note: noteOf('cover'), amt: coverFee, sign: '+', gift: g.cover
+    });
+  }
   state.customExtras.forEach(e => {
     if (e.price > 0) rows.push({ label: e.name || '自訂項目', note: e.note || '', amt: e.price, sign: '+', gift: e.gift });
   });
@@ -2161,7 +2187,7 @@ function calculate() {
   pushExtra('工商置入', adPlaceFee, g.adplace, noteOf('adplace'));
   pushExtra('毛片超時 ' + footageHours + 'hr', footageFee, g.footage, noteOf('footage'));
   pushExtra('多機位 ' + state.cameraCount + ' 機', multicamFee, g.multicam, noteOf('multicam'));
-  pushExtra(coverLabel, coverFee, g.cover, noteOf('cover'));
+  if (!state.coverPending) pushExtra(coverLabel, coverFee, g.cover, noteOf('cover'));
   state.customExtras.forEach(e => { pushExtra(e.name || '自訂項目', e.price, e.gift, e.note); });
   if (extraLines.length) quote += extraLines.map(l => '・' + l).join('\n') + '\n';
   if (giftLines.length) {
