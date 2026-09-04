@@ -161,7 +161,7 @@ function saveClients(c){
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
-var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,invoice:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
+var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:true,invoice:true,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
 
 // 開發票時的營業稅率（顯示用，不影響實際收入計算）
@@ -523,6 +523,18 @@ function Modal(props){
       return n;
     });
   }
+  // 類型切換：長片預設扣稅+開發票，短影兩者都不勾（只在真的換類型時才動）
+  function setType(t){
+    setForm(function(f){
+      if(f.type===t)return f;
+      var n=Object.assign({},f);
+      n.type=t;
+      var isShort=(t==="\u77ed\u5f71");
+      n.taxCut=!isShort;
+      n.invoice=!isShort;
+      return n;
+    });
+  }
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
@@ -594,7 +606,7 @@ function Modal(props){
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u985e\u578b"),
               h("div",{style:{display:"flex",borderRadius:4,overflow:"hidden",border:"1px solid "+C.brd}},
-                ["\u9577\u7247","\u77ed\u5f71"].map(function(t){var s=form.type===t;return h("button",{key:t,onClick:function(){set("type",t);},style:{flex:1,padding:"7px 6px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:s?700:400,background:s?C.accBg:C.card,color:s?C.acc:C.txt2,lineHeight:1.4}},t==="\u9577\u7247"?"\ud83c\udf9e\ufe0f \u9577":"\ud83d\udcf1 \u77ed");})
+                ["\u9577\u7247","\u77ed\u5f71"].map(function(t){var s=form.type===t;return h("button",{key:t,onClick:function(){setType(t);},style:{flex:1,padding:"7px 6px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:s?700:400,background:s?C.accBg:C.card,color:s?C.acc:C.txt2,lineHeight:1.4}},t==="\u9577\u7247"?"\ud83c\udf9e\ufe0f \u9577":"\ud83d\udcf1 \u77ed");})
               )
             )
           ),
