@@ -109,7 +109,11 @@ function deleteProject(notionId){
 // 客戶設定從 Notion 讀取/儲存（不使用 localStorage）
 function loadClients(){
   function stripCalExtras(clients,colors){
-    var filtered=(clients||[]).filter(function(c){return c!=="__cal_extras__";});
+    var seen={},filtered=[];
+    (clients||[]).forEach(function(c){
+      if(!c||c==="__cal_extras__"||seen[c])return;
+      seen[c]=1;filtered.push(c);
+    });
     var cleanColors={};
     Object.keys(colors||{}).forEach(function(k){if(k!=="__cal_extras__")cleanColors[k]=colors[k];});
     return {clients:filtered,colors:cleanColors};
@@ -122,9 +126,11 @@ function loadClients(){
     .then(function(r){return r.json();})
     .then(function(data){
       if(!Array.isArray(data))return {clients:[],colors:{}};
-      var clients=[],colors={};
+      var clients=[],colors={},seen={};
       data.forEach(function(c){
-        if(c.name==="__cal_extras__")return;
+        if(!c||!c.name||c.name==="__cal_extras__")return;
+        if(seen[c.name]){ if(c.color&&!colors[c.name])colors[c.name]=c.color; return; }
+        seen[c.name]=1;
         clients.push(c.name);
         if(c.color)colors[c.name]=c.color;
       });
@@ -157,12 +163,30 @@ function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
     fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(function(e){console.warn(e);});
   },500);
 }
+var _cliSaveTimer=null,_cliSavePending=null,_cliInFlight=null;
 function saveClients(c){
-  return fetch(API+"?action=save-clients",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(c)
-  }).catch(function(e){console.warn("客戶設定儲存失敗",e);throw e;});
+  // 送出前先去重，保留第一次出現的順序
+  var seen={},uniq=[];
+  ((c&&c.clients)||[]).forEach(function(n){
+    if(!n||n==="__cal_extras__"||seen[n])return;
+    seen[n]=1;uniq.push(n);
+  });
+  _cliSavePending={clients:uniq,colors:(c&&c.colors)||{}};
+  if(_cliSaveTimer)clearTimeout(_cliSaveTimer);
+  return new Promise(function(resolve,reject){
+    _cliSaveTimer=setTimeout(function(){
+      var payload=_cliSavePending;_cliSavePending=null;_cliSaveTimer=null;
+      // 串成單一佇列：上一個請求結束後才發下一個，避免 Notion 端交錯寫入
+      _cliInFlight=Promise.resolve(_cliInFlight).catch(function(){}).then(function(){
+        return fetch(API+"?action=save-clients",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify(payload)
+        });
+      });
+      _cliInFlight.then(resolve,function(e){console.warn("客戶設定儲存失敗",e);reject(e);});
+    },600);
+  });
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
