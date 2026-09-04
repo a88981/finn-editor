@@ -164,6 +164,25 @@ function saveClients(c){
 var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
 
+// ── 客戶預設收費 ──────────────────────────────────────────────────────────────
+// key 用純文字客戶名（不含 emoji），客戶名稱只要「包含」這個 key 就算命中
+// fee=基本收費 / overRate=超時費(元/分) / feeItems=自動帶入的收費細項
+var CLIENT_DEFAULTS={
+  "\u963f\u6ef4":{                                    // 阿滴
+    fee:12000,
+    overRate:900,
+    feeItems:[{label:"\u5c01\u9762\u5716",qty:1,price:2500}]   // 封面圖 ×1 @2500
+  }
+};
+function getClientDefaults(name){
+  if(!name||name==="-")return null;
+  var keys=Object.keys(CLIENT_DEFAULTS);
+  for(var i=0;i<keys.length;i++){
+    if(String(name).indexOf(keys[i])>=0)return CLIENT_DEFAULTS[keys[i]];
+  }
+  return null;
+}
+
 var SEED=[
   {id:"s1",name:"EP4 \u68d2\u7403\u7d00\u9304\u7247",airDate:"",client:"NETFLIX",status:"V1\u88fd\u4f5c\u4e2d",type:"\u9577\u7247",month:"2026-04",fee:45000,taxCut:false,feeItems:[],costItems:[],length:"28:30",note:"",closed:false,order:"1",editS:"2026-04-10",editE:"2026-04-25",cut1S:"2026-04-10",cut1E:"2026-04-15",cut1Due:"2026-04-15",cut1Done:true,noCut1:false,v1S:"2026-04-16",v1E:"2026-04-20",v1Due:"2026-04-28",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"2026-04-25",finalDone:false},
   {id:"s3",name:"Reels_\u96ea\u808c\u7cbe",airDate:"",client:"\u65e5\u672c\u4eba\u5a1c\u5a1c",status:"\u521d\u526a\u5be9\u6838\u4e2d",type:"\u77ed\u5f71",month:"2026-04",fee:8000,taxCut:false,feeItems:[],costItems:[],length:"0:45",note:"",closed:false,order:"\u6025\u6848",editS:"2026-04-22",editE:"2026-04-26",cut1S:"2026-04-22",cut1E:"2026-04-23",cut1Due:"2026-04-23",cut1Done:false,noCut1:false,v1S:"2026-04-24",v1E:"2026-04-25",v1Due:"2026-04-25",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"2026-04-26",finalDone:false},
@@ -475,6 +494,32 @@ function Modal(props){
   // 交件日 ⇄ 結束日雙向同步配對
   var SYNC_PAIRS={cut1E:"cut1Due",cut1Due:"cut1E",v1E:"v1Due",v1Due:"v1E",bizE:"bizDue",bizDue:"bizE"};
   function set(k,v){setForm(function(f){var n=Object.assign({},f);n[k]=v;if(SYNC_PAIRS[k])n[SYNC_PAIRS[k]]=v;return n;});}
+  // 切換客戶時帶入該客戶的預設收費（不覆蓋已經填過的金額）
+  function applyClient(v){
+    var d=getClientDefaults(v);
+    setForm(function(f){
+      var n=Object.assign({},f);
+      n.client=v;
+      if(!d)return n;
+      // 基本收費：空白或 0 才帶入
+      if(d.fee!==undefined&&!(Number(n.fee)>0))n.fee=d.fee;
+      // 超時費：空白、0、或還停在全域預設(850) 才帶入
+      if(d.overRate!==undefined){
+        var cur=Number(n.overRate)||0;
+        if(cur===0||cur===DEFS.overRate)n.overRate=d.overRate;
+      }
+      // 收費細項：同名細項已存在就不重複加
+      if(d.feeItems&&d.feeItems.length){
+        var list=(n.feeItems||[]).slice();
+        d.feeItems.forEach(function(it){
+          var dup=list.some(function(x){return String(x.label||"")===it.label;});
+          if(!dup)list.push({id:uid(),label:it.label,qty:String(it.qty),price:String(it.price)});
+        });
+        n.feeItems=list;
+      }
+      return n;
+    });
+  }
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
@@ -510,7 +555,7 @@ function Modal(props){
       tab==="basic"&&h("div",{style:{display:"grid",gap:11}},
         // 第一行:客戶(左半) / 進度+優先+工作月份(右半)
         h("div",{style:{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}},
-          h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u5ba2\u6236"),h("select",{style:INP,value:form.client,onChange:function(e){set("client",e.target.value);}},h("option",{value:"-"},"-"),...clients.map(function(c){return h("option",{key:c},c);}))),
+          h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u5ba2\u6236"),h("select",{style:INP,value:form.client,onChange:function(e){applyClient(e.target.value);}},h("option",{value:"-"},"-"),...clients.map(function(c){return h("option",{key:c},c);}))),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 120px 70px",gap:6}},
             h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u9032\u5ea6"),h("select",{style:INP,value:form.status,onChange:function(e){set("status",e.target.value);}},SG.map(function(g){return h("optgroup",{key:g.label,label:g.label},g.items.map(function(o){return h("option",{key:o},o);}));}))),
             h("div",null,
