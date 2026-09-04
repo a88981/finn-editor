@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>小玩工作室帳本 📒</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>玩ㄉ帳本(•̀ω•́)⸝ ި ʕᦏ</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,8 @@ var _R=React,useState=_R.useState,useEffect=_R.useEffect,h=_R.createElement;
 // 設定
 // ══════════════════════════════════════════════════════════════════
 var API="/api/notion";
-var STUDIO={name:"小玩工作室",vatNo:"00695271"};   // 抬頭與統編，改這裡就好
+var TITLE="📒玩ㄉ帳本(•̀ω•́)⸝ ި ʕᦏ";                   // 畫面上的標題
+var STUDIO={name:"小玩工作室",vatNo:"00695271"};   // 正式抬頭與統編（報表、CSV 用）
 var VAT_RATE=0.05;      // 營業稅
 var WH_RATE=0.10;       // 執行業務所得扣繳
 
@@ -364,9 +365,14 @@ function App(){
     // 依客戶彙總收入
     var byClient={};
     mp.forEach(function(p){var c=calcIncome(p);var k=p.client||"—";
-      if(!byClient[k])byClient[k]={gross:0,n:0};byClient[k].gross+=c.gross;byClient[k].n++;});
+      if(!byClient[k])byClient[k]={gross:0,n:0,items:[]};
+      byClient[k].gross+=c.gross;byClient[k].n++;
+      byClient[k].items.push({p:p,c:c});});
     var clientRows=Object.keys(byClient).map(function(k){return {name:k,v:byClient[k]};})
       .sort(function(a,b){return b.v.gross-a.v.gross;});
+    clientRows.forEach(function(r){
+      r.v.items.sort(function(a,b){return b.c.gross-a.c.gross;});
+    });
 
     // 依科目彙總支出
     var byAcct={};
@@ -377,15 +383,17 @@ function App(){
 
     return h("div",{style:{animation:"fadeIn 0.25s ease"}},
       // 損益流水
-      h("div",{style:{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1.1fr)",gap:14,
-          alignItems:"start",marginBottom:16}},
-        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,padding:"16px 18px"}},
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(316px,1fr))",gap:14,
+          alignItems:"stretch",marginBottom:16}},
+        h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,padding:"16px 18px",
+            display:"flex",flexDirection:"column"}},
           h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:8}},"本月損益"),
           h(Line,{label:"未稅收入",value:inc.gross,color:C.ok}),
           h(Line,{label:"案子成本（字幕、外包等）",value:-inc.cost,color:inc.cost>0?C.err:C.txt3}),
           h(Line,{label:"營運支出（未稅）",value:-exp.net,color:exp.net>0?C.err:C.txt3}),
+          h("div",{style:{flex:1,minHeight:10}}),
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",
-              paddingTop:12,marginTop:4,borderTop:"1px solid "+C.brd2}},
+              paddingTop:12,borderTop:"1px solid "+C.brd2}},
             h("span",{style:{fontSize:12.5,fontWeight:700}},"淨利"),
             h("span",{className:"num",style:{fontSize:34,fontWeight:600,lineHeight:1,
               color:profit>=0?C.ok:C.err}},NT(profit))
@@ -393,14 +401,33 @@ function App(){
           h("div",{style:{fontSize:10.5,color:C.txt3,marginTop:8,lineHeight:1.6}},
             "扣繳的 10% 不算在成本裡，它是預繳的稅，年度結算時可以抵。")
         ),
-        h("div",{style:{display:"flex",flexWrap:"wrap",gap:9}},
-          h(Stat,{label:"開立發票（含稅）",value:inc.gross+inc.vat,color:C.wrn,bg:C.wrnBg,brd:"#e8d09a",
-            hint:"銷項稅額 "+NT(inc.vat)}),
-          h(Stat,{label:"被扣繳 10%",value:inc.withhold,color:C.txt2,hint:"年度可抵繳"}),
-          h(Stat,{label:"實際入帳現金",value:cashIn,color:C.ok,hint:"含稅收入減扣繳"}),
-          h(Stat,{label:"營運支出（實付）",value:exp.paid,color:C.err,bg:C.errBg,brd:"#e8cccc",
-            hint:"進項稅額 "+NT(exp.inputVat)})
-        )
+        (function(){
+          var cells=[
+            {label:"開立發票（含稅）",value:inc.gross+inc.vat,color:C.wrn,hint:"銷項稅額 "+NT(inc.vat)},
+            {label:"被扣繳 10%",value:inc.withhold,color:C.txt2,hint:"年度結算可抵繳"},
+            {label:"實際入帳現金",value:cashIn,color:C.ok,hint:"含稅收入減掉扣繳"},
+            {label:"營運支出（實付）",value:exp.paid,color:C.err,hint:"進項稅額 "+NT(exp.inputVat)}
+          ];
+          return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
+              display:"flex",flexDirection:"column",overflow:"hidden"}},
+            h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,padding:"16px 18px 4px"}},"稅與現金"),
+            h("div",{style:{flex:1,display:"grid",gridTemplateColumns:"1fr 1fr",
+                gridTemplateRows:"1fr 1fr",padding:"0 18px 16px"}},
+              cells.map(function(c,i){
+                return h("div",{key:c.label,style:{display:"flex",flexDirection:"column",
+                    justifyContent:"center",padding:"10px 0",
+                    paddingLeft:i%2===1?14:0,paddingRight:i%2===0?14:0,
+                    borderLeft:i%2===1?"1px solid "+C.brd:"none",
+                    borderTop:i>1?"1px solid "+C.brd:"none"}},
+                  h("div",{style:{fontSize:10.5,color:C.txt3,marginBottom:2}},c.label),
+                  h("div",{className:"num",style:{fontSize:22,fontWeight:600,color:c.color,
+                    lineHeight:1.2}},NT(c.value)),
+                  h("div",{style:{fontSize:10,color:C.txt3,marginTop:2}},c.hint)
+                );
+              })
+            )
+          );
+        })()
       ),
       // 兩欄明細
       h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:14}},
@@ -410,11 +437,29 @@ function App(){
           mp.length===0
             ? h("div",{style:{padding:"26px 14px",textAlign:"center",color:C.txt3,fontSize:12}},"這個月還沒有案子")
             : clientRows.map(function(r){
-                return h("div",{key:r.name,className:"row-hover",style:{display:"flex",justifyContent:"space-between",
-                    alignItems:"center",padding:"9px 14px",borderBottom:"0.5px solid "+C.brd,fontSize:12.5}},
-                  h("span",{style:{fontWeight:700,color:C.txt2}},r.name,
-                    h("span",{style:{color:C.txt3,fontWeight:400,marginLeft:6,fontSize:11}},r.v.n+" 件")),
-                  h("span",{className:"num",style:{fontSize:15,color:C.ok}},NT(r.v.gross))
+                return h("div",{key:r.name},
+                  h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",
+                      padding:"7px 14px",background:"#fdfcf8",borderBottom:"0.5px solid "+C.brd,
+                      borderTop:"0.5px solid "+C.brd}},
+                    h("span",{style:{fontWeight:700,color:C.txt2,fontSize:12}},r.name,
+                      h("span",{style:{color:C.txt3,fontWeight:400,marginLeft:6,fontSize:10.5}},r.v.n+" 件")),
+                    h("span",{className:"num",style:{fontSize:14,color:C.ok,fontWeight:600}},NT(r.v.gross))
+                  ),
+                  r.v.items.map(function(it){
+                    return h("div",{key:it.p.id,className:"row-hover",
+                        style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,
+                          padding:"8px 14px 8px 24px",borderBottom:"0.5px solid "+C.brd}},
+                      h("span",{className:"serif",style:{fontSize:12.5,color:C.txt,minWidth:0,
+                          whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},
+                        it.p.name||"—",
+                        it.p.invoice&&h("span",{style:{marginLeft:6,fontSize:9.5,color:"#b35f10",
+                          background:C.wrnBg,borderRadius:3,padding:"1px 5px"}},
+                          it.p.invoiced?"已開票":"待開票")
+                      ),
+                      h("span",{className:"num",style:{fontSize:13.5,color:C.txt2,whiteSpace:"nowrap"}},
+                        NT(it.c.gross))
+                    );
+                  })
                 );
               })
         ),
@@ -783,8 +828,7 @@ function App(){
     h("div",{style:{display:"flex",alignItems:"baseline",justifyContent:"space-between",
         flexWrap:"wrap",gap:10,marginBottom:16}},
       h("div",null,
-        h("div",{className:"serif",style:{fontSize:20,fontWeight:600,letterSpacing:"0.02em"}},
-          STUDIO.name+"帳本"),
+        h("div",{className:"serif",style:{fontSize:20,fontWeight:600,letterSpacing:"0.02em"}},TITLE),
         h("div",{style:{fontSize:11,color:C.txt3,marginTop:2}},
           "統編 "+STUDIO.vatNo+"　·　"+
           (mode==="mine"?"收入自動從案子追蹤抓，支出手動記":"依營業稅期別整理的銷項與進項"))
