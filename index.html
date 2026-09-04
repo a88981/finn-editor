@@ -73,7 +73,12 @@ function loadData(){
 function saveProject(p){
   if(p.notionId){
     // 更新
-    return fetch(API+"?action=update",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).catch(function(e){console.error("更新失敗",e);});
+    return fetch(API+"?action=update",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
+      .then(function(r){
+        if(!r.ok){return r.text().then(function(t){throw new Error("HTTP "+r.status+" / "+t.slice(0,300));});}
+        return r.json().catch(function(){return {};});
+      })
+      .catch(function(e){console.error("[update] 更新失敗",e);throw e;});
   } else {
     // 新增
     return fetch(API+"?action=create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
@@ -82,7 +87,7 @@ function saveProject(p){
         if(!r.ok||!ct.includes("json")){return r.text().then(function(t){throw new Error("HTTP "+r.status+" / "+t.slice(0,300));});}
         return r.json();
       })
-      .catch(function(e){console.error("新增失敗",e);alert("\u2757 複製失敗\n\n"+e.message);});
+      .catch(function(e){console.error("[create] 新增失敗",e);throw e;});
   }
 }
 
@@ -161,30 +166,8 @@ function saveClients(c){
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
-var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:true,invoice:true,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
+var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
-
-// 開發票時的營業稅率（顯示用，不影響實際收入計算）
-var VAT_RATE=0.05;
-
-// ── 客戶預設收費 ──────────────────────────────────────────────────────────────
-// key 用純文字客戶名（不含 emoji），客戶名稱只要「包含」這個 key 就算命中
-// fee=基本收費 / overRate=超時費(元/分) / feeItems=自動帶入的收費細項
-var CLIENT_DEFAULTS={
-  "\u963f\u6ef4":{                                    // 阿滴
-    fee:12000,
-    overRate:900,
-    feeItems:[{label:"\u5c01\u9762\u5716",qty:1,price:2500}]   // 封面圖 ×1 @2500
-  }
-};
-function getClientDefaults(name){
-  if(!name||name==="-")return null;
-  var keys=Object.keys(CLIENT_DEFAULTS);
-  for(var i=0;i<keys.length;i++){
-    if(String(name).indexOf(keys[i])>=0)return CLIENT_DEFAULTS[keys[i]];
-  }
-  return null;
-}
 
 var SEED=[
   {id:"s1",name:"EP4 \u68d2\u7403\u7d00\u9304\u7247",airDate:"",client:"NETFLIX",status:"V1\u88fd\u4f5c\u4e2d",type:"\u9577\u7247",month:"2026-04",fee:45000,taxCut:false,feeItems:[],costItems:[],length:"28:30",note:"",closed:false,order:"1",editS:"2026-04-10",editE:"2026-04-25",cut1S:"2026-04-10",cut1E:"2026-04-15",cut1Due:"2026-04-15",cut1Done:true,noCut1:false,v1S:"2026-04-16",v1E:"2026-04-20",v1Due:"2026-04-28",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"2026-04-25",finalDone:false},
@@ -497,44 +480,6 @@ function Modal(props){
   // 交件日 ⇄ 結束日雙向同步配對
   var SYNC_PAIRS={cut1E:"cut1Due",cut1Due:"cut1E",v1E:"v1Due",v1Due:"v1E",bizE:"bizDue",bizDue:"bizE"};
   function set(k,v){setForm(function(f){var n=Object.assign({},f);n[k]=v;if(SYNC_PAIRS[k])n[SYNC_PAIRS[k]]=v;return n;});}
-  // 切換客戶時帶入該客戶的預設收費（不覆蓋已經填過的金額）
-  function applyClient(v){
-    var d=getClientDefaults(v);
-    setForm(function(f){
-      var n=Object.assign({},f);
-      n.client=v;
-      if(!d)return n;
-      // 基本收費：空白或 0 才帶入
-      if(d.fee!==undefined&&!(Number(n.fee)>0))n.fee=d.fee;
-      // 超時費：空白、0、或還停在全域預設(850) 才帶入
-      if(d.overRate!==undefined){
-        var cur=Number(n.overRate)||0;
-        if(cur===0||cur===DEFS.overRate)n.overRate=d.overRate;
-      }
-      // 收費細項：同名細項已存在就不重複加
-      if(d.feeItems&&d.feeItems.length){
-        var list=(n.feeItems||[]).slice();
-        d.feeItems.forEach(function(it){
-          var dup=list.some(function(x){return String(x.label||"")===it.label;});
-          if(!dup)list.push({id:uid(),label:it.label,qty:String(it.qty),price:String(it.price)});
-        });
-        n.feeItems=list;
-      }
-      return n;
-    });
-  }
-  // 類型切換：長片預設扣稅+開發票，短影兩者都不勾（只在真的換類型時才動）
-  function setType(t){
-    setForm(function(f){
-      if(f.type===t)return f;
-      var n=Object.assign({},f);
-      n.type=t;
-      var isShort=(t==="\u77ed\u5f71");
-      n.taxCut=!isShort;
-      n.invoice=!isShort;
-      return n;
-    });
-  }
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
@@ -553,9 +498,6 @@ function Modal(props){
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
-  // 開發票：只顯示含稅金額，不進入任何實際收入／總額計算
-  var vat=form.invoice?Math.round(tr*VAT_RATE):0;
-  var trVat=tr+vat;
   var ec=(form.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
   var tc=tax+ec,net=tr-tc;
   var now=new Date();
@@ -573,7 +515,7 @@ function Modal(props){
       tab==="basic"&&h("div",{style:{display:"grid",gap:11}},
         // 第一行:客戶(左半) / 進度+優先+工作月份(右半)
         h("div",{style:{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}},
-          h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u5ba2\u6236"),h("select",{style:INP,value:form.client,onChange:function(e){applyClient(e.target.value);}},h("option",{value:"-"},"-"),...clients.map(function(c){return h("option",{key:c},c);}))),
+          h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u5ba2\u6236"),h("select",{style:INP,value:form.client,onChange:function(e){set("client",e.target.value);}},h("option",{value:"-"},"-"),...clients.map(function(c){return h("option",{key:c},c);}))),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 120px 70px",gap:6}},
             h("div",null,h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u9032\u5ea6"),h("select",{style:INP,value:form.status,onChange:function(e){set("status",e.target.value);}},SG.map(function(g){return h("optgroup",{key:g.label,label:g.label},g.items.map(function(o){return h("option",{key:o},o);}));}))),
             h("div",null,
@@ -606,7 +548,7 @@ function Modal(props){
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u985e\u578b"),
               h("div",{style:{display:"flex",borderRadius:4,overflow:"hidden",border:"1px solid "+C.brd}},
-                ["\u9577\u7247","\u77ed\u5f71"].map(function(t){var s=form.type===t;return h("button",{key:t,onClick:function(){setType(t);},style:{flex:1,padding:"7px 6px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:s?700:400,background:s?C.accBg:C.card,color:s?C.acc:C.txt2,lineHeight:1.4}},t==="\u9577\u7247"?"\ud83c\udf9e\ufe0f \u9577":"\ud83d\udcf1 \u77ed");})
+                ["\u9577\u7247","\u77ed\u5f71"].map(function(t){var s=form.type===t;return h("button",{key:t,onClick:function(){set("type",t);},style:{flex:1,padding:"7px 6px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:s?700:400,background:s?C.accBg:C.card,color:s?C.acc:C.txt2,lineHeight:1.4}},t==="\u9577\u7247"?"\ud83c\udf9e\ufe0f \u9577":"\ud83d\udcf1 \u77ed");})
               )
             )
           ),
@@ -624,22 +566,12 @@ function Modal(props){
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:4,padding:"12px"}},
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
             h("span",{style:{fontSize:12,fontWeight:700,color:C.txt}},"\ud83d\udcb0 \u8cbb\u7528"),
-            tr>0&&h("span",{style:{fontSize:12,fontWeight:700,color:net>=0?C.ok:C.err}},
-              "\u6536\u5165 "+NT(tr),
-              vat>0&&h("span",{style:{color:"#d07010"}},"\uff08\u542b\u7a05 "+NT(trVat)+"\uff09"),
-              (tc>0?" / \u652f "+NT(tc):"")+" \uff5c \u7e3d\u984d "+NT(net)
-            )
+            tr>0&&h("span",{style:{fontSize:12,fontWeight:700,color:net>=0?C.ok:C.err}},"\u6536\u5165 "+NT(tr)+(tc>0?" / \u652f "+NT(tc):"")+" \uff5c \u7e3d\u984d "+NT(net))
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
             h("div",{style:{background:C.okBg,borderRadius:4,padding:"9px",border:"1px solid #a8d8b8"}},
               h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
-                h("div",{style:{display:"flex",alignItems:"center",gap:6}},
-                  h("div",{style:{fontSize:10,color:C.ok,fontWeight:700}},"\u6536\u5165"),
-                  h("label",{style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:10,color:form.invoice?"#2f6f4a":"#7fae92",background:form.invoice?"#d8f0e4":"#eef7f1",borderRadius:4,padding:"2px 8px"}},
-                    h("input",{type:"checkbox",checked:!!form.invoice,onChange:function(e){set("invoice",e.target.checked);},style:{accentColor:"#3d7a50"}}),
-                    "\u958b\u767c\u7968"
-                  )
-                ),
+                h("div",{style:{fontSize:10,color:C.ok,fontWeight:700}},"\u6536\u5165"),
                 h("button",{onClick:function(e){
                   e.preventDefault();
                   var overFee2=overMins*(Number(form.overRate)||850);
@@ -654,7 +586,6 @@ function Modal(props){
                   if(overFee2>0)lines.push("\u8d85\u6642\u8cbb\uff1a"+overMins+"\u5206 \xd7 "+NT(Number(form.overRate)||850)+" = "+NT(overFee2));
                   feeItems.forEach(function(x){var lt=(Number(x.qty)||0)*(Number(x.price)||0);if(lt>0)lines.push((x.label||"\u7d30\u9805")+"\uff1a"+NT(lt));});
                   lines.push("\u7e3d\u8a08\uff1a"+NT(tot2));
-                  if(form.invoice)lines.push("\u958b\u767c\u7968\u542b\u7a05\uff1a"+NT(tot2+Math.round(tot2*VAT_RATE)));
                   var text=lines.join("\n");
                   var ta=document.createElement("textarea");
                   ta.value=text;ta.style.cssText="position:fixed;top:0;left:0;opacity:0;";
@@ -756,7 +687,7 @@ function Modal(props){
         !isNew&&h("button",{onClick:function(){onDelete(form.id);},style:{flex:1,padding:9,background:"transparent",border:"1px solid #f0a8a8",borderRadius:4,color:C.err,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},"\u522a\u9664"),
         h("button",{onClick:onClose,style:{flex:1,padding:9,background:"transparent",border:"1px solid "+C.brd,borderRadius:4,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13}},"取消"),
         !isNew&&h("button",{onClick:function(){if(onDuplicate){onDuplicate(form);}},style:{flex:1,padding:9,background:"transparent",border:"1px solid "+C.brd,borderRadius:4,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},"📋 複製"),
-        h("button",{onClick:function(){if(form.name.trim())onSave(Object.assign({},form,{id:form.id||uid(),fee:form.fee?Number(form.fee):""}));},style:{flex:2,padding:9,background:C.acc,border:"none",borderRadius:4,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:13}},isNew?"\u2705 \u65b0\u589e":"\ud83d\udcbe 儲存")
+        h("button",{onClick:function(){if(!String(form.name||"").trim()){alert("\u26a0 \u8acb\u5148\u586b\u300c\u6848\u5b50\u540d\u7a31\u300d\u518d\u5132\u5b58");setTab("basic");return;}onSave(Object.assign({},form,{id:form.id||uid(),fee:form.fee?Number(form.fee):""}));},style:{flex:2,padding:9,background:C.acc,border:"none",borderRadius:4,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:13}},isNew?"\u2705 \u65b0\u589e":"\ud83d\udcbe 儲存")
       )
     )
   );
@@ -1564,9 +1495,6 @@ function ListView(props){
   var cf=useState("all");var clientFilter=cf[0],setClientFilter=cf[1];
   var mf=useState("all");var monthFilter=mf[0],setMonthFilter=mf[1];
   var qf=useState("");var query=qf[0],setQuery=qf[1];
-  // 含稅檢視：只影響「收入」欄與收入合計，支出／總額不動；重新整理會回到未稅
-  var vf=useState(false);var showVat=vf[0],setShowVat=vf[1];
-  function incOf(p,f){return p.invoice?f.total+Math.round(f.total*VAT_RATE):f.total;}
 
   var allMonths=[];projects.forEach(function(p){if(p.month&&allMonths.indexOf(p.month)<0)allMonths.push(p.month);});allMonths.sort().reverse();
 
@@ -1612,7 +1540,7 @@ function ListView(props){
   });
 
   // Totals
-  var totals=filtered.reduce(function(a,p){var f=calcP(p);return{inc:a.inc+f.total,incVat:a.incVat+incOf(p,f),cost:a.cost+f.totalCost,net:a.net+f.net};},{inc:0,incVat:0,cost:0,net:0});
+  var totals=filtered.reduce(function(a,p){var f=calcP(p);return{inc:a.inc+f.total,cost:a.cost+f.totalCost,net:a.net+f.net};},{inc:0,cost:0,net:0});
 
   var selStyle=Object.assign({},INP,{width:"auto",padding:"5px 9px",fontSize:12});
 
@@ -1624,9 +1552,6 @@ function ListView(props){
       h("div",{style:{position:"relative",display:"inline-flex",alignItems:"center"}},
         h("input",{type:"text",value:query,onChange:function(e){setQuery(e.target.value);},placeholder:"\ud83d\udd0d \u641c\u5c0b\u5c08\u6848\u540d/\u5ba2\u6236",style:Object.assign({},INP,{width:180,padding:"5px 9px",fontSize:12,paddingRight:query?26:9})}),
         query&&h("button",{onClick:function(){setQuery("");},style:{position:"absolute",right:4,background:"transparent",border:"none",cursor:"pointer",color:C.txt3,fontSize:14,padding:"2px 6px"}},"\u00d7")
-      ),
-      !isMob&&h("button",{onClick:function(){setShowVat(!showVat);},title:"\u53ea\u5f71\u97ff\u300c\u6536\u5165\u300d\u6b04\uff0c\u652f\u51fa\u8207\u7e3d\u984d\u4e0d\u8b8a",style:{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:4,border:"1px solid "+(showVat?"#d07010":C.brd),background:showVat?"#fdf0e2":C.card,color:showVat?"#b35f10":C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},
-        h("span",{style:{fontSize:11}},showVat?"\u2713":""),"\u542b\u7a05\u5831\u50f9"
       )
     ),
     filtered.length===0?h("div",{style:{textAlign:"center",padding:"48px 0",color:C.txt3}},"\u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u6848\u5b50"):
@@ -1658,7 +1583,7 @@ function ListView(props){
       return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:4,overflow:"hidden"}},
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"8px 12px",background:C.card2,borderBottom:"1px solid "+C.brd2,fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},
           h("div",null,"\u6708\u4efd"),h("div",null,"\u5ba2\u6236"),h("div",null,"\u4e0a\u7247\u65e5"),h("div",null,"\u72c0\u614b"),h("div",null,"\u5c08\u6848\u540d"),
-          h("div",{style:{textAlign:"right",color:showVat?"#d07010":C.txt3}},showVat?"\u6536\u5165\uff08\u542b\u7a05\uff09":"\u6536\u5165"),h("div",{style:{textAlign:"right"}},"\u652f\u51fa"),h("div",{style:{textAlign:"right"}},"\u7e3d\u984d")
+          h("div",{style:{textAlign:"right"}},"\u6536\u5165"),h("div",{style:{textAlign:"right"}},"\u652f\u51fa"),h("div",{style:{textAlign:"right"}},"\u7e3d\u984d")
         ),
         filtered.map(function(p,idx){
           var f=calcP(p),cc=cColors[p.client]||C.txt2;
@@ -1670,11 +1595,7 @@ function ListView(props){
             h("div",{style:{fontSize:10.5,color:p.airDate?C.acc:C.txt3,fontWeight:p.airDate?700:400}},p.airDate?fmtAir(p.airDate):"\u2014"),
             h("div",{style:{minWidth:0}},p.closed?h("span",{style:{fontSize:10,background:C.card2,color:C.txt3,borderRadius:3,padding:"2px 7px",fontWeight:600,border:"0.5px solid "+C.brd,whiteSpace:"nowrap"}},"\u5df2\u7d50\u6848"):h("span",{style:{fontSize:10,background:ca+"15",color:ca,borderRadius:3,padding:"2px 7px",fontWeight:600,whiteSpace:"nowrap"}},p.status)),
             h("div",{style:{fontFamily:"'Noto Serif TC',serif",fontSize:13,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:p.closed?"line-through":"none"}},p.name),
-            (function(){
-              var vatRow=showVat&&p.invoice&&f.total>0;
-              var val=vatRow?incOf(p,f):f.total;
-              return h("div",{style:{textAlign:"right",fontSize:12,fontWeight:vatRow?700:500,color:vatRow?"#d07010":(f.total>0?C.txt2:C.txt3)}},f.total>0?"NT$ "+Math.round(val).toLocaleString():"\u2014");
-            })(),
+            h("div",{style:{textAlign:"right",fontSize:12,fontWeight:500,color:f.total>0?C.txt2:C.txt3}},f.total>0?"NT$ "+Math.round(f.total).toLocaleString():"\u2014"),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:500,color:f.totalCost>0?C.err:C.txt3}},f.totalCost>0?"NT$ "+Math.round(f.totalCost).toLocaleString():"\u2014"),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:700,color:f.net>0?C.ok:C.txt3}},f.total>0?"NT$ "+Math.round(f.net).toLocaleString():"\u2014")
           );
@@ -1682,7 +1603,7 @@ function ListView(props){
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"10px 12px",background:C.card2,fontSize:12,alignItems:"center",borderTop:"1px solid "+C.brd2}},
           h("div",{style:{gridColumn:"1 / 5",fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},"\u5408\u8a08"),
           h("div",{style:{fontSize:10,color:C.txt3}},"\u5171 "+filtered.length+" \u4ef6"),
-          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:showVat&&totals.incVat!==totals.inc?"#d07010":C.txt2}},totals.inc>0?"NT$ "+Math.round(showVat?totals.incVat:totals.inc).toLocaleString():"\u2014"),
+          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.txt2}},totals.inc>0?"NT$ "+Math.round(totals.inc).toLocaleString():"\u2014"),
           h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.cost>0?C.err:C.txt3}},totals.cost>0?"NT$ "+Math.round(totals.cost).toLocaleString():"\u2014"),
           h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.net>=0?C.ok:C.err}},"NT$ "+Math.round(totals.net).toLocaleString())
         )
@@ -2247,6 +2168,8 @@ function App(){
   var dvs=useState([]);var divinDays=dvs[0],setDivinDays=dvs[1];
   var nns=useState([]);var nanaDays=nns[0],setNanaDays=nns[1];
   var stds=useState(true);var showTodo=stds[0],setShowTodo=stds[1];
+  var exps=useState(false);var showExport=exps[0],setShowExport=exps[1];
+  var sss=useState(false);var showSettings=sss[0],setShowSettings=sss[1];
 
   useEffect(function(){
     function onClick(){if(showSettings)setShowSettings(false);if(showExport)setShowExport(false);}
@@ -2326,23 +2249,34 @@ function App(){
   function delNana(id){setNanaDays(function(prev){var next=prev.filter(function(f){return f.id!==id;});try{localStorage.setItem("edit-tracker-nana",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,next);return next;});}
   function editNana(id,fields){setNanaDays(function(prev){var next=prev.map(function(f){return f.id===id?Object.assign({},f,fields):f;});try{localStorage.setItem("edit-tracker-nana",JSON.stringify(next));}catch(e){} saveCalendarExtras(holidays,finnDays,divinDays,next);return next;});}
   function showT(m){setToast(m);setTimeout(function(){setToast(null);},2500);}
+  // 背景自動同步（換狀態、打勾等）：失敗時出提示，不吞掉
+  function bgSave(p){return saveProject(p).catch(function(e){console.error("[bgSave]",e);showT("\u26a0 \u540c\u6b65 Notion \u5931\u6557\uff0c\u91cd\u6574\u524d\u8acb\u52ff\u95dc\u9801\uff1a"+(e&&e.message||e));});}
 
   // 儲存案子（新增或更新）→ Notion
   var saveP=useCallback(function(p){
     var pWithId=Object.assign({},p,{id:p.id||uid(),fee:p.fee?Number(p.fee):""});
+    var isNew=!pWithId.notionId;
+    showT((isNew?"\u23f3 \u65b0\u589e\u4e2d":"\u23f3 \u5132\u5b58\u4e2d")+"\u2026");
     saveProject(pWithId).then(function(saved){
-      // 如果是新增，saved 有 notionId
+      // 新增時後端必須回傳 notionId，沒有就代表沒真的寫進 Notion
+      if(isNew&&!(saved&&saved.notionId)){
+        throw new Error("\u4f3a\u670d\u5668\u6c92\u6709\u56de\u50b3 notionId\uff08\u56de\u61c9\uff1a"+JSON.stringify(saved)+"\uff09");
+      }
       var final=saved&&saved.notionId?Object.assign({},pWithId,{notionId:saved.notionId}):pWithId;
       setProjects(function(ps){
-        var ex=ps.find(function(x){return x.id===final.id||x.notionId===final.notionId;});
-        return ex?ps.map(function(x){return(x.id===final.id||x.notionId===final.notionId)?final:x;}):[].concat(ps,[final]);
+        var ex=ps.find(function(x){return x.id===final.id||(final.notionId&&x.notionId===final.notionId);});
+        return ex?ps.map(function(x){return(x.id===final.id||(final.notionId&&x.notionId===final.notionId))?final:x;}):[].concat(ps,[final]);
       });
+      setModal(null);showT("\u2705 \""+p.name+"\" \u5df2儲存");
+    }).catch(function(e){
+      console.error("[saveP] \u5132\u5b58\u5931\u6557",e);
+      setToast(null);
+      alert("\u274c "+(isNew?"\u65b0\u589e":"\u66f4\u65b0")+"\u5931\u6557\uff0c\u8cc7\u6599\u6c92\u6709\u5beb\u9032 Notion\n\n"+(e&&e.message||e)+"\n\n\u8996\u7a97\u6703\u4fdd\u7559\uff0c\u8cc7\u6599\u9084\u5728\uff0c\u53ef\u4ee5\u518d\u8a66\u4e00\u6b21\u3002");
     });
-    setModal(null);showT("\u2705 \""+p.name+"\" \u5df2儲存");
   },[]);
 
   // 刪除案子 → Notion
-  var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){console.log("[dup] saved=",JSON.stringify(saved));var final=saved&&saved.notionId?Object.assign({},newP,{notionId:saved.notionId}):newP;console.log("[dup] final.notionId=",final.notionId);setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");});},[]); var delP=useCallback(function(id){
+  var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){if(!(saved&&saved.notionId))throw new Error("伺服器沒有回傳 notionId（回應："+JSON.stringify(saved)+"）");var final=Object.assign({},newP,{notionId:saved.notionId});setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");}).catch(function(e){console.error("[dup] 複製失敗",e);alert("❌ 複製失敗，沒有寫進 Notion\n\n"+(e&&e.message||e));});},[]); var delP=useCallback(function(id){
     setProjects(function(ps){
       var p=ps.find(function(x){return x.id===id;});
       if(p&&p.notionId){deleteProject(p.notionId);}else{console.warn("del skip",id,p&&p.notionId);}
@@ -2356,7 +2290,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{status:s}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)bgSave(p);},0);
       return updated;
     });
   },[]);
@@ -2376,7 +2310,7 @@ function App(){
         return n;
       });
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)bgSave(p);},0);
       return updated;
     });
   },[]);
@@ -2385,7 +2319,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{status:newStatus}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)bgSave(p);},0);
       return updated;
     });
   },[]);
@@ -2394,7 +2328,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{order:newOrder}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)bgSave(p);},0);
       return updated;
     });
   },[]);
@@ -2410,15 +2344,12 @@ function App(){
       setTimeout(function(){
         updates.forEach(function(u){
           var p=updated.find(function(x){return x.id===u.id;});
-          if(p&&p.notionId)saveProject(p);
+          if(p&&p.notionId)bgSave(p);
         });
       },0);
       return updated;
     });
   },[]);
-
-  var exps=useState(false);var showExport=exps[0],setShowExport=exps[1];
-  var sss=useState(false);var showSettings=sss[0],setShowSettings=sss[1];
 
   function doExport(yearFilter){
     try{
@@ -2507,7 +2438,7 @@ function App(){
           h("div",{style:{display:"flex",background:C.card2,borderRadius:3,border:"1px solid "+C.brd,overflow:"hidden",maxWidth:"100%"}},
             [["todo2","\ud83d\udccb","\u5f85\u8fa6"],["kanban","\ud83d\udcc2","\u5c08\u6848"],["list","\ud83d\udcc3","\u5217\u8868"],["gantt","\ud83d\udcc8","\u7518\u7279\u5716"],["report","\ud83d\udcca","\u6708\u5831\u8868"],["_cal","\ud83d\udcc5","\u884c\u4e8b\u66c6"],["_plan","\ud83d\udcdd","\u6392\u7a0b\u898f\u5283"]].map(function(tab){var k=tab[0],ic=tab[1],txt=tab[2];var isMob=typeof window!=='undefined'&&window.innerWidth<768;var EXT_LINKS={"_cal":"https://finn-editor.vercel.app/finn-cal.html","_plan":"https://finn-editor.vercel.app/plan.html"};var onC=EXT_LINKS[k]?function(){window.location.href=EXT_LINKS[k];}:function(){setView(k);};return h("button",{key:k,onClick:onC,style:{background:view===k?C.acc:"transparent",color:view===k?"#fff":C.txt2,border:"none",padding:isMob?"6px 7px":"6px 8px",cursor:"pointer",fontWeight:500,fontSize:isMob?14:11,fontFamily:"inherit",whiteSpace:"nowrap",letterSpacing:"0.01em",flexShrink:0,lineHeight:1}},isMob?ic:(ic+" "+txt));})
           ),
-          (function(){var isMobNow=typeof window!=='undefined'&&window.innerWidth<768;return h("button",{onClick:function(){setModal(Object.assign({},EMPTY));},style:{background:C.acc,border:"1px solid "+C.acc,color:"#fff",borderRadius:3,padding:isMobNow?"6px 7px":"6px 10px",cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:isMobNow?14:11,lineHeight:1,whiteSpace:"nowrap",letterSpacing:"0.04em",boxSizing:"border-box"}},isMobNow?"\uff0b":"\uff0b \u65b0\u589e\u6848\u5b50");})(),
+          (function(){var isMobNow=typeof window!=='undefined'&&window.innerWidth<768;return h("button",{onClick:function(){if(ghost){showT("\ud83d\udc7b \u9b3c\u5f71\u6a21\u5f0f\u4e2d\u7121\u6cd5\u65b0\u589e\u6848\u5b50\uff0c\u8acb\u5148\u95dc\u9589");return;}setModal(Object.assign({},EMPTY,{feeItems:[],costItems:[]}));},style:{background:C.acc,border:"1px solid "+C.acc,color:"#fff",borderRadius:3,padding:isMobNow?"6px 7px":"6px 10px",cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:isMobNow?14:11,lineHeight:1,whiteSpace:"nowrap",letterSpacing:"0.04em",boxSizing:"border-box"}},isMobNow?"\uff0b":"\uff0b \u65b0\u589e\u6848\u5b50");})(),
           h("div",{style:{position:"relative"}},
             (function(){var isMobNow=typeof window!=='undefined'&&window.innerWidth<768;return h("button",{onClick:function(e){e.stopPropagation();setShowSettings(function(v){return!v;});setShowExport(false);},style:{background:showSettings?C.acc:C.card2,border:"1px solid "+(showSettings?C.acc:C.brd),color:showSettings?"#fff":C.txt2,borderRadius:3,padding:isMobNow?"6px 7px":"6px 8px",cursor:"pointer",fontFamily:"inherit",fontWeight:500,fontSize:isMobNow?14:11,whiteSpace:"nowrap",lineHeight:1,boxSizing:"border-box"},title:"\u8a2d\u5b9a"},"\u2699\ufe0f");})(),
             showSettings&&h("div",{onClick:function(e){e.stopPropagation();},style:{position:"absolute",top:"calc(100% + 6px)",right:0,background:C.card,border:"1px solid "+C.brd2,borderRadius:4,padding:6,boxShadow:"0 4px 16px rgba(0,0,0,0.15)",zIndex:300,minWidth:170}},
