@@ -333,6 +333,15 @@ function App(){
       setModal(null);showT("已刪除");
     }).catch(function(){alert("刪除失敗");});
   }
+  // 手動修改開票日（決定這張發票落在哪一期）
+  function setInvoiceDate(p,d){
+    var updated=Object.assign({},p,{invoiceDate:d,invoiced:!!d});
+    setProjects(function(list){return list.map(function(x){return x.id===p.id?updated:x;});});
+    patchProject(updated).catch(function(){
+      setProjects(function(list){return list.map(function(x){return x.id===p.id?p:x;});});
+      alert("寫回 Notion 失敗，已還原");
+    });
+  }
   // 勾／取消「已開立發票」
   function toggleInvoiced(p){
     var next=!p.invoiced;
@@ -630,8 +639,13 @@ function App(){
     var m2=year+"-"+String(pidx*2).padStart(2,"0");
     var inPeriod=function(m){return m===m1||m===m2;};
 
-    // 銷項：有開發票的案子
-    var sales=projects.filter(function(p){return p.invoice&&inPeriod(p.month);})
+    // 銷項：以「開票日」歸期，不是工作月份。沒開票日的不進本期。
+    var sales=projects.filter(function(p){
+        return p.invoice&&p.invoiced&&inPeriod(monthOf(p.invoiceDate));
+      })
+      .sort(function(a,b){return (a.invoiceDate||"").localeCompare(b.invoiceDate||"");});
+    // 待開立：該開發票但還沒開的，不分期別全部列出
+    var pending=projects.filter(function(p){return p.invoice&&!p.invoiced;})
       .sort(function(a,b){return (a.month||"").localeCompare(b.month||"");});
     // 進項：有統一發票的支出
     var purch=expenses.filter(function(e){return e.hasInvoice&&inPeriod(monthOf(e.date));})
@@ -651,11 +665,10 @@ function App(){
 
     function exportSales(){
       var rows=[[STUDIO.name,"統編 "+STUDIO.vatNo,periodLabel+" 銷項","","","",""],
-                ["工作月份","客戶","專案名稱","已開立","開票日","未稅金額","營業稅額","含稅合計"]];
+                ["開票日","客戶","專案名稱","工作月份","未稅金額","營業稅額","含稅合計"]];
       sales.forEach(function(p){var c=calcIncome(p);
-        rows.push([p.month||"",p.client||"",p.name||"",p.invoiced?"是":"否",
-          p.invoiceDate||"",c.gross,c.vat,c.gross+c.vat]);});
-      rows.push(["合計","","","","",sT.net,sT.vat,sT.net+sT.vat]);
+        rows.push([p.invoiceDate||"",p.client||"",p.name||"",p.month||"",c.gross,c.vat,c.gross+c.vat]);});
+      rows.push(["合計","","","",sT.net,sT.vat,sT.net+sT.vat]);
       downloadCSV("銷項_"+year+"_"+(pidx*2-1)+"-"+(pidx*2)+"月.csv",rows);
     }
     function exportPurch(){
@@ -696,16 +709,15 @@ function App(){
           )
         ),
         (function(){
-          var un=sales.filter(function(p){return !p.invoiced;});
-          if(sales.length===0)return null;
-          var unAmt=un.reduce(function(s2,p){var c=calcIncome(p);return s2+c.gross+c.vat;},0);
+          if(sales.length===0&&pending.length===0)return null;
+          var pendAmt=pending.reduce(function(s2,p){var c=calcIncome(p);return s2+c.gross+c.vat;},0);
           return h("div",{style:{marginTop:12,paddingTop:11,borderTop:"1px solid "+C.brd,
-              display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",fontSize:11.5}},
-            un.length===0
-              ? h("span",{style:{color:C.ok,fontWeight:700}},"本期發票都開完了")
-              : h("span",{style:{color:C.wrn,fontWeight:700}},
-                  "還有 "+un.length+" 張沒開，共 "+NT(unAmt)+"（含稅）"),
-            h("span",{style:{color:C.txt3}},"已開 "+(sales.length-un.length)+" / "+sales.length+" 張")
+              display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",fontSize:11.5}},
+            h("span",{style:{color:C.txt3}},"本期已開 "+sales.length+" 張"),
+            pending.length>0
+              ? h("span",{style:{color:C.wrn,fontWeight:700}},
+                  "另有 "+pending.length+" 張待開立，共 "+NT(pendAmt)+"（含稅）")
+              : h("span",{style:{color:C.ok,fontWeight:700}},"沒有待開立的發票")
           );
         })()
       ),
@@ -721,32 +733,36 @@ function App(){
           ? h("div",{style:{padding:"26px 14px",textAlign:"center",color:C.txt3,fontSize:12}},
               "這一期沒有開立發票的案子")
           : h("div",null,
-              h("div",{style:{display:"grid",gridTemplateColumns:"34px 52px 1fr 1.6fr 96px 80px 96px",gap:8,
+              h("div",{style:{display:"grid",gridTemplateColumns:"32px 104px 0.9fr 1.5fr 90px 76px 92px",gap:8,
                   padding:"8px 14px",borderBottom:"1px solid "+C.brd,background:"#fdfcf8"}},
-                h("div",{style:thStyle},"已開"),
-                h("div",{style:thStyle},"月份"),h("div",{style:thStyle},"客戶"),h("div",{style:thStyle},"專案"),
+                h("div",{style:thStyle},""),
+                h("div",{style:thStyle},"開票日"),h("div",{style:thStyle},"客戶"),h("div",{style:thStyle},"專案"),
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"未稅"),
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"稅額"),
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"含稅合計")
               ),
               sales.map(function(p){var c=calcIncome(p);
                 return h("div",{key:p.id,style:{display:"grid",
-                    gridTemplateColumns:"34px 52px 1fr 1.6fr 96px 80px 96px",gap:8,padding:"9px 14px",
+                    gridTemplateColumns:"32px 104px 0.9fr 1.5fr 90px 76px 92px",gap:8,padding:"9px 14px",
                     borderBottom:"0.5px solid "+C.brd,fontSize:12.5,alignItems:"center"}},
-                  h("div",{onClick:function(ev){ev.stopPropagation();toggleInvoiced(p);},
-                      title:p.invoiced?"已開立，點一下取消":"點一下標記為已開立",
+                  h("div",{onClick:function(){toggleInvoiced(p);},title:"取消已開立",
                       style:{cursor:"pointer",display:"flex",alignItems:"center"}},
-                    h("input",{type:"checkbox",checked:!!p.invoiced,readOnly:true,
+                    h("input",{type:"checkbox",checked:true,readOnly:true,
                       style:{accentColor:C.ok,cursor:"pointer",pointerEvents:"none"}})
                   ),
-                  h("div",{style:{fontSize:11,color:C.txt2}},(p.month||"").slice(5)+"月"),
+                  h("input",{type:"date",value:p.invoiceDate||"",
+                    onChange:function(ev){setInvoiceDate(p,ev.target.value);},
+                    style:{background:"transparent",border:"1px solid transparent",borderRadius:3,
+                      fontFamily:"inherit",fontSize:11,color:C.txt2,padding:"2px 3px",width:"100%"},
+                    onFocus:function(ev){ev.target.style.borderColor=C.brd;},
+                    onBlur:function(ev){ev.target.style.borderColor="transparent";}}),
                   h("div",{style:{fontSize:11.5,color:C.txt2,whiteSpace:"nowrap",overflow:"hidden",
                     textOverflow:"ellipsis"}},p.client||"—"),
                   h("div",{style:{minWidth:0}},
                     h("div",{className:"serif",style:{fontSize:13,whiteSpace:"nowrap",overflow:"hidden",
                       textOverflow:"ellipsis"}},p.name||"—"),
-                    p.invoiced&&p.invoiceDate&&h("div",{style:{fontSize:10,color:C.ok,marginTop:1}},
-                      "開立 "+p.invoiceDate.slice(5))
+                    p.month&&h("div",{style:{fontSize:10,color:C.txt3,marginTop:1}},
+                      "工作月份 "+p.month.slice(5)+"月")
                   ),
                   h("div",{className:"num",style:{textAlign:"right",fontSize:14}},NT(c.gross)),
                   h("div",{className:"num",style:{textAlign:"right",fontSize:14,color:C.wrn}},NT(c.vat)),
@@ -754,7 +770,7 @@ function App(){
                     NT(c.gross+c.vat))
                 );
               }),
-              h("div",{style:{display:"grid",gridTemplateColumns:"34px 52px 1fr 1.6fr 96px 80px 96px",gap:8,
+              h("div",{style:{display:"grid",gridTemplateColumns:"32px 104px 0.9fr 1.5fr 90px 76px 92px",gap:8,
                   padding:"10px 14px",background:C.card2,fontSize:12.5,alignItems:"center"}},
                 h("div",{style:{gridColumn:"1 / 5",fontSize:10,fontWeight:700,color:C.txt3}},"本期合計"),
                 h("div",{className:"num",style:{textAlign:"right",fontSize:15,fontWeight:600}},NT(sT.net)),
@@ -762,6 +778,39 @@ function App(){
                 h("div",{className:"num",style:{textAlign:"right",fontSize:15,fontWeight:600}},NT(sT.net+sT.vat))
               )
             )
+      ),
+      // 待開立
+      pending.length>0&&h("div",{style:{background:C.card,border:"1px solid #e8d09a",borderRadius:6,
+          overflow:"hidden",marginBottom:14}},
+        h("div",{style:{padding:"10px 14px",background:C.wrnBg,borderBottom:"1px solid #e8d09a"}},
+          h("span",{style:{fontSize:11,fontWeight:700,color:"#b35f10"}},
+            "待開立　"+pending.length+" 張"),
+          h("span",{style:{fontSize:10.5,color:"#b35f10",marginLeft:8,opacity:0.85}},
+            "勾起來會用今天的日期開票，之後可以改")
+        ),
+        pending.map(function(p){var c=calcIncome(p);
+          return h("div",{key:p.id,className:"row-hover",
+              style:{display:"grid",gridTemplateColumns:"32px 104px 0.9fr 1.5fr 90px 76px 92px",gap:8,
+                padding:"9px 14px",borderBottom:"0.5px solid "+C.brd,fontSize:12.5,alignItems:"center"}},
+            h("div",{onClick:function(){toggleInvoiced(p);},title:"標記為已開立",
+                style:{cursor:"pointer",display:"flex",alignItems:"center"}},
+              h("input",{type:"checkbox",checked:false,readOnly:true,
+                style:{accentColor:C.ok,cursor:"pointer",pointerEvents:"none"}})
+            ),
+            h("div",{style:{fontSize:11,color:C.txt3}},"未開"),
+            h("div",{style:{fontSize:11.5,color:C.txt2,whiteSpace:"nowrap",overflow:"hidden",
+              textOverflow:"ellipsis"}},p.client||"—"),
+            h("div",{style:{minWidth:0}},
+              h("div",{className:"serif",style:{fontSize:13,whiteSpace:"nowrap",overflow:"hidden",
+                textOverflow:"ellipsis"}},p.name||"—"),
+              p.month&&h("div",{style:{fontSize:10,color:C.txt3,marginTop:1}},
+                "工作月份 "+p.month.slice(5)+"月")
+            ),
+            h("div",{className:"num",style:{textAlign:"right",fontSize:14,color:C.txt3}},NT(c.gross)),
+            h("div",{className:"num",style:{textAlign:"right",fontSize:14,color:C.txt3}},NT(c.vat)),
+            h("div",{className:"num",style:{textAlign:"right",fontSize:14,color:C.txt3}},NT(c.gross+c.vat))
+          );
+        })
       ),
       // 進項明細
       h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
@@ -819,7 +868,7 @@ function App(){
         )
       ),
       h("div",{style:{fontSize:10.5,color:C.txt3,marginTop:12,lineHeight:1.7}},
-        "期別是依案子的「工作月份」歸屬，不是實際開立發票的日期。如果你的請款月份和工作月份會錯開，交表前請跟會計師核對一次。")
+        "期別是依「開票日」歸屬。工作月份只是參考，7、8 月做的案子如果 9 月才開票，就會算進 9–10 月這一期，跟你實際送給會計的一致。")
     );
   }
 
