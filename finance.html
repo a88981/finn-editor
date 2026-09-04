@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>玩ㄉ帳本(•̀ω•́)⸝ ި ʕᦏ</title>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>小玩工作室帳本 📒</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +28,7 @@ var _R=React,useState=_R.useState,useEffect=_R.useEffect,h=_R.createElement;
 // 設定
 // ══════════════════════════════════════════════════════════════════
 var API="/api/notion";
+var STUDIO={name:"小玩工作室",vatNo:"00695271"};   // 抬頭與統編，改這裡就好
 var VAT_RATE=0.05;      // 營業稅
 var WH_RATE=0.10;       // 執行業務所得扣繳
 
@@ -84,7 +85,7 @@ function isPreview(){
 }
 
 var DEMO_PROJECTS=[
-  {id:"d1",name:"帶滴爸去蘇格蘭",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"24:10",taxCut:true,invoice:true,feeItems:[{qty:"1",price:"2500",label:"封面圖"}],costItems:[{amount:"1180",label:"字幕"}]},
+  {id:"d1",invoiced:true,invoiceDate:"2026-08-31",name:"帶滴爸去蘇格蘭",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"24:10",taxCut:true,invoice:true,feeItems:[{qty:"1",price:"2500",label:"封面圖"}],costItems:[{amount:"1180",label:"字幕"}]},
   {id:"d2",name:"巴賽隆納不排行程",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"18:40",taxCut:true,invoice:true,feeItems:[],costItems:[{amount:"960",label:"字幕"}]},
   {id:"d3",name:"Reels_一錠除",client:"🤍日本人娜娜",month:"2026-08",fee:2000,overRate:0,length:"0:45",taxCut:false,invoice:false,feeItems:[],costItems:[]},
   {id:"d4",name:"百慕達三角洲",client:"👬DoDoMen",month:"2026-07",fee:13000,overRate:850,length:"30:00",taxCut:true,invoice:true,feeItems:[],costItems:[{amount:"1400",label:"字幕"}]},
@@ -118,6 +119,13 @@ function saveExpense(e){
 function deleteExpense(notionId){
   if(isPreview())return Promise.resolve({ok:true});
   return fetch(API+"?action=expense-delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notionId:notionId})})
+    .then(function(r){return r.json();});
+}
+// 回寫案子（目前只用來標記發票已開立）
+function patchProject(p){
+  if(isPreview())return Promise.resolve({ok:true});
+  if(!p.notionId)return Promise.reject(new Error("這筆案子沒有 notionId"));
+  return fetch(API+"?action=update",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
     .then(function(r){return r.json();});
 }
 
@@ -156,7 +164,13 @@ function ExpenseModal(props){
   var isNew=!f.notionId;
 
   var projOpts=[];
-  projects.forEach(function(p){if(p.name&&projOpts.indexOf(p.name)<0)projOpts.push(p.name);});
+  projects.slice().sort(function(a,b){return (b.month||"").localeCompare(a.month||"");})
+    .forEach(function(p){
+      if(!p.name||p.closed)return;
+      if(projOpts.indexOf(p.name)<0)projOpts.push(p.name);
+    });
+  // 編輯舊支出時，原本掛的案子就算已結案也要留在清單裡，否則存檔會被清空
+  if(f.project&&projOpts.indexOf(f.project)<0)projOpts.unshift(f.project);
 
   return h("div",{style:{position:"fixed",inset:0,background:"rgba(44,40,37,0.45)",zIndex:99,
       display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
@@ -207,7 +221,7 @@ function ExpenseModal(props){
             "全額列為費用 "+NT(c.paid)+"，無進項稅額可扣抵")
         ),
         h("div",null,
-          h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"算在哪支影片頭上（選填）"),
+          h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"算在哪支影片頭上（選填，只列未結案）"),
           h("select",{style:INP,value:f.project,onChange:function(e){set("project",e.target.value);}},
             h("option",{value:""},"— 共同費用，不歸任何案子 —"),
             projOpts.map(function(n){return h("option",{key:n,value:n},n);}))
@@ -317,6 +331,18 @@ function App(){
         return !((x.notionId&&x.notionId===f.notionId)||(x.id&&x.id===f.id));});});
       setModal(null);showT("已刪除");
     }).catch(function(){alert("刪除失敗");});
+  }
+  // 勾／取消「已開立發票」
+  function toggleInvoiced(p){
+    var next=!p.invoiced;
+    var updated=Object.assign({},p,{invoiced:next,invoiceDate:next?(p.invoiceDate||todayISO()):""});
+    setProjects(function(list){return list.map(function(x){return x.id===p.id?updated:x;});});
+    patchProject(updated).then(function(){
+      showT(next?"已標記開立":"取消標記");
+    }).catch(function(){
+      setProjects(function(list){return list.map(function(x){return x.id===p.id?p:x;});});
+      alert("寫回 Notion 失敗，已還原");
+    });
   }
 
   var btn=function(active,color){return {padding:"6px 14px",borderRadius:4,border:"1px solid "+(active?(color||C.acc):C.brd),
@@ -579,14 +605,17 @@ function App(){
     var periodLabel=year+" 年 "+(pidx*2-1)+"–"+(pidx*2)+" 月";
 
     function exportSales(){
-      var rows=[["工作月份","客戶","專案名稱","未稅金額","營業稅額","含稅合計"]];
+      var rows=[[STUDIO.name,"統編 "+STUDIO.vatNo,periodLabel+" 銷項","","","",""],
+                ["工作月份","客戶","專案名稱","已開立","開票日","未稅金額","營業稅額","含稅合計"]];
       sales.forEach(function(p){var c=calcIncome(p);
-        rows.push([p.month||"",p.client||"",p.name||"",c.gross,c.vat,c.gross+c.vat]);});
-      rows.push(["合計","","",sT.net,sT.vat,sT.net+sT.vat]);
+        rows.push([p.month||"",p.client||"",p.name||"",p.invoiced?"是":"否",
+          p.invoiceDate||"",c.gross,c.vat,c.gross+c.vat]);});
+      rows.push(["合計","","","","",sT.net,sT.vat,sT.net+sT.vat]);
       downloadCSV("銷項_"+year+"_"+(pidx*2-1)+"-"+(pidx*2)+"月.csv",rows);
     }
     function exportPurch(){
-      var rows=[["日期","項目","科目","發票號碼","未稅金額","進項稅額","實付含稅"]];
+      var rows=[[STUDIO.name,"統編 "+STUDIO.vatNo,periodLabel+" 進項","","","",""],
+                ["日期","項目","科目","發票號碼","未稅金額","進項稅額","實付含稅"]];
       purch.forEach(function(e){var c=calcExpense(e);
         rows.push([e.date||"",e.name||"",e.account||"",e.invoiceNo||"",c.net,c.inputVat,c.paid]);});
       rows.push(["合計","","","",pT.net,pT.vat,pT.paid]);
@@ -620,7 +649,20 @@ function App(){
               NT(Math.abs(due))),
             h("div",{style:{fontSize:10,color:C.txt3}},"銷項減進項")
           )
-        )
+        ),
+        (function(){
+          var un=sales.filter(function(p){return !p.invoiced;});
+          if(sales.length===0)return null;
+          var unAmt=un.reduce(function(s2,p){var c=calcIncome(p);return s2+c.gross+c.vat;},0);
+          return h("div",{style:{marginTop:12,paddingTop:11,borderTop:"1px solid "+C.brd,
+              display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",fontSize:11.5}},
+            un.length===0
+              ? h("span",{style:{color:C.ok,fontWeight:700}},"本期發票都開完了")
+              : h("span",{style:{color:C.wrn,fontWeight:700}},
+                  "還有 "+un.length+" 張沒開，共 "+NT(unAmt)+"（含稅）"),
+            h("span",{style:{color:C.txt3}},"已開 "+(sales.length-un.length)+" / "+sales.length+" 張")
+          );
+        })()
       ),
       // 銷項明細
       h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
@@ -634,8 +676,9 @@ function App(){
           ? h("div",{style:{padding:"26px 14px",textAlign:"center",color:C.txt3,fontSize:12}},
               "這一期沒有開立發票的案子")
           : h("div",null,
-              h("div",{style:{display:"grid",gridTemplateColumns:"52px 1fr 1.7fr 100px 82px 100px",gap:8,
+              h("div",{style:{display:"grid",gridTemplateColumns:"34px 52px 1fr 1.6fr 96px 80px 96px",gap:8,
                   padding:"8px 14px",borderBottom:"1px solid "+C.brd,background:"#fdfcf8"}},
+                h("div",{style:thStyle},"已開"),
                 h("div",{style:thStyle},"月份"),h("div",{style:thStyle},"客戶"),h("div",{style:thStyle},"專案"),
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"未稅"),
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"稅額"),
@@ -643,22 +686,32 @@ function App(){
               ),
               sales.map(function(p){var c=calcIncome(p);
                 return h("div",{key:p.id,style:{display:"grid",
-                    gridTemplateColumns:"52px 1fr 1.7fr 100px 82px 100px",gap:8,padding:"9px 14px",
+                    gridTemplateColumns:"34px 52px 1fr 1.6fr 96px 80px 96px",gap:8,padding:"9px 14px",
                     borderBottom:"0.5px solid "+C.brd,fontSize:12.5,alignItems:"center"}},
+                  h("div",{onClick:function(ev){ev.stopPropagation();toggleInvoiced(p);},
+                      title:p.invoiced?"已開立，點一下取消":"點一下標記為已開立",
+                      style:{cursor:"pointer",display:"flex",alignItems:"center"}},
+                    h("input",{type:"checkbox",checked:!!p.invoiced,readOnly:true,
+                      style:{accentColor:C.ok,cursor:"pointer",pointerEvents:"none"}})
+                  ),
                   h("div",{style:{fontSize:11,color:C.txt2}},(p.month||"").slice(5)+"月"),
                   h("div",{style:{fontSize:11.5,color:C.txt2,whiteSpace:"nowrap",overflow:"hidden",
                     textOverflow:"ellipsis"}},p.client||"—"),
-                  h("div",{className:"serif",style:{fontSize:13,whiteSpace:"nowrap",overflow:"hidden",
-                    textOverflow:"ellipsis"}},p.name||"—"),
+                  h("div",{style:{minWidth:0}},
+                    h("div",{className:"serif",style:{fontSize:13,whiteSpace:"nowrap",overflow:"hidden",
+                      textOverflow:"ellipsis"}},p.name||"—"),
+                    p.invoiced&&p.invoiceDate&&h("div",{style:{fontSize:10,color:C.ok,marginTop:1}},
+                      "開立 "+p.invoiceDate.slice(5))
+                  ),
                   h("div",{className:"num",style:{textAlign:"right",fontSize:14}},NT(c.gross)),
                   h("div",{className:"num",style:{textAlign:"right",fontSize:14,color:C.wrn}},NT(c.vat)),
                   h("div",{className:"num",style:{textAlign:"right",fontSize:14,fontWeight:600}},
                     NT(c.gross+c.vat))
                 );
               }),
-              h("div",{style:{display:"grid",gridTemplateColumns:"52px 1fr 1.7fr 100px 82px 100px",gap:8,
+              h("div",{style:{display:"grid",gridTemplateColumns:"34px 52px 1fr 1.6fr 96px 80px 96px",gap:8,
                   padding:"10px 14px",background:C.card2,fontSize:12.5,alignItems:"center"}},
-                h("div",{style:{gridColumn:"1 / 4",fontSize:10,fontWeight:700,color:C.txt3}},"本期合計"),
+                h("div",{style:{gridColumn:"1 / 5",fontSize:10,fontWeight:700,color:C.txt3}},"本期合計"),
                 h("div",{className:"num",style:{textAlign:"right",fontSize:15,fontWeight:600}},NT(sT.net)),
                 h("div",{className:"num",style:{textAlign:"right",fontSize:15,fontWeight:600,color:C.wrn}},NT(sT.vat)),
                 h("div",{className:"num",style:{textAlign:"right",fontSize:15,fontWeight:600}},NT(sT.net+sT.vat))
@@ -730,9 +783,11 @@ function App(){
     h("div",{style:{display:"flex",alignItems:"baseline",justifyContent:"space-between",
         flexWrap:"wrap",gap:10,marginBottom:16}},
       h("div",null,
-        h("div",{className:"serif",style:{fontSize:20,fontWeight:600,letterSpacing:"0.02em"}},"工作室帳本"),
+        h("div",{className:"serif",style:{fontSize:20,fontWeight:600,letterSpacing:"0.02em"}},
+          STUDIO.name+"帳本"),
         h("div",{style:{fontSize:11,color:C.txt3,marginTop:2}},
-          mode==="mine"?"收入自動從案子追蹤抓，支出手動記":"依營業稅期別整理的銷項與進項")
+          "統編 "+STUDIO.vatNo+"　·　"+
+          (mode==="mine"?"收入自動從案子追蹤抓，支出手動記":"依營業稅期別整理的銷項與進項"))
       ),
       h("div",{style:{display:"flex",alignItems:"center",gap:10}},
         h("div",{style:{display:"flex",background:C.card2,border:"1px solid "+C.brd,
