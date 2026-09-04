@@ -161,8 +161,11 @@ function saveClients(c){
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
-var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
+var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,invoice:false,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
+
+// 開發票時的營業稅率（顯示用，不影響實際收入計算）
+var VAT_RATE=0.05;
 
 // ── 客戶預設收費 ──────────────────────────────────────────────────────────────
 // key 用純文字客戶名（不含 emoji），客戶名稱只要「包含」這個 key 就算命中
@@ -538,6 +541,9 @@ function Modal(props){
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
+  // 開發票：只顯示含稅金額，不進入任何實際收入／總額計算
+  var vat=form.invoice?Math.round(tr*VAT_RATE):0;
+  var trVat=tr+vat;
   var ec=(form.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
   var tc=tax+ec,net=tr-tc;
   var now=new Date();
@@ -606,12 +612,22 @@ function Modal(props){
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:4,padding:"12px"}},
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
             h("span",{style:{fontSize:12,fontWeight:700,color:C.txt}},"\ud83d\udcb0 \u8cbb\u7528"),
-            tr>0&&h("span",{style:{fontSize:12,fontWeight:700,color:net>=0?C.ok:C.err}},"\u6536\u5165 "+NT(tr)+(tc>0?" / \u652f "+NT(tc):"")+" \uff5c \u7e3d\u984d "+NT(net))
+            tr>0&&h("span",{style:{fontSize:12,fontWeight:700,color:net>=0?C.ok:C.err}},
+              "\u6536\u5165 "+NT(tr),
+              vat>0&&h("span",{style:{color:"#d07010"}},"\uff08\u542b\u7a05 "+NT(trVat)+"\uff09"),
+              (tc>0?" / \u652f "+NT(tc):"")+" \uff5c \u7e3d\u984d "+NT(net)
+            )
           ),
           h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
             h("div",{style:{background:C.okBg,borderRadius:4,padding:"9px",border:"1px solid #a8d8b8"}},
               h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
-                h("div",{style:{fontSize:10,color:C.ok,fontWeight:700}},"\u6536\u5165"),
+                h("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                  h("div",{style:{fontSize:10,color:C.ok,fontWeight:700}},"\u6536\u5165"),
+                  h("label",{style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:10,color:form.invoice?"#2f6f4a":"#7fae92",background:form.invoice?"#d8f0e4":"#eef7f1",borderRadius:4,padding:"2px 8px"}},
+                    h("input",{type:"checkbox",checked:!!form.invoice,onChange:function(e){set("invoice",e.target.checked);},style:{accentColor:"#3d7a50"}}),
+                    "\u958b\u767c\u7968"
+                  )
+                ),
                 h("button",{onClick:function(e){
                   e.preventDefault();
                   var overFee2=overMins*(Number(form.overRate)||850);
@@ -626,6 +642,7 @@ function Modal(props){
                   if(overFee2>0)lines.push("\u8d85\u6642\u8cbb\uff1a"+overMins+"\u5206 \xd7 "+NT(Number(form.overRate)||850)+" = "+NT(overFee2));
                   feeItems.forEach(function(x){var lt=(Number(x.qty)||0)*(Number(x.price)||0);if(lt>0)lines.push((x.label||"\u7d30\u9805")+"\uff1a"+NT(lt));});
                   lines.push("\u7e3d\u8a08\uff1a"+NT(tot2));
+                  if(form.invoice)lines.push("\u958b\u767c\u7968\u542b\u7a05\uff1a"+NT(tot2+Math.round(tot2*VAT_RATE)));
                   var text=lines.join("\n");
                   var ta=document.createElement("textarea");
                   ta.value=text;ta.style.cssText="position:fixed;top:0;left:0;opacity:0;";
@@ -1535,6 +1552,9 @@ function ListView(props){
   var cf=useState("all");var clientFilter=cf[0],setClientFilter=cf[1];
   var mf=useState("all");var monthFilter=mf[0],setMonthFilter=mf[1];
   var qf=useState("");var query=qf[0],setQuery=qf[1];
+  // 含稅檢視：只影響「收入」欄與收入合計，支出／總額不動；重新整理會回到未稅
+  var vf=useState(false);var showVat=vf[0],setShowVat=vf[1];
+  function incOf(p,f){return p.invoice?f.total+Math.round(f.total*VAT_RATE):f.total;}
 
   var allMonths=[];projects.forEach(function(p){if(p.month&&allMonths.indexOf(p.month)<0)allMonths.push(p.month);});allMonths.sort().reverse();
 
@@ -1580,7 +1600,7 @@ function ListView(props){
   });
 
   // Totals
-  var totals=filtered.reduce(function(a,p){var f=calcP(p);return{inc:a.inc+f.total,cost:a.cost+f.totalCost,net:a.net+f.net};},{inc:0,cost:0,net:0});
+  var totals=filtered.reduce(function(a,p){var f=calcP(p);return{inc:a.inc+f.total,incVat:a.incVat+incOf(p,f),cost:a.cost+f.totalCost,net:a.net+f.net};},{inc:0,incVat:0,cost:0,net:0});
 
   var selStyle=Object.assign({},INP,{width:"auto",padding:"5px 9px",fontSize:12});
 
@@ -1592,6 +1612,9 @@ function ListView(props){
       h("div",{style:{position:"relative",display:"inline-flex",alignItems:"center"}},
         h("input",{type:"text",value:query,onChange:function(e){setQuery(e.target.value);},placeholder:"\ud83d\udd0d \u641c\u5c0b\u5c08\u6848\u540d/\u5ba2\u6236",style:Object.assign({},INP,{width:180,padding:"5px 9px",fontSize:12,paddingRight:query?26:9})}),
         query&&h("button",{onClick:function(){setQuery("");},style:{position:"absolute",right:4,background:"transparent",border:"none",cursor:"pointer",color:C.txt3,fontSize:14,padding:"2px 6px"}},"\u00d7")
+      ),
+      !isMob&&h("button",{onClick:function(){setShowVat(!showVat);},title:"\u53ea\u5f71\u97ff\u300c\u6536\u5165\u300d\u6b04\uff0c\u652f\u51fa\u8207\u7e3d\u984d\u4e0d\u8b8a",style:{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:4,border:"1px solid "+(showVat?"#d07010":C.brd),background:showVat?"#fdf0e2":C.card,color:showVat?"#b35f10":C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},
+        h("span",{style:{fontSize:11}},showVat?"\u2713":""),"\u542b\u7a05\u5831\u50f9"
       )
     ),
     filtered.length===0?h("div",{style:{textAlign:"center",padding:"48px 0",color:C.txt3}},"\u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u6848\u5b50"):
@@ -1623,7 +1646,7 @@ function ListView(props){
       return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:4,overflow:"hidden"}},
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"8px 12px",background:C.card2,borderBottom:"1px solid "+C.brd2,fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},
           h("div",null,"\u6708\u4efd"),h("div",null,"\u5ba2\u6236"),h("div",null,"\u4e0a\u7247\u65e5"),h("div",null,"\u72c0\u614b"),h("div",null,"\u5c08\u6848\u540d"),
-          h("div",{style:{textAlign:"right"}},"\u6536\u5165"),h("div",{style:{textAlign:"right"}},"\u652f\u51fa"),h("div",{style:{textAlign:"right"}},"\u7e3d\u984d")
+          h("div",{style:{textAlign:"right",color:showVat?"#d07010":C.txt3}},showVat?"\u6536\u5165\uff08\u542b\u7a05\uff09":"\u6536\u5165"),h("div",{style:{textAlign:"right"}},"\u652f\u51fa"),h("div",{style:{textAlign:"right"}},"\u7e3d\u984d")
         ),
         filtered.map(function(p,idx){
           var f=calcP(p),cc=cColors[p.client]||C.txt2;
@@ -1635,7 +1658,11 @@ function ListView(props){
             h("div",{style:{fontSize:10.5,color:p.airDate?C.acc:C.txt3,fontWeight:p.airDate?700:400}},p.airDate?fmtAir(p.airDate):"\u2014"),
             h("div",{style:{minWidth:0}},p.closed?h("span",{style:{fontSize:10,background:C.card2,color:C.txt3,borderRadius:3,padding:"2px 7px",fontWeight:600,border:"0.5px solid "+C.brd,whiteSpace:"nowrap"}},"\u5df2\u7d50\u6848"):h("span",{style:{fontSize:10,background:ca+"15",color:ca,borderRadius:3,padding:"2px 7px",fontWeight:600,whiteSpace:"nowrap"}},p.status)),
             h("div",{style:{fontFamily:"'Noto Serif TC',serif",fontSize:13,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:p.closed?"line-through":"none"}},p.name),
-            h("div",{style:{textAlign:"right",fontSize:12,fontWeight:500,color:f.total>0?C.txt2:C.txt3}},f.total>0?"NT$ "+Math.round(f.total).toLocaleString():"\u2014"),
+            (function(){
+              var vatRow=showVat&&p.invoice&&f.total>0;
+              var val=vatRow?incOf(p,f):f.total;
+              return h("div",{style:{textAlign:"right",fontSize:12,fontWeight:vatRow?700:500,color:vatRow?"#d07010":(f.total>0?C.txt2:C.txt3)}},f.total>0?"NT$ "+Math.round(val).toLocaleString():"\u2014");
+            })(),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:500,color:f.totalCost>0?C.err:C.txt3}},f.totalCost>0?"NT$ "+Math.round(f.totalCost).toLocaleString():"\u2014"),
             h("div",{style:{textAlign:"right",fontSize:12,fontWeight:700,color:f.net>0?C.ok:C.txt3}},f.total>0?"NT$ "+Math.round(f.net).toLocaleString():"\u2014")
           );
@@ -1643,7 +1670,7 @@ function ListView(props){
         h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"10px 12px",background:C.card2,fontSize:12,alignItems:"center",borderTop:"1px solid "+C.brd2}},
           h("div",{style:{gridColumn:"1 / 5",fontSize:10,fontWeight:700,color:C.txt3,letterSpacing:"0.06em"}},"\u5408\u8a08"),
           h("div",{style:{fontSize:10,color:C.txt3}},"\u5171 "+filtered.length+" \u4ef6"),
-          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:C.txt2}},totals.inc>0?"NT$ "+Math.round(totals.inc).toLocaleString():"\u2014"),
+          h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:showVat&&totals.incVat!==totals.inc?"#d07010":C.txt2}},totals.inc>0?"NT$ "+Math.round(showVat?totals.incVat:totals.inc).toLocaleString():"\u2014"),
           h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.cost>0?C.err:C.txt3}},totals.cost>0?"NT$ "+Math.round(totals.cost).toLocaleString():"\u2014"),
           h("div",{style:{textAlign:"right",fontSize:13,fontWeight:700,color:totals.net>=0?C.ok:C.err}},"NT$ "+Math.round(totals.net).toLocaleString())
         )
