@@ -3,6 +3,7 @@ const NOTION_API = "https://api.notion.com/v1";
 const DB_ID = "9b73ebba-2aec-49ac-be96-4483360a1456";
 const CLIENTS_DB_ID = "7f44768f-64cf-404a-abe1-c153e68b1179";
 const TIME_DB_ID = "3790c47d-6782-80ce-bcc8-d55f69b9f893";
+const EXPENSE_DB_ID = "3d10c47d67828042b75fd535ceb87018";
 
 export default async function handler(req, res) {
   // CORS
@@ -238,6 +239,65 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // ── 工作室支出 actions ─────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+
+    // 讀取所有支出
+    if (req.method === "GET" && action === "expense-list") {
+      let results = [], cursor = undefined, hasMore = true;
+      while (hasMore) {
+        const payload = { page_size: 100, sorts: [{ property: "日期", direction: "descending" }] };
+        if (cursor) payload.start_cursor = cursor;
+        const response = await fetch(`${NOTION_API}/databases/${EXPENSE_DB_ID}/query`, {
+          method: "POST",
+          headers: notionHeaders,
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (data.object === "error") return res.status(400).json({ error: data.message, code: data.code });
+        results = results.concat(data.results || []);
+        hasMore = data.has_more;
+        cursor = data.next_cursor;
+      }
+      return res.status(200).json(results.map(expensePageToEntry).filter(Boolean));
+    }
+
+    // 新增／更新一筆支出
+    if (req.method === "POST" && action === "expense-save") {
+      const e = body || {};
+      const props = expenseToProps(e);
+      let result;
+      if (e.notionId) {
+        const r = await fetch(`${NOTION_API}/pages/${e.notionId}`, {
+          method: "PATCH", headers: notionHeaders,
+          body: JSON.stringify({ properties: props }),
+        });
+        result = await r.json();
+      } else {
+        const r = await fetch(`${NOTION_API}/pages`, {
+          method: "POST", headers: notionHeaders,
+          body: JSON.stringify({ parent: { database_id: EXPENSE_DB_ID }, properties: props }),
+        });
+        result = await r.json();
+      }
+      if (result.object === "error") return res.status(400).json({ error: result.message, code: result.code });
+      return res.status(200).json({ ok: true, notionId: result.id });
+    }
+
+    // 刪除（封存）一筆支出
+    if (req.method === "POST" && action === "expense-delete") {
+      const { notionId } = body || {};
+      if (!notionId) return res.status(400).json({ error: "Missing notionId" });
+      const r = await fetch(`${NOTION_API}/pages/${notionId}`, {
+        method: "PATCH", headers: notionHeaders,
+        body: JSON.stringify({ archived: true }),
+      });
+      const result = await r.json();
+      if (result.object === "error") return res.status(400).json({ error: result.message });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // ── 時間紀錄 actions ───────────────────────────────────────────
     // ═══════════════════════════════════════════════════════════════
 
@@ -422,6 +482,43 @@ function projectToProperties(p) {
     "Final截止日":{ date: date(p.finalDue) },
     "Final完成":   { checkbox: !!p.finalDone },
     "額外資料":  { rich_text: richText(JSON.stringify({feeItems:p.feeItems||[],costItems:p.costItems||[],overRate:p.overRate!==undefined?p.overRate:850})) },
+  };
+}
+
+// ── 工作室支出 helper ─────────────────────────────────────────────
+function expensePageToEntry(page) {
+  if (!page || !page.properties) return null;
+  const p = page.properties;
+  function txt(k) { try { return (p[k] && p[k].rich_text && p[k].rich_text[0]) ? p[k].rich_text[0].plain_text : (p[k] && p[k].title && p[k].title[0]) ? p[k].title[0].plain_text : ""; } catch(e) { return ""; } }
+  function chk(k) { try { return !!(p[k] && p[k].checkbox); } catch(e) { return false; } }
+  function sel(k) { try { return (p[k] && p[k].select) ? p[k].select.name : ""; } catch(e) { return ""; } }
+  function dt(k)  { try { return (p[k] && p[k].date) ? p[k].date.start : ""; } catch(e) { return ""; } }
+  function num(k) { try { return (p[k] && p[k].number !== null && p[k].number !== undefined) ? p[k].number : 0; } catch(e) { return 0; } }
+  return {
+    id: page.id ? page.id.replace(/-/g, "") : "",
+    notionId: page.id || "",
+    name: txt("項目"),
+    date: dt("日期"),
+    amount: num("金額"),
+    account: sel("科目") || "其他",
+    hasInvoice: chk("有發票"),
+    invoiceNo: txt("發票號碼"),
+    project: txt("關聯案子"),
+    note: txt("備註"),
+  };
+}
+
+function expenseToProps(e) {
+  const richText = s => [{ text: { content: String(s || "") } }];
+  return {
+    "項目":     { title: richText(e.name) },
+    "日期":     { date: e.date ? { start: e.date } : null },
+    "金額":     { number: Number(e.amount) || 0 },
+    "科目":     { select: e.account ? { name: e.account } : null },
+    "有發票":   { checkbox: !!e.hasInvoice },
+    "發票號碼": { rich_text: richText(e.invoiceNo || "") },
+    "關聯案子": { rich_text: richText(e.project || "") },
+    "備註":     { rich_text: richText(e.note || "") },
   };
 }
 
