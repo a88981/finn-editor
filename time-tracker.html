@@ -105,6 +105,10 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-proj .ac-client{font-size:10.5px;color:var(--ink-light);font-family:Inter,sans-serif;letter-spacing:0.04em;font-weight:400;margin-left:4px}
 .ac-meta{font-size:10.5px;color:var(--ink-light);margin-top:2px;font-family:'Cormorant Garamond',serif;font-style:italic}
 .ac-meta .stage{display:inline-block;font-family:'Inter',sans-serif;font-style:normal;font-size:9.5px;letter-spacing:0.12em;padding:1px 5px;border-radius:2px;background:var(--yellow-pale);color:var(--yellow-mid);font-weight:500;margin-right:6px;text-transform:uppercase}
+.ac-meta .stage.editable{cursor:pointer;border:1px dashed transparent}
+.ac-meta .stage.editable:hover{background:var(--yellow-soft);border-color:var(--yellow-mid)}
+.ac-stage-sel{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.08em;color:var(--yellow-mid);background:#fff;border:1px solid var(--yellow);border-radius:2px;padding:1px 4px;margin-right:6px;cursor:pointer;font-weight:500}
+.ac-stage-sel:focus{outline:none;border-color:var(--yellow-mid)}
 .ac-time-start{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--green);letter-spacing:0.04em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
 .ac-time-start.paused{color:var(--red)}
 .ac-time-start .ac-start-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.25em;color:var(--ink-light);text-transform:uppercase;font-weight:500;margin-left:4px}
@@ -354,6 +358,7 @@ function apiDeleteEntry(notionId,cb){fetch(API+'?action=time-delete',{method:'PO
 var state={
   view:'today',
   gearMenu:false,
+  editStageId:null, // 正在改階段的進行中打卡 id
   newProjId:'', // 新增打卡選的專案(空 / id / __other__)
   newOtherName:'', // 其他工作的自由命名
   dailyMonth:todayKey().slice(0,7), // 'YYYY-MM' 日誌頁當前查看月份
@@ -575,6 +580,17 @@ function startPunch(){
   render();
 }
 
+function openStageEdit(id){
+  state.editStageId=id;
+  render();
+}
+function setActiveStage(id,val){
+  var item=state.active.find(function(x){return x.id===id;});
+  if(item&&val)item.stage=val;
+  state.editStageId=null;
+  ls_set(ACTIVE_KEY,state.active);
+  render();
+}
 function pausePunch(id){
   var item=state.active.find(function(x){return x.id===id;});
   if(!item||item.pausedAt)return;
@@ -951,7 +967,20 @@ function render(){
         elapsed=Math.max(0,elapsed);
         html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'" onclick="editActiveStart(\''+item.id+'\')" style="cursor:pointer" title="點擊修改開始時間">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span> <span class="ac-elapsed">· '+fmtDur(elapsed)+'</span></div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+(item.client?'<span class="ac-client">·'+item.client+'</span>':'')+'</div>';
-        html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
+        var canEditStage=!isOtherWork(item);
+        html+='      <div class="ac-meta">';
+        if(canEditStage&&state.editStageId===item.id){
+          html+='<select class="ac-stage-sel" id="ac-stage-'+item.id+'" onclick="event.stopPropagation()" onchange="setActiveStage(\''+item.id+'\',this.value)" onblur="state.editStageId=null;render();">';
+          ['前置','初剪','ES','業配','輸出','其他'].forEach(function(sg){
+            html+='<option value="'+sg+'" '+(item.stage===sg?'selected':'')+'>'+sg+'</option>';
+          });
+          html+='</select>';
+        } else if(canEditStage){
+          html+='<span class="stage editable" title="點擊改階段" onclick="event.stopPropagation();openStageEdit(\''+item.id+'\')">'+stageLabel(item.stage)+' ▾</span>';
+        } else {
+          html+='<span class="stage">'+stageLabel(item.stage)+'</span>';
+        }
+        html+=(item.note||'')+'</div>';
         var acPause=pauseSegsHtml(item);
         if(acPause)html+='      <div class="ac-pauselog"><span class="pl-label">Pause</span>'+acPause+'</div>';
         html+='    </div>';
@@ -1403,10 +1432,14 @@ function render(){
   }
 
   document.getElementById('app').innerHTML=html;
+  if(state.editStageId){
+    var sel=document.getElementById('ac-stage-'+state.editStageId);
+    if(sel){sel.focus();try{sel.showPicker();}catch(err){}}
+  }
 }
 
 render();
-document.addEventListener('click',function(){if(state.gearMenu){state.gearMenu=false;render();}});
+document.addEventListener('click',function(){if(state.gearMenu||state.editStageId){state.gearMenu=false;state.editStageId=null;render();}});
 if(USE_API){refreshProjects();syncFromCloud();}
 </script>
 </body>
