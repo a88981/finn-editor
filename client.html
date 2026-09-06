@@ -152,16 +152,16 @@ function ProjectCard(props){
   // 進度條：四個里程碑（帶日期 + 各自顏色）
   // 顏色由淺到深：每個階段越往後越深，視覺上是「越接近完成 = 越濃」
   var STAGE_COLORS={
+    "\u4e2d\u63d2":"#B89642",      // 暖金（原業配色，中插放最前）
     "\u521d\u526a":"#7BA3D9",      // 淺藍
-    "ES":"#4A6FA8",                  // 中藍（同 C.blueMid）
-    "\u696d\u914d":"#B89642",      // 暖金
-    "Final":"#1E3A6F"                // 深藍（同 C.blue）
+    "ES":"#4A6FA8",                  // 中藍
+    "Final":"#1E3A6F"                // 深藍
   };
   function calcProgress(){
     var stages=[];
+    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u4e2d\u63d2",due:p.bizDue,color:STAGE_COLORS["\u4e2d\u63d2"]});
     if(!p.noCut1)stages.push({done:!!p.cut1Done,label:"\u521d\u526a",due:p.cut1Due,color:STAGE_COLORS["\u521d\u526a"]});
     stages.push({done:!!p.v1Done,label:"ES",due:p.v1Due,color:STAGE_COLORS["ES"]});
-    if(!p.noBiz)stages.push({done:!!p.bizDone,label:"\u696d\u914d",due:p.bizDue,color:STAGE_COLORS["\u696d\u914d"]});
     stages.push({done:!!p.finalDone,label:"Final",due:p.finalDue,color:STAGE_COLORS["Final"]});
     return stages;
   }
@@ -184,7 +184,7 @@ function ProjectCard(props){
   return h("div",{style:{background:cardBg,borderRadius:4,padding:"16px 18px",border:"1px solid "+C.line,borderLeft:borderLeft,opacity:p.closed?0.65:1,transition:"all 0.2s"}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,gap:12}},
       h("div",{style:{minWidth:0,flex:1}},
-        p.airDate&&h("div",{className:"label-en",style:{fontSize:9.5,color:C.inkLight,marginBottom:4}},"AIR \u00b7 "+p.airDate),
+        p.airDate&&h("div",{className:"label-en",style:{fontSize:9.5,color:C.inkLight,marginBottom:4}},p.airDate),
         h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.ink,lineHeight:1.35,letterSpacing:"0.01em"}},p.name)
       ),
       h("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}},
@@ -234,9 +234,9 @@ function ProjectCard(props){
     ),
     // 非進行中（已完成）的卡片：保留原本 DueTag 列表
     !showProgress&&!p.closed&&h("div",{style:{display:"flex",flexDirection:"column",gap:7,marginTop:10,paddingTop:10,borderTop:"1px dashed "+C.line}},
+      h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\u25c6",label:"\u4e2d\u63d2"}),
       h(DueTag,{date:!p.noCut1?p.cut1Due:null,done:p.cut1Done,icon:"\u2702",label:"\u521d\u526a"}),
       h(DueTag,{date:p.v1Due,done:p.v1Done,icon:"\u2726",label:"ES"}),
-      h(DueTag,{date:!p.noBiz?p.bizDue:null,done:p.bizDone,icon:"\u25c6",label:"\u696d\u914d"}),
       h(DueTag,{date:p.finalDue,done:p.finalDone,icon:"\u25cf",label:"Final"})
     ),
     p.note&&h("div",{style:{marginTop:10,fontSize:11.5,color:C.inkSoft,paddingTop:10,borderTop:"1px dashed "+C.line,lineHeight:1.55,letterSpacing:"0.02em"}},
@@ -263,9 +263,9 @@ function WaitingRow(props){
   var sc=statusColor(p.status);
   // 4 個里程碑（含日期）
   var stages=[];
+  if(!p.noBiz)stages.push({label:"\u4e2d\u63d2",due:p.bizDue});
   if(!p.noCut1)stages.push({label:"\u521d\u526a",due:p.cut1Due});
   stages.push({label:"ES",due:p.v1Due});
-  if(!p.noBiz)stages.push({label:"\u696d\u914d",due:p.bizDue});
   stages.push({label:"Final",due:p.finalDue});
   // 找最近一個未完成的 due date
   function nearestDue(){
@@ -304,7 +304,7 @@ function WaitingRow(props){
 
   return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line,background:"white"}},
     h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:12,marginBottom:8}},
-      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
+      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?p.airDate.replace("-","/"):"\u2014"),
       h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
       countdownNode||h("span",null),
       h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
@@ -388,7 +388,7 @@ function DoneRowPlus(props){
   var STAGE_COLORS=["#7BA3D9","#4A6FA8","#B89642","#1E3A6F"];
   return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
     h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:14,marginBottom:8}},
-      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?"AIR "+p.airDate.replace("-","/"):"\u2014"),
+      h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?p.airDate.replace("-","/"):"\u2014"),
       h("span",{className:"serif",style:{fontSize:13.5,color:C.inkSoft,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
       h("span",{className:"serif",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap"}},p.finalDue?"Final "+fmtDate(p.finalDue):""),
       h("span",{style:{fontSize:14,color:"#7A8090"}},"\u2713")
@@ -447,11 +447,7 @@ function App(){
   var closed=projects.filter(function(p){return p.closed;}).sort(function(a,b){return(b.airDate||"").localeCompare(a.airDate||"");});
   var waiting=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)>=0;}).sort(function(a,b){return(a.airDate||"9999").localeCompare(b.airDate||"9999");});
   var done=projects.filter(function(p){return!p.closed&&doneSt.indexOf(p.status)>=0;}).sort(function(a,b){return(b.airDate||"").localeCompare(a.airDate||"");});
-  var reviewSt=["\u521d\u526a\u5be9\u6838\u4e2d","ES\u5be9\u6838\u4e2d","V1\u5be9\u6838\u4e2d","\u5ee0\u5546\u5be9\u6838\u4e2d","Final\u5be9\u6838\u4e2d"];
   var active=projects.filter(function(p){return!p.closed&&waitingSt.indexOf(p.status)<0&&doneSt.indexOf(p.status)<0;}).sort(function(a,b){
-    var ar=reviewSt.indexOf(a.status)>=0,br=reviewSt.indexOf(b.status)>=0;
-    if(ar&&!br)return 1;
-    if(!ar&&br)return-1;
     // 按上片日期（airDate）排：越早上片越前面
     var aa=a.airDate||"9999",bb=b.airDate||"9999";
     return aa.localeCompare(bb);
