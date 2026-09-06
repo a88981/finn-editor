@@ -111,6 +111,13 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-time-start .ac-elapsed{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--yellow-mid);font-weight:500;margin-left:6px;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
 .ac-time-start.paused .ac-elapsed{color:var(--ink-light)}
 .active-card.paused{border-left-color:var(--red);background:#fcecec}
+/* 暫停紀錄 */
+.ac-pauselog{margin-top:5px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:var(--ink-light);line-height:1.6}
+.ac-pauselog .pl-label{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-light);margin-right:6px}
+.ac-pauselog .seg{font-variant-numeric:tabular-nums;color:#b07a2a;margin-right:9px;white-space:nowrap}
+.ac-pauselog .seg.open{color:var(--red);font-weight:500}
+.ac-pauselog .seg .auto{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.1em;color:var(--ink-light);margin-left:2px}
+.seg-total{font-family:Inter,sans-serif;font-style:normal;font-size:9px;letter-spacing:0.12em;color:var(--ink-light);white-space:nowrap}
 .ac-btns{display:flex;flex-direction:column;gap:5px}
 .ac-btn-mini{padding:5px 11px;font-size:9.5px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;border-radius:3px;border:1px solid;background:#fff;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap}
 .ac-btn-mini.pause{border-color:#d8903a;color:#d8903a}
@@ -205,6 +212,13 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .tl .b .dur{font-family:'Cormorant Garamond',serif;font-size:12px;color:var(--ink-soft);white-space:nowrap}
 .tl .b.rest .dur{font-style:italic;color:var(--ink-light)}
 .tl .b.rest .nam{font-style:italic;color:var(--ink-light);font-weight:400}
+.tl-pause{display:grid;grid-template-columns:46px 1fr;gap:8px;padding:1px 0 3px}
+.tl-pause .pz{grid-column:2;padding-left:10px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10.5px;color:var(--ink-light);font-variant-numeric:tabular-nums}
+.tl-pause .pz .pl-label{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;margin-right:5px}
+.tl-pause .pz .seg{margin-right:9px;white-space:nowrap;color:#b07a2a}
+.pause-box{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:8px 10px;margin-bottom:12px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11.5px;color:var(--ink-soft);line-height:1.7}
+.pause-box .seg{font-variant-numeric:tabular-nums;color:#b07a2a;margin-right:9px;white-space:nowrap}
+.pause-box .seg .auto{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.1em;color:var(--ink-light);margin-left:2px}
 
 /* 今日報表 · 按案拆 */
 .proj-block{margin-bottom:14px}
@@ -275,6 +289,28 @@ function dateKey(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMont
 function nowHM(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());}
 function tsFromHM(hm){var d=new Date(),p=hm.split(':');d.setHours(parseInt(p[0])||0,parseInt(p[1])||0,0,0);return d.getTime();}
 function fmtDurShort(ms){if(ms<=0)return '';var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);if(h===0)return m+'m';if(m===0)return h+'h';return h+'h';}
+// ── 暫停紀錄 pauses:[{from,to,auto}] ──
+function pauseList(o){return (o&&o.pauses)||[];}
+function openPause(o){var ps=pauseList(o);for(var i=ps.length-1;i>=0;i--){if(!ps[i].to)return ps[i];}return null;}
+function addPause(o,ts,auto){if(!o.pauses)o.pauses=[];if(openPause(o))return;o.pauses.push({from:ts,to:null,auto:!!auto});}
+function closePause(o,ts){var p=openPause(o);if(p)p.to=ts;}
+function pauseTotalOf(o,nowMs){var t=0;pauseList(o).forEach(function(p){t+=((p.to||nowMs||Date.now())-p.from);});return t;}
+// 把暫停段落畫成一行 HTML(沒有紀錄回傳空字串)
+function pauseSegsHtml(o){
+  var ps=pauseList(o);if(ps.length===0)return '';
+  var out='',shown=0,total=0;
+  ps.forEach(function(p){
+    var isOpen=!p.to;
+    var ms=(p.to||Date.now())-p.from;
+    if(!isOpen&&ms<60000)return; // 不到 1 分鐘的誤按不顯示
+    total+=ms;shown++;
+    var endLabel=isOpen?'現在':fmtTime(p.to);
+    out+='<span class="seg'+(isOpen?' open':'')+'">'+fmtTime(p.from)+' → '+endLabel+' ('+fmtDur(ms)+')'+(p.auto?'<span class="auto">休息</span>':'')+'</span>';
+  });
+  if(shown===0)return '';
+  if(shown>1)out+='<span class="seg-total">共 '+fmtDur(total)+'</span>';
+  return out;
+}
 // 取得實工毫秒:優先用存好的 durMin(已扣暫停),沒有才現算
 function entryDur(e){
   if(typeof e.durMin==='number'&&e.durMin>0)return e.durMin*60000;
@@ -460,6 +496,7 @@ function startBreak(){
     } else {
       item.wasManuallyPaused=false;
       item.pausedAt=Date.now();
+      addPause(item,item.pausedAt,true); // 休息造成的暫停
     }
   });
   ls_set(SHIFT_KEY,state.shift);
@@ -474,7 +511,9 @@ function endBreak(){
   // 只恢復「休息時被自動暫停」的,保留「本來就手動暫停」的
   state.active.forEach(function(item){
     if(item.pausedAt&&!item.wasManuallyPaused){
-      item.pauseTotal=(item.pauseTotal||0)+(Date.now()-item.pausedAt);
+      var backAt2=Date.now();
+      item.pauseTotal=(item.pauseTotal||0)+(backAt2-item.pausedAt);
+      closePause(item,backAt2);
       item.pausedAt=null;
     }
     delete item.wasManuallyPaused;
@@ -540,13 +579,16 @@ function pausePunch(id){
   var item=state.active.find(function(x){return x.id===id;});
   if(!item||item.pausedAt)return;
   item.pausedAt=Date.now();
+  addPause(item,item.pausedAt,false); // 記下暫停時間點
   ls_set(ACTIVE_KEY,state.active);render();
 }
 function resumePunch(id){
   if(state.shift&&state.shift.breakAt){alert('休息中,請先按「▸ 回來」');return;}
   var item=state.active.find(function(x){return x.id===id;});
   if(!item||!item.pausedAt)return;
-  item.pauseTotal=(item.pauseTotal||0)+(Date.now()-item.pausedAt);
+  var backAt=Date.now();
+  item.pauseTotal=(item.pauseTotal||0)+(backAt-item.pausedAt);
+  closePause(item,backAt); // 記下繼續時間點
   item.pausedAt=null;
   ls_set(ACTIVE_KEY,state.active);render();
 }
@@ -556,7 +598,7 @@ function stopPunch(id){
   var endAt=Date.now();
   // 若還在暫停中,先把暫停時段結算掉
   var pauseTotal=item.pauseTotal||0;
-  if(item.pausedAt)pauseTotal+=(endAt-item.pausedAt);
+  if(item.pausedAt){pauseTotal+=(endAt-item.pausedAt);closePause(item,endAt);}
   // 工作毫秒數 = 結束 - 開始 - 暫停總和(A 方案:加總,扣除暫停)
   var workMs=Math.max(0,endAt-item.startAt-pauseTotal);
   var entry={
@@ -565,6 +607,7 @@ function stopPunch(id){
     startAt:item.startAt,endAt:endAt,
     durMin:Math.round(workMs/60000),
     pauseTotal:pauseTotal,
+    pauses:pauseList(item),
     workDay:item.workDay||dateKey(item.startAt)
   };
   state.entries.unshift(entry);
@@ -587,14 +630,18 @@ function reopenEntry(id){
   if(!e)return;
   if(!confirm('把這筆紀錄拉回「進行中」?\n\n結束→復原中間這段會自動算成暫停(不計工時)。'))return;
   // 計算「從結束到現在」這段要算進 pauseTotal(等於額外暫停)
-  var extraPause=Date.now()-e.endAt;
+  var reopenAt=Date.now();
+  var extraPause=reopenAt-e.endAt;
   var newPauseTotal=(e.pauseTotal||0)+extraPause;
+  var newPauses=(e.pauses||[]).slice();
+  newPauses.push({from:e.endAt,to:reopenAt,auto:true}); // 結束→復原之間
   // 拉回 active
   state.active.push({
     id:e.id,projectId:e.projectId,projectLabel:e.projectLabel,
     client:e.client||'',stage:e.stage,note:e.note||'',
     startAt:e.startAt,
     pauseTotal:newPauseTotal,
+    pauses:newPauses,
     pausedAt:null,
     workDay:e.workDay||dateKey(e.startAt),
     notionId:e.notionId
@@ -610,7 +657,7 @@ function reopenEntry(id){
   }
 }
 
-function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt),overrideDurMin:e.durMin||0};state.modal='edit';render();}
+function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,pauses:e.pauses||[],projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt),overrideDurMin:e.durMin||0};state.modal='edit';render();}
 function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now),workDay:dateKey(start)};state.modal='manual';render();}
 function closeModal(){state.modal=null;render();}
 
@@ -645,6 +692,7 @@ function syncFromCloud(){apiListEntries(function(err,entries){
     var local=localById[e.id];
     if(local){
       if((!e.pauseTotal||e.pauseTotal===0)&&local.pauseTotal)e.pauseTotal=local.pauseTotal;
+      if((!e.pauses||e.pauses.length===0)&&local.pauses&&local.pauses.length)e.pauses=local.pauses;
       if(!e.workDay&&local.workDay)e.workDay=local.workDay;
     }
   });
@@ -904,6 +952,8 @@ function render(){
         html+='      <div class="ac-time-start '+(isPaused?'paused':'')+'" onclick="editActiveStart(\''+item.id+'\')" style="cursor:pointer" title="點擊修改開始時間">'+fmtTime(item.startAt)+' <span class="ac-start-label">開始 · '+(isPaused?'暫停中':'進行中')+'</span> <span class="ac-elapsed">· '+fmtDur(elapsed)+'</span></div>';
         html+='      <div class="ac-proj">'+(item.projectLabel||'(無)')+(item.client?'<span class="ac-client">·'+item.client+'</span>':'')+'</div>';
         html+='      <div class="ac-meta"><span class="stage">'+stageLabel(item.stage)+'</span>'+(item.note||'')+'</div>';
+        var acPause=pauseSegsHtml(item);
+        if(acPause)html+='      <div class="ac-pauselog"><span class="pl-label">Pause</span>'+acPause+'</div>';
         html+='    </div>';
         html+='    <div class="ac-btns">';
         var onBreak=!!(state.shift&&state.shift.breakAt);
@@ -975,6 +1025,8 @@ function render(){
           html+='<div class="tl" onclick="openEdit(\''+e.id+'\')" style="cursor:pointer">';
           html+='<span class="t">'+fmtTime(e.startAt)+'</span>';
           html+='<div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(entryDur(e))+'</span></div></div>';
+          var tlPause=pauseSegsHtml(e);
+          if(tlPause)html+='<div class="tl-pause"><div class="pz"><span class="pl-label">暫停</span>'+tlPause+'</div></div>';
         }
       });
       // 今日專案明細已拿掉(跟時間軸重複)
@@ -1220,6 +1272,8 @@ function render(){
           html+='    <span class="t">'+fmtTime(e.startAt)+'</span>';
           html+='    <div class="b"><span class="nam">'+(e.projectLabel||'(無)')+clientHtml+'<span class="stg">'+stageLabel(e.stage)+'</span></span><span class="dur">'+fmtDur(entryDur(e))+'</span></div>';
           html+='  </div>';
+          var dPause=pauseSegsHtml(e);
+          if(dPause)html+='  <div class="tl-pause"><div class="pz"><span class="pl-label">暫停</span>'+dPause+'</div></div>';
         });
       }
       html+='</div>';
@@ -1323,6 +1377,10 @@ function render(){
     html+='      <div class="field"><div class="flabel">結束日 · End</div><input type="date" class="fc" value="'+f.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
     html+='      <div class="field"><div class="flabel">結束時間</div><input type="time" class="fc" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
     html+='    </div>';
+    if(f.pauses&&f.pauses.length){
+      html+='    <div class="flabel" style="margin-top:2px">暫停紀錄 · Pause Log</div>';
+      html+='    <div class="pause-box">'+pauseSegsHtml(f)+'</div>';
+    }
     html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+(f.workDay||f.startDate)+'" onchange="state.modalForm.workDay=this.value;"></div>';
     var calcDur='';
     if(f.startDate&&f.startTime&&f.endDate&&f.endTime){
