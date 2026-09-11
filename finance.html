@@ -28,7 +28,7 @@ var _R=React,useState=_R.useState,useEffect=_R.useEffect,h=_R.createElement;
 // 設定
 // ══════════════════════════════════════════════════════════════════
 var API="/api/notion";
-var TITLE="📒玩ㄉ帳本(•̀ω•́)⸝ ި ʕᦏ";                   // 畫面上的標題
+var TITLE="玩ㄉ帳本(•̀ω•́)⸝ ި ʕᦏ";                   // 畫面上的標題
 var STUDIO={name:"小玩工作室",vatNo:"00695271"};   // 正式抬頭與統編（報表、CSV 用）
 var VAT_RATE=0.05;      // 營業稅
 var WH_RATE=0.10;       // 執行業務所得扣繳
@@ -39,11 +39,32 @@ var C={bg:"#faf9f5",card:"#ffffff",card2:"#faf8f0",brd:"#e8e4d8",brd2:"#d0ccc6",
 var INP={background:C.card,border:"1px solid "+C.brd,borderRadius:3,padding:"7px 10px",
          color:C.txt,fontSize:13,width:"100%",boxSizing:"border-box",fontFamily:"inherit"};
 
-// 會計科目（可自行增減，改這裡就好）
+// 會計科目。type 決定它進「銷貨成本」還是「營業費用」，要增減改這裡就好。
+// 成本 = 為了某支影片才會發生的；費用 = 不接案也要付的
 var ACCOUNTS=[
-  "外包費","軟體訂閱","設備器材","租金","水電網路","交通差旅",
-  "餐費招待","文具耗材","保險","稅捐規費","專業服務","廣告行銷","其他"
+  {name:"外包費",   type:"成本"},   // 字幕、剪輯、動畫、配音
+  {name:"素材授權", type:"成本"},   // 音樂、圖庫、字型
+  {name:"專案器材", type:"成本"},   // 為單一案子租借的設備
+  {name:"軟體訂閱", type:"費用"},
+  {name:"設備器材", type:"費用"},
+  {name:"租金",     type:"費用"},
+  {name:"水電網路", type:"費用"},
+  {name:"交通差旅", type:"費用"},
+  {name:"餐費招待", type:"費用"},
+  {name:"文具耗材", type:"費用"},
+  {name:"進修課程", type:"費用"},
+  {name:"保險",     type:"費用"},
+  {name:"稅捐規費", type:"費用"},
+  {name:"專業服務", type:"費用"},   // 會計師、律師
+  {name:"廣告行銷", type:"費用"},
+  {name:"其他",     type:"費用"}
 ];
+function acctType(name){
+  for(var i=0;i<ACCOUNTS.length;i++)if(ACCOUNTS[i].name===name)return ACCOUNTS[i].type;
+  return "費用";   // Notion 上自己加的新科目，預設當費用
+}
+// 這筆支出算不算銷貨成本：科目本身是成本類，或有掛到特定案子
+function isCogs(e){return acctType(e.account)==="成本"||!!e.project;}
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function NT(n){return "NT$ "+Math.round(n||0).toLocaleString();}
@@ -158,7 +179,7 @@ function Stat(props){
 function ExpenseModal(props){
   var init=props.expense,projects=props.projects||[];
   var fs=useState(Object.assign({id:"",notionId:"",name:"",date:todayISO(),amount:"",
-      account:"其他",hasInvoice:true,invoiceNo:"",project:"",note:""},init));
+      account:"軟體訂閱",hasInvoice:true,invoiceNo:"",project:"",note:""},init));
   var f=fs[0],setF=fs[1];
   function set(k,v){setF(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
   var c=calcExpense(f);
@@ -201,7 +222,11 @@ function ExpenseModal(props){
         h("div",null,
           h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"科目"),
           h("select",{style:INP,value:f.account,onChange:function(e){set("account",e.target.value);}},
-            ACCOUNTS.map(function(a){return h("option",{key:a},a);}))
+            ["成本","費用"].map(function(t){
+              return h("optgroup",{key:t,label:t==="成本"?"銷貨成本（跟案子直接相關）":"營業費用（固定開銷）"},
+                ACCOUNTS.filter(function(a){return a.type===t;})
+                  .map(function(a){return h("option",{key:a.name,value:a.name},a.name);}));
+            }))
         ),
         // 發票區
         h("div",{style:{background:f.hasInvoice?C.wrnBg:C.card2,border:"1px solid "+(f.hasInvoice?"#e8d09a":C.brd),
@@ -268,6 +293,7 @@ function App(){
   // 檢視模式：mine=自己看的總計帳 / acct=給會計的申報用
   var vm=useState("mine");var mode=vm[0],setMode=vm[1];
   var pd=useState(Math.ceil((now.getMonth()+1)/2));var pidx=pd[0],setPidx=pd[1];
+  var at=useState("period");var acctTab=at[0],setAcctTab=at[1];
 
   function downloadCSV(filename,rows){
     var csv=rows.map(function(r){return r.map(function(c){
@@ -302,6 +328,25 @@ function App(){
   }
   function projectsOf(m){return projects.filter(function(p){return p.month===m;});}
   function expensesOf(m){return expenses.filter(function(e){return monthOf(e.date)===m;});}
+
+  // 損益表結構：收入 − 成本 = 毛利；毛利 − 費用 = 淨利
+  // 有掛案子的支出算「成本」，沒掛的算「費用」
+  function plOf(m){
+    var inc=sumIncome(projectsOf(m)),me=expensesOf(m);
+    var cogsByAcct={},byAcct={};
+    me.forEach(function(e){
+      var c=calcExpense(e);
+      var k=e.account||"其他";
+      if(isCogs(e))cogsByAcct[k]=(cogsByAcct[k]||0)+c.net;
+      else byAcct[k]=(byAcct[k]||0)+c.net;
+    });
+    var cogsExtra=Object.keys(cogsByAcct).reduce(function(s,k){return s+cogsByAcct[k];},0);
+    var cogs=inc.cost+cogsExtra;
+    var opex=Object.keys(byAcct).reduce(function(s,k){return s+byAcct[k];},0);
+    return {inc:inc,revenue:inc.gross,cogs:cogs,cogsExtra:cogsExtra,cogsByAcct:cogsByAcct,
+            grossProfit:inc.gross-cogs,byAcct:byAcct,opex:opex,
+            net:inc.gross-cogs-opex};
+  }
 
   var allMonths=[];
   projects.forEach(function(p){if(p.month&&allMonths.indexOf(p.month)<0)allMonths.push(p.month);});
@@ -368,7 +413,8 @@ function App(){
   function MonthView(){
     var mp=projectsOf(month),me=expensesOf(month);
     var inc=sumIncome(mp),exp=sumExpense(me);
-    var profit=inc.gross-inc.cost-exp.net;
+    var pl=plOf(month);
+    var profit=pl.net;
     var cashIn=inc.gross+inc.vat-inc.withhold;
 
     // 依客戶彙總收入
@@ -397,9 +443,16 @@ function App(){
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,padding:"16px 18px",
             display:"flex",flexDirection:"column"}},
           h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:8}},"本月損益"),
-          h(Line,{label:"未稅收入",value:inc.gross,color:C.ok}),
-          h(Line,{label:"案子成本（字幕、外包等）",value:-inc.cost,color:inc.cost>0?C.err:C.txt3}),
-          h(Line,{label:"營運支出（未稅）",value:-exp.net,color:exp.net>0?C.err:C.txt3}),
+          h(Line,{label:"營業收入",value:pl.revenue,color:C.ok}),
+          h(Line,{label:"銷貨成本（字幕、外包等）",value:-pl.cogs,color:pl.cogs>0?C.err:C.txt3}),
+          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",
+              padding:"8px 0",borderBottom:"0.5px solid "+C.brd,background:C.card2,
+              marginLeft:-18,marginRight:-18,paddingLeft:18,paddingRight:18}},
+            h("span",{style:{fontSize:12,fontWeight:700,color:C.txt2}},"毛利"),
+            h("span",{className:"num",style:{fontSize:17,fontWeight:600,
+              color:pl.grossProfit>=0?C.ok:C.err}},NT(pl.grossProfit))
+          ),
+          h(Line,{label:"營業費用（未稅）",value:-pl.opex,color:pl.opex>0?C.err:C.txt3}),
           h("div",{style:{flex:1,minHeight:10}}),
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",
               paddingTop:12,borderTop:"1px solid "+C.brd2}},
@@ -475,7 +528,7 @@ function App(){
         h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,overflow:"hidden"}},
           h("div",{style:{padding:"10px 14px",background:C.card2,borderBottom:"1px solid "+C.brd,
               display:"flex",justifyContent:"space-between",alignItems:"center"}},
-            h("span",{style:{fontSize:11,fontWeight:700,color:C.txt2}},"支出科目　"+me.length+" 筆"),
+            h("span",{style:{fontSize:11,fontWeight:700,color:C.txt2}},"營業費用科目　"+me.length+" 筆"),
             h("button",{onClick:function(){setModal({date:month+"-01"});},
               style:{background:"none",border:"1px dashed "+C.acc,color:"#b8912a",borderRadius:4,
                 padding:"2px 9px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}},"＋ 記一筆")
@@ -630,6 +683,111 @@ function App(){
         h("div",{style:{padding:"9px 14px",fontSize:10.5,color:C.txt3,lineHeight:1.6}},
           "這是依你記的資料估算的參考值，實際申報金額請以會計師核對後為準。")
       )
+    );
+  }
+
+  // ══ 年度損益表（給會計） ═══════════════════════════════════════════
+  function PLView(){
+    var cols=[];
+    for(var i=1;i<=12;i++)cols.push(plOf(year+"-"+String(i).padStart(2,"0")));
+    var acctNames=[],cogsNames=[];
+    cols.forEach(function(c){
+      Object.keys(c.byAcct).forEach(function(k){if(acctNames.indexOf(k)<0)acctNames.push(k);});
+      Object.keys(c.cogsByAcct).forEach(function(k){if(cogsNames.indexOf(k)<0)cogsNames.push(k);});
+    });
+    acctNames.sort(function(a,b){
+      var sa=cols.reduce(function(s,c){return s+(c.byAcct[a]||0);},0);
+      var sb=cols.reduce(function(s,c){return s+(c.byAcct[b]||0);},0);
+      return sb-sa;});
+    function tot(fn){return cols.reduce(function(s,c){return s+fn(c);},0);}
+
+    var GC="126px repeat(12,minmax(74px,1fr)) 96px";
+    function row(label,fn,opts){
+      opts=opts||{};
+      var vals=cols.map(fn),sum=vals.reduce(function(a,b){return a+b;},0);
+      return h("div",{key:label,style:{display:"grid",gridTemplateColumns:GC,
+          borderBottom:"0.5px solid "+C.brd,
+          background:opts.band?C.card2:"transparent",alignItems:"center"}},
+        h("div",{style:{fontSize:opts.strong?11.5:11,fontWeight:opts.strong?700:400,
+          color:opts.indent?C.txt3:C.txt2,padding:"7px 12px",
+          paddingLeft:opts.indent?24:12,position:"sticky",left:0,
+          background:opts.band?C.card2:C.card,zIndex:1}},label),
+        vals.map(function(v,i){
+          return h("div",{key:i,className:"num",style:{textAlign:"right",padding:"7px 8px",
+            fontSize:opts.strong?13:12.5,fontWeight:opts.strong?600:500,
+            color:v===0?"#ccc6b8":(opts.color||C.txt2)}},
+            v===0?"—":Math.round(v).toLocaleString());
+        }),
+        h("div",{className:"num",style:{textAlign:"right",padding:"7px 12px",
+          fontSize:opts.strong?14:13,fontWeight:600,
+          color:sum===0?"#ccc6b8":(opts.color||C.txt),
+          borderLeft:"1px solid "+C.brd,background:opts.band?C.card2:C.card}},
+          sum===0?"—":Math.round(sum).toLocaleString())
+      );
+    }
+
+    function exportPL(){
+      var head=["科目"];for(var i=1;i<=12;i++)head.push(i+"月");head.push("全年");
+      var rows=[[STUDIO.name,"統編 "+STUDIO.vatNo,year+" 年度損益表"],head];
+      function push(label,fn){
+        var r=[label];cols.forEach(function(c){r.push(Math.round(fn(c)));});
+        r.push(Math.round(tot(fn)));rows.push(r);
+      }
+      push("營業收入",function(c){return c.revenue;});
+      push("　案子內支出",function(c){return c.inc.cost;});
+      cogsNames.forEach(function(n){push("　"+n,function(c){return c.cogsByAcct[n]||0;});});
+      push("銷貨成本合計",function(c){return c.cogs;});
+      push("毛利",function(c){return c.grossProfit;});
+      acctNames.forEach(function(n){push("　"+n,function(c){return c.byAcct[n]||0;});});
+      push("營業費用合計",function(c){return c.opex;});
+      push("本期淨利",function(c){return c.net;});
+      push("（另計）被扣繳10%",function(c){return c.inc.withhold;});
+      downloadCSV("損益表_"+STUDIO.name+"_"+year+".csv",rows);
+    }
+
+    return h("div",{style:{animation:"fadeIn 0.25s ease"}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",
+          marginBottom:10,flexWrap:"wrap",gap:8}},
+        h("div",{style:{fontSize:11,color:C.txt3}},
+          "成本類科目（或有掛案子的支出）算銷貨成本，其餘算營業費用"),
+        h("button",{onClick:exportPL,style:{background:C.card,border:"1px solid "+C.brd2,
+          color:C.txt2,borderRadius:4,padding:"5px 13px",fontSize:11.5,cursor:"pointer",
+          fontFamily:"inherit"}},"下載損益表 CSV")
+      ),
+      h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
+          overflowX:"auto",overflowY:"hidden"}},
+        h("div",{style:{minWidth:1120}},
+          h("div",{style:{display:"grid",gridTemplateColumns:GC,background:C.card2,
+              borderBottom:"1px solid "+C.brd2,alignItems:"center"}},
+            h("div",{style:{fontSize:10,fontWeight:700,color:C.txt3,padding:"9px 12px",
+              position:"sticky",left:0,background:C.card2,zIndex:2}},year+" 年度損益表"),
+            [1,2,3,4,5,6,7,8,9,10,11,12].map(function(i){
+              return h("div",{key:i,style:{textAlign:"right",fontSize:10,fontWeight:700,
+                color:C.txt3,padding:"9px 8px"}},i+"月");
+            }),
+            h("div",{style:{textAlign:"right",fontSize:10,fontWeight:700,color:C.txt,
+              padding:"9px 12px",borderLeft:"1px solid "+C.brd}},"全年")
+          ),
+          row("營業收入",function(c){return c.revenue;},{strong:true,color:C.ok}),
+          row("　案子內支出（字幕等）",function(c){return c.inc.cost;},{indent:true,color:C.err}),
+          cogsNames.map(function(n){
+            return row("　"+n,function(c){return c.cogsByAcct[n]||0;},{indent:true,color:C.err});
+          }),
+          row("銷貨成本合計",function(c){return c.cogs;},{color:C.err}),
+          row("毛利",function(c){return c.grossProfit;},{strong:true,band:true}),
+          acctNames.length===0
+            ? h("div",{style:{padding:"12px",fontSize:11,color:C.txt3,textAlign:"center"}},
+                "這一年還沒有營業費用紀錄")
+            : acctNames.map(function(n){
+                return row(n,function(c){return c.byAcct[n]||0;},{indent:true,color:C.err});
+              }),
+          row("營業費用合計",function(c){return c.opex;},{color:C.err}),
+          row("本期淨利",function(c){return c.net;},{strong:true,band:true,color:C.txt}),
+          row("（另計）被扣繳 10%",function(c){return c.inc.withhold;},{indent:true})
+        )
+      ),
+      h("div",{style:{fontSize:10.5,color:C.txt3,marginTop:12,lineHeight:1.7}},
+        "這張表用工作月份歸屬，跟申報期別那頁的開票日基準不同。給會計師看損益用這張，報營業稅用期別那張。")
     );
   }
 
@@ -903,10 +1061,15 @@ function App(){
       mode==="mine"&&h("button",{onClick:function(){setTab("month");},style:btn(tab==="month")},"月檢視"),
       mode==="mine"&&h("button",{onClick:function(){setTab("expense");},style:btn(tab==="expense",C.err)},"支出明細"),
       mode==="mine"&&h("button",{onClick:function(){setTab("year");},style:btn(tab==="year","#4a80b0")},"年度"),
-      mode==="acct"&&h("span",{style:{fontSize:11,color:C.txt3,fontWeight:700}},"申報期別"),
-      mode==="acct"&&[1,2,3,4,5,6].map(function(i){
-        return h("button",{key:i,onClick:function(){setPidx(i);},style:btn(pidx===i,C.wrn)},
-          (i*2-1)+"–"+(i*2)+"月");
+      mode==="acct"&&h("button",{onClick:function(){setAcctTab("period");},
+        style:btn(acctTab==="period",C.wrn)},"申報期別"),
+      mode==="acct"&&h("button",{onClick:function(){setAcctTab("pl");},
+        style:btn(acctTab==="pl","#4a80b0")},"年度損益表"),
+      mode==="acct"&&acctTab==="period"&&h("span",{style:{width:6}}),
+      mode==="acct"&&acctTab==="period"&&[1,2,3,4,5,6].map(function(i){
+        return h("button",{key:i,onClick:function(){setPidx(i);},
+          style:Object.assign(btn(pidx===i,C.wrn),{padding:"6px 9px",fontSize:11.5})},
+          (i*2-1)+"–"+(i*2));
       }),
       h("div",{style:{flex:1}}),
       mode==="mine"&&tab==="month"&&h("select",{value:month,onChange:function(e){setMonth(e.target.value);},style:selStyle},
@@ -917,7 +1080,8 @@ function App(){
     mode==="mine"&&tab==="month"&&MonthView(),
     mode==="mine"&&tab==="expense"&&ExpenseView(),
     mode==="mine"&&tab==="year"&&YearView(),
-    mode==="acct"&&AcctView(),
+    mode==="acct"&&acctTab==="period"&&AcctView(),
+    mode==="acct"&&acctTab==="pl"&&PLView(),
     modal&&h(ExpenseModal,{expense:modal,projects:projects,onClose:function(){setModal(null);},
       onSave:onSaveExpense,onDelete:onDeleteExpense}),
     toast&&h("div",{style:{position:"fixed",bottom:26,left:"50%",transform:"translateX(-50%)",
