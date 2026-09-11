@@ -3,8 +3,7 @@ const NOTION_API = "https://api.notion.com/v1";
 const DB_ID = "9b73ebba-2aec-49ac-be96-4483360a1456";
 const CLIENTS_DB_ID = "7f44768f-64cf-404a-abe1-c153e68b1179";
 const TIME_DB_ID = "3790c47d-6782-80ce-bcc8-d55f69b9f893";
-// ↓ 建好「工作室支出」資料庫後，把它的 ID 貼進來
-const EXPENSE_DB_ID = "請貼上支出資料庫的-ID";
+const EXPENSE_DB_ID = "3d10c47d67828042b75fd535ceb87018";
 
 export default async function handler(req, res) {
   // CORS
