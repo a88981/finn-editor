@@ -261,16 +261,31 @@ function nextDue(p){
   if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);
   dates.sort();return dates[0]||"9999";
 }
+// 影片長度轉秒數："25:30" → 1530；純數字視為分鐘
+function parseLenSec(str){
+  var s=String(str||"").trim();
+  if(!s)return 0;
+  var parts=s.split(":");
+  if(parts.length>=2){
+    var m=parseInt(parts[0])||0;
+    var sec=parseInt(parts[1])||0;
+    return m*60+sec;
+  }
+  return (parseInt(s)||0)*60;
+}
+// 超時分鐘：以 10 分鐘為免計基準，超出部分零頭秒數只要超過 10 秒就進位成 1 分
+var FREE_SEC=600,OVER_GRACE_SEC=10;
+function overtimeMins(lenStr){
+  var over=parseLenSec(lenStr)-FREE_SEC;
+  if(over<=0)return 0;
+  return Math.floor(over/60)+((over%60)>OVER_GRACE_SEC?1:0);
+}
 function calcP(p){
   var g=Number(p.fee)||0;
   var rc=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  // 超時費：跟 Modal 的 parseMinutes 一樣
+  // 超時費：跟 Modal 共用 overtimeMins
   var overRate=Number(p.overRate)||0;
-  var lenStr=String(p.length||"");
-  var lenParts=lenStr.split(":");
-  var lenMins=0;
-  if(lenParts.length>=2){var m=parseInt(lenParts[0])||0;var s=parseInt(lenParts[1])||0;lenMins=s>=30?m+1:m+(s>0?0.5:0);}else{lenMins=parseInt(lenStr)||0;}
-  var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
+  var overMins=overRate>0?overtimeMins(p.length):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=p.taxCut?Math.round(tr*0.1):0;
   var ec=(p.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
@@ -562,19 +577,12 @@ function Modal(props){
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  // 超時費計算
-  function parseMinutes(str){
-    if(!str)return 0;
-    var parts=String(str).split(":");
-    if(parts.length<2)return parseInt(str)||0;
-    var m=parseInt(parts[0])||0;
-    var s=parseInt(parts[1])||0;
-    // 少於30秒算0.5分（不足1分不計入超時）；30秒以上進位1分
-    return s>=30?m+1:m+(s>0?0.5:0);
-  }
+  // 超時費計算：與 calcP 共用 overtimeMins（超出 10 分鐘後，零頭超過 10 秒進位 1 分）
   var overRate=Number(form.overRate)||0;
-  var lenMins=parseMinutes(form.length);
-  var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
+  var lenSec=parseLenSec(form.length);
+  var lenMins=Math.floor(lenSec/60);
+  var lenRemSec=lenSec%60;
+  var overMins=overRate>0?overtimeMins(form.length):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
   // 開發票：只顯示含稅金額，不進入任何實際收入／總額計算
@@ -699,7 +707,7 @@ function Modal(props){
                 )
               ),
               overFee>0&&h("div",{style:{fontSize:10,color:C.ok,background:"#d8f0e4",borderRadius:4,padding:"4px 8px",marginBottom:6}},
-                "\u23f1 "+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
+                "\u23f1 "+lenMins+"\u5206"+(lenRemSec>0?lenRemSec+"\u79d2":"")+"\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
               ),
               h(FeeItemList,{items:form.feeItems||[],onChange:function(v){set("feeItems",v);},overFee:overFee,baseFee:Number(form.fee)||0,projectName:form.name||""})
             ),
