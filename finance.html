@@ -152,11 +152,11 @@ function isPreview(){
 }
 
 var DEMO_PROJECTS=[
-  {id:"d1",invoiced:true,invoiceDate:"2026-08-31",airDate:"09/12",name:"帶滴爸去蘇格蘭",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"24:10",taxCut:true,invoice:true,feeItems:[{qty:"1",price:"2500",label:"封面圖"}],costItems:[{amount:"1180",label:"字幕"}]},
-  {id:"d2",airDate:"09/26",name:"巴賽隆納不排行程",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"18:40",taxCut:true,invoice:true,feeItems:[],costItems:[{amount:"960",label:"字幕"}]},
-  {id:"d3",airDate:"09/05",name:"暖暖_塔羅開箱",client:"🧡暖暖",month:"2026-08",fee:2000,overRate:0,length:"0:45",taxCut:false,invoice:false,feeItems:[],costItems:[]},
+  {id:"d1",status:"Final完成",invoiced:true,invoiceDate:"2026-08-31",airDate:"09/12",name:"帶滴爸去蘇格蘭",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"24:10",taxCut:true,invoice:true,feeItems:[{qty:"1",price:"2500",label:"封面圖"}],costItems:[{amount:"1180",label:"字幕"}]},
+  {id:"d2",status:"V1製作中",airDate:"09/26",name:"巴賽隆納不排行程",client:"💧阿滴",month:"2026-08",fee:12000,overRate:900,length:"18:40",taxCut:true,invoice:true,feeItems:[],costItems:[{amount:"960",label:"字幕"}]},
+  {id:"d3",status:"Final完成",airDate:"09/05",name:"暖暖_塔羅開箱",client:"🧡暖暖",month:"2026-08",fee:2000,overRate:0,length:"0:45",taxCut:false,invoice:false,feeItems:[],costItems:[]},
   {id:"d4",closed:true,name:"百慕達三角洲",client:"👬DoDoMen",month:"2026-07",fee:13000,overRate:850,length:"30:00",taxCut:true,invoice:true,feeItems:[],costItems:[{amount:"1400",label:"字幕"}]},
-  {id:"d5",airDate:"07/30",name:"丘涵_低星丘查隊_EP4",client:"📢麥卡貝",month:"2026-07",fee:14000,overRate:0,length:"",taxCut:false,invoice:true,feeItems:[{qty:"2",price:"1500",label:"加急"}],costItems:[]}
+  {id:"d5",status:"Final完成",airDate:"07/30",name:"丘涵_低星丘查隊_EP4",client:"📢麥卡貝",month:"2026-07",fee:14000,overRate:0,length:"22:15",taxCut:false,invoice:true,feeItems:[{qty:"2",price:"1500",label:"加急"}],costItems:[]}
 ];
 var DEMO_EXPENSES=[
   {id:"e1",name:"Adobe Creative Cloud 年繳",date:"2026-08-03",amount:19800,account:"軟體訂閱",hasInvoice:true,invoiceNo:"AB12345678",project:"",unit:"共同",note:""},
@@ -366,6 +366,7 @@ function App(){
   var om=useState("all");var openMonth=om[0],setOpenMonth=om[1];
   var oa=useState(true);var openAsc=oa[0],setOpenAsc=oa[1];
   var ov=useState(false);var openClientView=ov[0],setOpenClientView=ov[1];
+  var of=useState("final");var openScope=of[0],setOpenScope=of[1];
 
   function saveAsImage(elId,filename){
     var el=document.getElementById(elId);
@@ -830,7 +831,11 @@ function App(){
 
   // ══ 未結算 ════════════════════════════════════════════════════════
   function OpenView(){
-    var base=projects.filter(function(p){return !p.closed;});
+    var base=projects.filter(function(p){
+      if(p.closed)return false;
+      if(openScope==="final")return String(p.status||"").indexOf("Final")>=0;
+      return true;
+    });
     var clientOpts=[];
     base.forEach(function(p){var c=p.client||"—";if(clientOpts.indexOf(c)<0)clientOpts.push(c);});
     clientOpts.sort();
@@ -856,8 +861,92 @@ function App(){
     var nowM=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
     var GC=cv
       ? (cvAll?"56px 0.9fr 1.6fr 92px 74px 102px":"56px 1.6fr 92px 74px 102px")
-      : "66px 56px 0.8fr 1.5fr 80px 88px 78px 88px 68px 94px";
-    var MINW=cv?0:1000;
+      : "62px 52px 0.75fr 1.35fr 58px 76px 84px 74px 84px 64px 90px";
+    var MINW=cv?0:1060;
+
+    // ── 客戶明細表（輸出圖片用的文件版面）────────────────────────
+    function stmtDoc(){
+      var LBL={fontSize:10.5,color:"#9a8f78",letterSpacing:"0.06em"};
+      return h("div",{id:"open-list-card",style:{background:"#fff",
+          border:"1px solid "+C.brd,borderRadius:6,padding:"34px 38px 30px",
+          maxWidth:720,margin:"0 auto"}},
+        // 抬頭
+        h("div",{style:{display:"flex",justifyContent:"space-between",
+            alignItems:"flex-start",gap:20,paddingBottom:18,
+            borderBottom:"2px solid "+C.txt}},
+          h("div",null,
+            h("div",{className:"serif",style:{fontSize:19,fontWeight:600,
+              letterSpacing:"0.04em"}},STUDIO.name),
+            h("div",{style:Object.assign({marginTop:4},LBL)},"統一編號　"+STUDIO.vatNo)
+          ),
+          h("div",{style:{textAlign:"right"}},
+            h("div",{className:"serif",style:{fontSize:22,fontWeight:600,
+              letterSpacing:"0.16em"}},"請款明細"),
+            h("div",{style:Object.assign({marginTop:5},LBL)},"製表日　"+todayISO())
+          )
+        ),
+        // 客戶
+        h("div",{style:{display:"flex",justifyContent:"space-between",
+            alignItems:"baseline",padding:"16px 0 6px"}},
+          h("div",null,
+            h("span",{style:LBL},"客戶"),
+            h("span",{className:"serif",style:{fontSize:16,fontWeight:600,marginLeft:12}},
+              cvAll?"全部客戶":openClient)
+          ),
+          h("div",{style:LBL},"共 "+list.length+" 件")
+        ),
+        // 項目
+        list.map(function(p,idx){
+          var c=calcIncome(p),bd=feeBreakdown(p);
+          return h("div",{key:p.id,style:{padding:"14px 0",
+              borderTop:"1px solid "+C.brd}},
+            h("div",{style:{display:"flex",justifyContent:"space-between",
+                alignItems:"baseline",gap:12}},
+              h("div",{style:{display:"flex",gap:10,alignItems:"baseline",minWidth:0}},
+                h("span",{className:"num",style:{fontSize:12,color:"#c4b89c",
+                  minWidth:20}},String(idx+1).padStart(2,"0")),
+                h("span",{className:"serif",style:{fontSize:15,fontWeight:600}},p.name||"—")
+              ),
+              h("span",{className:"num",style:{fontSize:16,fontWeight:600,
+                whiteSpace:"nowrap"}},NT(c.gross))
+            ),
+            h("div",{style:Object.assign({marginLeft:30,marginTop:3},LBL)},
+              [cvAll&&p.client?p.client:null,
+               p.airDate?"上片 "+p.airDate:null,
+               p.length?"片長 "+p.length:null
+              ].filter(Boolean).join("　·　")),
+            bd.length>1&&h("div",{style:{marginLeft:30,marginTop:8}},
+              bd.map(function(b,bi){
+                return h("div",{key:bi,style:{display:"flex",justifyContent:"space-between",
+                    gap:12,fontSize:11.5,color:C.txt2,lineHeight:2}},
+                  h("span",null,b.label),
+                  h("span",{className:"num"},Math.round(b.amount).toLocaleString())
+                );
+              })
+            )
+          );
+        }),
+        // 合計
+        h("div",{style:{marginTop:6,paddingTop:14,borderTop:"2px solid "+C.txt}},
+          [["合計（未稅）",tot.gross,false],
+           ["營業稅 5%",tot.vat,false],
+           ["總計（含稅）",tot.gross+tot.vat,true]
+          ].map(function(r){
+            if(r[0]==="營業稅 5%"&&tot.vat===0)return null;
+            return h("div",{key:r[0],style:{display:"flex",justifyContent:"flex-end",
+                alignItems:"baseline",gap:22,padding:r[2]?"8px 0 0":"3px 0"}},
+              h("span",{style:{fontSize:r[2]?12.5:11.5,color:r[2]?C.txt:C.txt2,
+                fontWeight:r[2]?700:400}},r[0]),
+              h("span",{className:"num",style:{fontSize:r[2]?24:15,
+                fontWeight:600,minWidth:132,textAlign:"right"}},NT(r[1]))
+            );
+          })
+        ),
+        h("div",{style:Object.assign({marginTop:20,paddingTop:12,
+          borderTop:"1px solid "+C.brd,lineHeight:1.8},LBL)},
+          "本明細金額以未稅表示，含稅總計如上。如需開立統一發票請告知抬頭與統編。")
+      );
+    }
 
     return h("div",{style:{animation:"fadeIn 0.25s ease"}},
       h("div",{style:{display:"flex",gap:7,marginBottom:12,flexWrap:"wrap",alignItems:"center"}},
@@ -870,12 +959,16 @@ function App(){
           h("option",{value:"all"},"所有工作月份"),
           monthOpts.map(function(m){return h("option",{key:m,value:m},
             m.slice(0,4)+" / "+m.slice(5)+" 月");})),
+        h("select",{value:openScope,onChange:function(e){setOpenScope(e.target.value);},
+          style:Object.assign({},INP,{width:"auto",padding:"5px 9px",fontSize:12})},
+          h("option",{value:"final"},"只看 Final 完成"),
+          h("option",{value:"all"},"全部未結案")),
         h("button",{onClick:function(){setOpenAsc(!openAsc);},
           style:{background:C.card,border:"1px solid "+C.brd,color:C.txt2,borderRadius:4,
             padding:"6px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}},
           openAsc?"舊 → 新":"新 → 舊"),
-        (openClient!=="all"||openMonth!=="all")&&h("button",{
-          onClick:function(){setOpenClient("all");setOpenMonth("all");},
+        (openClient!=="all"||openMonth!=="all"||openScope!=="final")&&h("button",{
+          onClick:function(){setOpenClient("all");setOpenMonth("all");setOpenScope("final");},
           style:{background:"transparent",border:"none",color:C.txt3,fontSize:11.5,
             cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}},"清除篩選"),
         h("div",{style:{flex:1}}),
@@ -908,8 +1001,9 @@ function App(){
       list.length===0
         ? h("div",{style:{background:C.card,border:"1px dashed "+C.brd2,borderRadius:6,
             padding:"52px 20px",textAlign:"center",color:C.txt3,fontSize:13}},
-            "所有案子都結案了")
-        : h("div",{id:"open-list-card",style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
+            openScope==="final"?"沒有 Final 完成但還沒結案的案子":"所有案子都結案了")
+        : cv ? stmtDoc()
+        : h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
               overflowX:MINW?"auto":"hidden",overflowY:"hidden"}},
             h("div",{style:{minWidth:MINW||"auto"}},
             cv&&h("div",{style:{padding:"18px 20px 14px",borderBottom:"1px solid "+C.brd2,
@@ -934,6 +1028,7 @@ function App(){
               h("div",null,"上片"),
               (cv&&!cvAll)?null:h("div",null,"客戶"),
               h("div",null,"專案"),
+              cv?null:h("div",null,"片長"),
               cv?null:h("div",null,"進度"),
               h("div",{style:{textAlign:"right"}},"金額"),
               cv?null:h("div",{style:{textAlign:"right"}},"成本"),
@@ -978,6 +1073,8 @@ function App(){
                     );
                   })()
                 ),
+                cv?null:h("div",{className:"num",style:{fontSize:11.5,
+                  color:p.length?C.txt2:"#ccc6b8"}},p.length||"—"),
                 cv?null:h("div",{style:{fontSize:11,color:C.txt2,whiteSpace:"nowrap",
                   overflow:"hidden",textOverflow:"ellipsis"}},p.status||"—"),
                 h("div",{className:"num",style:{textAlign:"right",fontSize:14,color:C.txt2}},
@@ -994,7 +1091,7 @@ function App(){
             }),
             h("div",{style:{display:"grid",gridTemplateColumns:GC,gap:8,padding:"11px 14px",
                 background:C.card2,borderTop:"1px solid "+C.brd2,fontSize:12.5,alignItems:"center"}},
-              h("div",{style:{gridColumn:cv?(cvAll?"1 / 4":"1 / 3"):"1 / 6",fontSize:10,fontWeight:700,color:C.txt3}},
+              h("div",{style:{gridColumn:cv?(cvAll?"1 / 4":"1 / 3"):"1 / 7",fontSize:10,fontWeight:700,color:C.txt3}},
                 "合計 "+list.length+" 件"),
               h("div",{className:"num",style:{textAlign:"right",fontSize:15,fontWeight:600}},NT(tot.gross)),
               cv?null:h("div",{className:"num",style:{textAlign:"right",fontSize:14,fontWeight:600,
@@ -1010,8 +1107,12 @@ function App(){
           ),
       h("div",{style:{fontSize:10.5,color:C.txt3,marginTop:12,lineHeight:1.7}},
         cv
-          ? "客戶版：已隱藏成本、進度與發票狀態。建議搭配上面的客戶篩選，只留下那一家的案子再給對方看。"
-          : "工作月份比這個月早的會標成橘色。上面的數字會跟著篩選一起變，所以選單一客戶就是那個客戶還欠你多少。結案請回 edit-tracker 勾「已結案」。")
+          ? (openScope==="final"
+              ? "客戶版：已隱藏成本、進度與發票狀態。建議搭配上面的客戶篩選，只留下那一家的案子再給對方看。"
+              : "⚠ 現在是「全部未結案」，清單裡有還沒做完的案子。要給客戶看請先切回「只看 Final 完成」。")
+          : (openScope==="final"
+              ? "只列進度是 Final 完成、但還沒勾已結案的案子，也就是做完了錢還沒到的。要看進行中的請切換成「全部未結案」。結案請回 edit-tracker 勾「已結案」。"
+              : "包含還在製作中的案子，金額只是預估，不要拿這個版本給客戶看。"))
     );
   }
 
