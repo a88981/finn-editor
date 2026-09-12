@@ -100,20 +100,20 @@ function monthOf(iso){return iso?iso.slice(0,7):"";}
 // ══════════════════════════════════════════════════════════════════
 // 收入計算（與 edit-tracker 的 calcP 完全一致，改那邊記得同步改這邊）
 // ══════════════════════════════════════════════════════════════════
-// ⚠ 這段必須跟 edit-tracker 的 calcP 完全一致，改一邊記得改另一邊
-// 規則：只要有秒數就進位到下一分鐘（33:25 → 34 分），再扣掉 10 分鐘門檻
-function lengthMinutes(len){
-  var str=String(len||""),parts=str.split(":");
-  if(parts.length>=2){
-    var m=parseInt(parts[0])||0,sec=parseInt(parts[1])||0;
-    return m+(sec>0?1:0);
-  }
-  return parseInt(str)||0;
+// ⚠ 這段必須跟 edit-tracker V40 的 parseMinutes / calcP 完全一致
+// 秒數 ≥30 進位 1 分；1～29 秒算 0.5 分；最後無條件捨去再扣掉 10 分鐘門檻
+function parseMinutes(str){
+  if(!str)return 0;
+  var parts=String(str).split(":");
+  if(parts.length<2)return parseInt(str)||0;
+  var m=parseInt(parts[0])||0;
+  var s=parseInt(parts[1])||0;
+  return s>=30?m+1:m+(s>0?0.5:0);
 }
 function overMinutesOf(p){
   var rate=Number(p.overRate)||0;
   if(rate<=0)return 0;
-  return Math.max(0,lengthMinutes(p.length)-10);
+  return Math.max(0,Math.floor(parseMinutes(p.length))-10);
 }
 // 一支案子的收費細項，客戶版明細用
 function feeBreakdown(p){
