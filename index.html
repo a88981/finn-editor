@@ -244,15 +244,22 @@ function nextDue(p){
   if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);
   dates.sort();return dates[0]||"9999";
 }
+// ⚠ 影片長度換算分鐘：秒數超過 10 秒就進位成 1 分鐘，10 秒以內捨去
+// 帳本 finance.html 有同一份，改這裡記得同步改那邊
+function parseMinutes(str){
+  if(!str)return 0;
+  var parts=String(str).split(":");
+  if(parts.length<2)return parseInt(str)||0;
+  var m=parseInt(parts[0])||0;
+  var s=parseInt(parts[1])||0;
+  return m+(s>10?1:0);
+}
 function calcP(p){
   var g=Number(p.fee)||0;
   var rc=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   // 超時費：跟 Modal 的 parseMinutes 一樣
   var overRate=Number(p.overRate)||0;
-  var lenStr=String(p.length||"");
-  var lenParts=lenStr.split(":");
-  var lenMins=0;
-  if(lenParts.length>=2){var m=parseInt(lenParts[0])||0;var s=parseInt(lenParts[1])||0;lenMins=s>=30?m+1:m+(s>0?0.5:0);}else{lenMins=parseInt(lenStr)||0;}
+  var lenMins=parseMinutes(p.length);
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=p.taxCut?Math.round(tr*0.1):0;
@@ -545,16 +552,7 @@ function Modal(props){
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  // 超時費計算
-  function parseMinutes(str){
-    if(!str)return 0;
-    var parts=String(str).split(":");
-    if(parts.length<2)return parseInt(str)||0;
-    var m=parseInt(parts[0])||0;
-    var s=parseInt(parts[1])||0;
-    // 少於30秒算0.5分（不足1分不計入超時）；30秒以上進位1分
-    return s>=30?m+1:m+(s>0?0.5:0);
-  }
+  // 超時費計算：用全域的 parseMinutes，不要在這裡另外寫一份
   var overRate=Number(form.overRate)||0;
   var lenMins=parseMinutes(form.length);
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
