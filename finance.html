@@ -100,14 +100,20 @@ function monthOf(iso){return iso?iso.slice(0,7):"";}
 // ══════════════════════════════════════════════════════════════════
 // 收入計算（與 edit-tracker 的 calcP 完全一致，改那邊記得同步改這邊）
 // ══════════════════════════════════════════════════════════════════
+// ⚠ 這段必須跟 edit-tracker 的 calcP 完全一致，改一邊記得改另一邊
+// 規則：只要有秒數就進位到下一分鐘（33:25 → 34 分），再扣掉 10 分鐘門檻
+function lengthMinutes(len){
+  var str=String(len||""),parts=str.split(":");
+  if(parts.length>=2){
+    var m=parseInt(parts[0])||0,sec=parseInt(parts[1])||0;
+    return m+(sec>0?1:0);
+  }
+  return parseInt(str)||0;
+}
 function overMinutesOf(p){
   var rate=Number(p.overRate)||0;
   if(rate<=0)return 0;
-  var str=String(p.length||""),parts=str.split(":"),mins=0;
-  if(parts.length>=2){var m=parseInt(parts[0])||0,sec=parseInt(parts[1])||0;
-    mins=sec>=30?m+1:m+(sec>0?0.5:0);}
-  else{mins=parseInt(str)||0;}
-  return Math.max(0,Math.floor(mins)-10);
+  return Math.max(0,lengthMinutes(p.length)-10);
 }
 // 一支案子的收費細項，客戶版明細用
 function feeBreakdown(p){
@@ -143,11 +149,7 @@ function calcIncome(p){
   var gross=Number(p.fee)||0;
   gross+=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   var rate=Number(p.overRate)||0;
-  var str=String(p.length||""),parts=str.split(":"),mins=0;
-  if(parts.length>=2){var m=parseInt(parts[0])||0,s=parseInt(parts[1])||0;mins=s>=30?m+1:m+(s>0?0.5:0);}
-  else{mins=parseInt(str)||0;}
-  var overMins=rate>0?Math.max(0,Math.floor(mins)-10):0;
-  gross+=overMins*rate;
+  gross+=overMinutesOf(p)*rate;
   return {
     gross:gross,                                              // 未稅收入
     vat:p.invoice?Math.round(gross*VAT_RATE):0,               // 銷項稅額
