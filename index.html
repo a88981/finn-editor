@@ -104,11 +104,7 @@ function deleteProject(notionId){
 // 客戶設定從 Notion 讀取/儲存（不使用 localStorage）
 function loadClients(){
   function stripCalExtras(clients,colors){
-    var seen={},filtered=[];
-    (clients||[]).forEach(function(c){
-      if(!c||c==="__cal_extras__"||seen[c])return;
-      seen[c]=1;filtered.push(c);
-    });
+    var filtered=(clients||[]).filter(function(c){return c!=="__cal_extras__";});
     var cleanColors={};
     Object.keys(colors||{}).forEach(function(k){if(k!=="__cal_extras__")cleanColors[k]=colors[k];});
     return {clients:filtered,colors:cleanColors};
@@ -121,11 +117,9 @@ function loadClients(){
     .then(function(r){return r.json();})
     .then(function(data){
       if(!Array.isArray(data))return {clients:[],colors:{}};
-      var clients=[],colors={},seen={};
+      var clients=[],colors={};
       data.forEach(function(c){
-        if(!c||!c.name||c.name==="__cal_extras__")return;
-        if(seen[c.name]){ if(c.color&&!colors[c.name])colors[c.name]=c.color; return; }
-        seen[c.name]=1;
+        if(c.name==="__cal_extras__")return;
         clients.push(c.name);
         if(c.color)colors[c.name]=c.color;
       });
@@ -158,30 +152,12 @@ function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
     fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(function(e){console.warn(e);});
   },500);
 }
-var _cliSaveTimer=null,_cliSavePending=null,_cliInFlight=null;
 function saveClients(c){
-  // 送出前先去重，保留第一次出現的順序
-  var seen={},uniq=[];
-  ((c&&c.clients)||[]).forEach(function(n){
-    if(!n||n==="__cal_extras__"||seen[n])return;
-    seen[n]=1;uniq.push(n);
-  });
-  _cliSavePending={clients:uniq,colors:(c&&c.colors)||{}};
-  if(_cliSaveTimer)clearTimeout(_cliSaveTimer);
-  return new Promise(function(resolve,reject){
-    _cliSaveTimer=setTimeout(function(){
-      var payload=_cliSavePending;_cliSavePending=null;_cliSaveTimer=null;
-      // 串成單一佇列：上一個請求結束後才發下一個，避免 Notion 端交錯寫入
-      _cliInFlight=Promise.resolve(_cliInFlight).catch(function(){}).then(function(){
-        return fetch(API+"?action=save-clients",{
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify(payload)
-        });
-      });
-      _cliInFlight.then(resolve,function(e){console.warn("客戶設定儲存失敗",e);reject(e);});
-    },600);
-  });
+  return fetch(API+"?action=save-clients",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(c)
+  }).catch(function(e){console.warn("客戶設定儲存失敗",e);throw e;});
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
@@ -247,7 +223,14 @@ function uid(){return Math.random().toString(36).slice(2,9);}
 function parseDate(d){if(!d)return null;var p=d.split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
 function dU(d){if(!d)return null;var t=new Date();t.setHours(0,0,0,0);var dd=parseDate(d);if(!dd)return null;return Math.round((dd-t)/86400000);}
 function fmt(d){if(!d)return null;var p=d.split("-");return String(+p[1]).padStart(2,"0")+"/"+String(+p[2]).padStart(2,"0");}
-function fmtAir(d){if(!d)return null;return d;}
+// 上片日期內部存完整日期 YYYY-MM-DD，畫面上只顯示 MM/DD
+function fmtAir(d){
+  if(!d)return null;
+  var s=String(d);
+  var m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m)return m[2]+"/"+m[3];
+  return s;
+}
 function fR(s,e){if(!s)return null;return(e&&e!==s)?fmt(s)+"\uff5e"+fmt(e):fmt(s);}
 function rD(s,e){if(!s||!e)return null;return Math.round((parseDate(e)-parseDate(s))/86400000)+1;}
 function toISO(y,m,d){return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");}
@@ -261,31 +244,16 @@ function nextDue(p){
   if(!p.finalDone&&p.finalDue)dates.push(p.finalDue);
   dates.sort();return dates[0]||"9999";
 }
-// 影片長度轉秒數："25:30" → 1530；純數字視為分鐘
-function parseLenSec(str){
-  var s=String(str||"").trim();
-  if(!s)return 0;
-  var parts=s.split(":");
-  if(parts.length>=2){
-    var m=parseInt(parts[0])||0;
-    var sec=parseInt(parts[1])||0;
-    return m*60+sec;
-  }
-  return (parseInt(s)||0)*60;
-}
-// 超時分鐘：以 10 分鐘為免計基準，超出部分零頭秒數只要超過 10 秒就進位成 1 分
-var FREE_SEC=600,OVER_GRACE_SEC=10;
-function overtimeMins(lenStr){
-  var over=parseLenSec(lenStr)-FREE_SEC;
-  if(over<=0)return 0;
-  return Math.floor(over/60)+((over%60)>OVER_GRACE_SEC?1:0);
-}
 function calcP(p){
   var g=Number(p.fee)||0;
   var rc=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  // 超時費：跟 Modal 共用 overtimeMins
+  // 超時費：跟 Modal 的 parseMinutes 一樣
   var overRate=Number(p.overRate)||0;
-  var overMins=overRate>0?overtimeMins(p.length):0;
+  var lenStr=String(p.length||"");
+  var lenParts=lenStr.split(":");
+  var lenMins=0;
+  if(lenParts.length>=2){var m=parseInt(lenParts[0])||0;var s=parseInt(lenParts[1])||0;lenMins=s>=30?m+1:m+(s>0?0.5:0);}else{lenMins=parseInt(lenStr)||0;}
+  var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=p.taxCut?Math.round(tr*0.1):0;
   var ec=(p.costItems||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0);
@@ -577,12 +545,19 @@ function Modal(props){
   var isNew=!project.id;
   var g=Number(form.fee)||0;
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
-  // 超時費計算：與 calcP 共用 overtimeMins（超出 10 分鐘後，零頭超過 10 秒進位 1 分）
+  // 超時費計算
+  function parseMinutes(str){
+    if(!str)return 0;
+    var parts=String(str).split(":");
+    if(parts.length<2)return parseInt(str)||0;
+    var m=parseInt(parts[0])||0;
+    var s=parseInt(parts[1])||0;
+    // 少於30秒算0.5分（不足1分不計入超時）；30秒以上進位1分
+    return s>=30?m+1:m+(s>0?0.5:0);
+  }
   var overRate=Number(form.overRate)||0;
-  var lenSec=parseLenSec(form.length);
-  var lenMins=Math.floor(lenSec/60);
-  var lenRemSec=lenSec%60;
-  var overMins=overRate>0?overtimeMins(form.length):0;
+  var lenMins=parseMinutes(form.length);
+  var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
   // 開發票：只顯示含稅金額，不進入任何實際收入／總額計算
@@ -623,17 +598,12 @@ function Modal(props){
         ),
         // 第二行:上片+類型(左半) / 長度+專案名稱(右半)
         h("div",{style:{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}},
-          h("div",{style:{display:"grid",gridTemplateColumns:"70px 1fr",gap:8}},
+          h("div",{style:{display:"grid",gridTemplateColumns:"128px 1fr",gap:8}},
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u4e0a\u7247\u65e5\u671f"),
-              h("input",{style:Object.assign({},INP,{fontSize:13,letterSpacing:1}),value:form.airDate||"",
-                onChange:function(e){
-                  var v=e.target.value;
-                  v=v.replace(/[^0-9\/]/g,"").slice(0,5);
-                  if(/^\d{4}$/.test(v))v=v.slice(0,2)+"/"+v.slice(2);
-                  set("airDate",v);
-                },
-                placeholder:"0506",maxLength:5})
+              h("input",{type:"date",style:Object.assign({},INP,{fontSize:12}),
+                value:form.airDate||"",
+                onChange:function(e){set("airDate",e.target.value);}})
             ),
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u985e\u578b"),
@@ -707,7 +677,7 @@ function Modal(props){
                 )
               ),
               overFee>0&&h("div",{style:{fontSize:10,color:C.ok,background:"#d8f0e4",borderRadius:4,padding:"4px 8px",marginBottom:6}},
-                "\u23f1 "+lenMins+"\u5206"+(lenRemSec>0?lenRemSec+"\u79d2":"")+"\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
+                "\u23f1 "+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
               ),
               h(FeeItemList,{items:form.feeItems||[],onChange:function(v){set("feeItems",v);},overFee:overFee,baseFee:Number(form.fee)||0,projectName:form.name||""})
             ),
@@ -1367,7 +1337,7 @@ function ProgressView(props){
       // 頭部:客戶 + 上片日
       h("div",{style:{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8}},
         h("span",{style:{fontSize:10,fontWeight:600,letterSpacing:"0.02em",color:cc,opacity:0.85}},"\u3010"+p.client+"\u3011"),
-        p.airDate&&h("span",{style:{fontSize:10,fontWeight:600,color:C.acc,background:C.accBg,padding:"1px 6px",borderRadius:3,border:"0.5px solid #f0d978"}},"AIR "+p.airDate)
+        p.airDate&&h("span",{style:{fontSize:10,fontWeight:600,color:C.acc,background:C.accBg,padding:"1px 6px",borderRadius:3,border:"0.5px solid #f0d978"}},"AIR "+fmtAir(p.airDate))
       ),
       // 專案名
       h("div",{style:{fontFamily:"'Noto Serif TC',serif",fontSize:14,fontWeight:500,color:C.txt,letterSpacing:"-0.005em",lineHeight:1.3}},p.name),
@@ -1501,7 +1471,7 @@ function TodoView(props){
         h("span",{style:{fontSize:14,flexShrink:0}},icon),
         h("div",{style:{flex:1,minWidth:0}},
           h("div",{style:{fontSize:10,fontWeight:600,color:cc,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.02em"}},p.client),
-          h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"-0.005em"}},p.airDate?p.airDate+" "+p.name:p.name)
+          h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"-0.005em"}},p.airDate?fmtAir(p.airDate)+" "+p.name:p.name)
         ),
         h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
           h("div",{style:{fontSize:12,fontWeight:700,color:dColor}},dStr),
@@ -1542,7 +1512,7 @@ function TodoView(props){
       h("span",{style:{fontSize:14,flexShrink:0}},"\ud83d\udce6"),
       h("div",{style:{flex:1,minWidth:0}},
         h("div",{style:{fontSize:10,fontWeight:600,color:cc,letterSpacing:"0.02em"}},p.client),
-        h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"-0.005em"}},p.airDate?p.airDate+" "+p.name:p.name)
+        h("div",{className:"serif",style:{fontSize:15,fontWeight:500,color:C.txt,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"-0.005em"}},p.airDate?fmtAir(p.airDate)+" "+p.name:p.name)
       ),
       h("div",{style:{textAlign:"right",flexShrink:0,minWidth:60}},
         startStr&&h("div",{style:{fontSize:11,fontWeight:700,color:startColor}},startStr),
