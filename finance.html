@@ -433,10 +433,14 @@ function App(){
   },[]);
 
   // ── 彙總 ─────────────────────────────────────────────────────────
+  // 發票是一整批開一張，所以稅額用「應稅金額合計」算一次，不是逐筆進位再加
   function sumIncome(list){
-    return list.reduce(function(a,p){var c=calcIncome(p);
-      return {gross:a.gross+c.gross,vat:a.vat+c.vat,withhold:a.withhold+c.withhold,cost:a.cost+c.cost};
-    },{gross:0,vat:0,withhold:0,cost:0});
+    var a=list.reduce(function(a,p){var c=calcIncome(p);
+      return {gross:a.gross+c.gross,taxable:a.taxable+(p.invoice?c.gross:0),
+              withhold:a.withhold+c.withhold,cost:a.cost+c.cost};
+    },{gross:0,taxable:0,withhold:0,cost:0});
+    a.vat=Math.round(a.taxable*VAT_RATE);
+    return a;
   }
   function sumExpense(list){
     return list.reduce(function(a,e){var c=calcExpense(e);
@@ -912,10 +916,7 @@ function App(){
         if(am!==bm)return openAsc?am.localeCompare(bm):bm.localeCompare(am);
         return (a.name||"").localeCompare(b.name||"");
       });
-    var tot=list.reduce(function(a,p){var c=calcIncome(p);
-      return {gross:a.gross+c.gross,vat:a.vat+c.vat,withhold:a.withhold+c.withhold,
-              cost:a.cost+c.cost};},
-      {gross:0,vat:0,withhold:0,cost:0});
+    var tot=sumIncome(list);
     var cv=openClientView;
     var cvAll=cv&&openClient==="all";
     var nowM=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
@@ -928,7 +929,9 @@ function App(){
     function stmtDoc(){
       var picked=list.filter(function(p){return !unsel[p.id];});
       var t=picked.reduce(function(a,p){var c=calcIncome(p);
-        return {gross:a.gross+c.gross,vat:a.vat+c.vat};},{gross:0,vat:0});
+        return {gross:a.gross+c.gross,taxable:a.taxable+(p.invoice?c.gross:0)};},
+        {gross:0,taxable:0});
+      t.vat=Math.round(t.taxable*VAT_RATE);
       // 抬頭的客戶名直接看實際勾選的案子，不是看上面的篩選
       var names=[];
       picked.forEach(function(p){
@@ -973,8 +976,8 @@ function App(){
               paddingBottom:5,fontSize:10.5,color:D.sub,letterSpacing:"0.06em"}},
             h("span",null,""),
             h("span",null,"項目"),
-            h("span",{style:{textAlign:"right"}},"上片"),
-            h("span",{style:{textAlign:"right"}},"片長"),
+            h("span",{style:{textAlign:"center"}},"上片"),
+            h("span",{style:{textAlign:"center"}},"片長"),
             h("span",{style:{textAlign:"right"}},"金額（未稅）")
           ),
           // 項目
@@ -990,9 +993,9 @@ function App(){
                   h("span",{style:{fontSize:15.5,fontWeight:700,lineHeight:1.45,
                     minWidth:0}},p.name||"—"),
                   h("span",{className:"num",style:Object.assign({fontSize:12,
-                    color:"#9d978b",textAlign:"right"},NUM)},airDateFull(p)||"—"),
+                    color:"#9d978b",textAlign:"center"},NUM)},airDateFull(p)||"—"),
                   h("span",{className:"num",style:Object.assign({fontSize:12,
-                    color:"#9d978b",textAlign:"right"},NUM)},p.length||"—"),
+                    color:"#9d978b",textAlign:"center"},NUM)},p.length||"—"),
                   h("span",{className:"num",style:Object.assign({fontSize:18,
                     fontWeight:700,whiteSpace:"nowrap",textAlign:"right"},NUM)},
                     "$"+Math.round(c.gross).toLocaleString())
@@ -1063,8 +1066,12 @@ function App(){
     // 每個客戶各欠多少，做成一排可以點的標籤
     var byClientTot={};
     base.forEach(function(p){var c=calcIncome(p);var k=p.client||"—";
-      if(!byClientTot[k])byClientTot[k]={gross:0,vat:0,n:0};
-      byClientTot[k].gross+=c.gross;byClientTot[k].vat+=c.vat;byClientTot[k].n++;});
+      if(!byClientTot[k])byClientTot[k]={gross:0,taxable:0,vat:0,n:0};
+      byClientTot[k].gross+=c.gross;
+      byClientTot[k].taxable+=(p.invoice?c.gross:0);
+      byClientTot[k].n++;});
+    Object.keys(byClientTot).forEach(function(k){
+      byClientTot[k].vat=Math.round(byClientTot[k].taxable*VAT_RATE);});
     var chipNames=Object.keys(byClientTot).sort(function(a,b){
       return byClientTot[b].gross-byClientTot[a].gross;});
 
@@ -1421,7 +1428,8 @@ function App(){
       .sort(function(a,b){return (a.date||"").localeCompare(b.date||"");});
 
     var sT=sales.reduce(function(a,p){var c=calcIncome(p);
-      return {net:a.net+c.gross,vat:a.vat+c.vat};},{net:0,vat:0});
+      return {net:a.net+c.gross,vat:0};},{net:0,vat:0});
+    sT.vat=Math.round(sT.net*VAT_RATE);
     var pT=purch.reduce(function(a,e){var c=calcExpense(e);
       return {paid:a.paid+c.paid,net:a.net+c.net,vat:a.vat+c.inputVat};},{paid:0,net:0,vat:0});
     var due=sT.vat-pT.vat;
