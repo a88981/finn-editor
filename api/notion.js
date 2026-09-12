@@ -406,7 +406,7 @@ function pageToProject(page) {
     notionId: page.id || "",
     name: txt("專案名稱"),
     client: txt("客戶"),
-    airDate: txt("上片日期"),
+    airDate: dt("上片日期"),
     status: sel("進度"),
     type: sel("類型"),
     month: txt("工作月份"),
@@ -452,7 +452,7 @@ function projectToProperties(p) {
   return {
     "專案名稱": { title: richText(p.name) },
     "客戶":      { rich_text: richText(p.client) },
-    "上片日期":  { rich_text: richText(p.airDate || "") },
+    "上片日期":  { date: date(p.airDate) },
     "進度":      { select: p.status ? { name: p.status } : null },
     "類型":      { select: p.type ? { name: p.type } : null },
     "工作月份":  { rich_text: richText(p.month || "") },
