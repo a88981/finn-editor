@@ -247,10 +247,10 @@ function ProjectCard(props){
 
 function ClosedCard(props){
   var p=props.p;
-  return h("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:3,background:"#F5F5F2",border:"1px solid "+C.line,opacity:0.7}},
-    h("span",{className:"italic-en",style:{fontSize:12,color:C.blueMid,flexShrink:0}},"\u2014"),
+  return h("div",{style:{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 14px",borderRadius:3,background:"#F5F5F2",border:"1px solid "+C.line,opacity:0.7}},
+    h("span",{className:"italic-en",style:{fontSize:12,color:C.blueMid,flexShrink:0,lineHeight:1.5}},"\u2014"),
     h("div",{style:{flex:1,minWidth:0}},
-      h("span",{className:"serif",style:{fontSize:12.5,fontWeight:400,color:C.inkSoft,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}},
+      h("span",{className:"serif",style:{fontSize:12.5,fontWeight:400,color:C.inkSoft,letterSpacing:"0.01em",lineHeight:1.5,wordBreak:"break-word",display:"block"}},
         (p.airDate?(p.month?p.month.slice(0,4):"")+"/"+p.airDate+" ":"")+p.name
       )
     )
@@ -303,9 +303,9 @@ function WaitingRow(props){
   }
 
   return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line,background:"white"}},
-    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:12,marginBottom:8}},
+    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"start",gap:12,marginBottom:8}},
       h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?p.airDate.replace("-","/"):"\u2014"),
-      h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
+      h("span",{className:"serif",style:{fontSize:13.5,color:C.ink,letterSpacing:"0.01em",lineHeight:1.35,wordBreak:"break-word"}},p.name),
       countdownNode||h("span",null),
       h("span",{style:{fontSize:10.5,color:sc,padding:"2px 8px",border:"1px solid "+sc+"40",borderRadius:2,whiteSpace:"nowrap",letterSpacing:"0.05em"}},p.status)
     ),
@@ -319,7 +319,11 @@ function WaitingRow(props){
         h("span",{style:{fontSize:10,color:C.inkLight,letterSpacing:"0.02em"}},s.label),
         s.due&&h("span",{className:"italic-en",style:{fontSize:12,color:C.inkSoft,lineHeight:1}},fmtDate(s.due))
       );
-    }))
+    })),
+    // 備註（如果有）
+    p.note&&h("div",{style:{marginTop:8,fontSize:11.5,color:C.inkSoft,lineHeight:1.55,letterSpacing:"0.02em"}},
+      h("span",{className:"italic-en",style:{color:C.blueMid,marginRight:4}},"note \u2014"),p.note
+    )
   );
 }
 
@@ -385,11 +389,11 @@ function QuoteIframe(){
 // 已完成用：中間版 + 進度條
 function DoneRowPlus(props){
   var p=props.p;
-  var STAGE_COLORS=["#7BA3D9","#4A6FA8","#B89642","#1E3A6F"];
+  var STAGE_COLORS=["#B89642","#7BA3D9","#4A6FA8","#1E3A6F"];
   return h("div",{style:{padding:"11px 16px",borderBottom:"1px dashed "+C.line}},
-    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"center",gap:14,marginBottom:8}},
+    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr auto auto",alignItems:"start",gap:14,marginBottom:8}},
       h("span",{className:"italic-en",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap",minWidth:56}},p.airDate?p.airDate.replace("-","/"):"\u2014"),
-      h("span",{className:"serif",style:{fontSize:13.5,color:C.inkSoft,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:"0.01em"}},p.name),
+      h("span",{className:"serif",style:{fontSize:13.5,color:C.inkSoft,letterSpacing:"0.01em",lineHeight:1.35,wordBreak:"break-word"}},p.name),
       h("span",{className:"serif",style:{fontSize:13,color:C.inkLight,whiteSpace:"nowrap"}},p.finalDue?"Final "+fmtDate(p.finalDue):""),
       h("span",{style:{fontSize:14,color:"#7A8090"}},"\u2713")
     ),
