@@ -239,7 +239,7 @@ function ProjectCard(props){
       h(DueTag,{date:p.v1Due,done:p.v1Done,icon:"\u2726",label:"ES"}),
       h(DueTag,{date:p.finalDue,done:p.finalDone,icon:"\u25cf",label:"Final"})
     ),
-    p.note&&h("div",{style:{marginTop:10,fontSize:11.5,color:C.inkSoft,paddingTop:10,borderTop:"1px dashed "+C.line,lineHeight:1.55,letterSpacing:"0.02em"}},
+    p.note&&h("div",{style:{marginTop:10,fontSize:11.5,color:C.inkSoft,paddingTop:10,borderTop:"1px dashed "+C.line,lineHeight:1.55,letterSpacing:"0.02em",whiteSpace:"pre-line"}},
       h("span",{className:"italic-en",style:{color:C.blueMid,marginRight:4}},"note \u2014"),p.note
     )
   );
@@ -321,7 +321,7 @@ function WaitingRow(props){
       );
     })),
     // 備註（如果有）
-    p.note&&h("div",{style:{marginTop:8,fontSize:11.5,color:C.inkSoft,lineHeight:1.55,letterSpacing:"0.02em"}},
+    p.note&&h("div",{style:{marginTop:8,fontSize:11.5,color:C.inkSoft,lineHeight:1.55,letterSpacing:"0.02em",whiteSpace:"pre-line"}},
       h("span",{className:"italic-en",style:{color:C.blueMid,marginRight:4}},"note \u2014"),p.note
     )
   );
