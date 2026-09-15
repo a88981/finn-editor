@@ -682,9 +682,15 @@ input::placeholder { color: var(--text-dim); }
   <!-- Schedule -->
   <div class="card">
     <div class="card-label">時程安排</div>
-    <div class="card-title" onclick="toggleSchedule()" style="cursor:pointer; user-select:none; justify-content:space-between; margin-bottom:0;">
-      <span><span class="step-num">📅</span>製作時程</span>
-      <span id="sched-chevron" style="font-size:11px; color:var(--text-dim);">▼</span>
+    <div class="card-title" style="justify-content:space-between; margin-bottom:0;">
+      <span onclick="toggleSchedule()" style="cursor:pointer; user-select:none;"><span class="step-num">📅</span>製作時程</span>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span class="mini-check" id="sched-hide-check" onclick="toggleSchedHideImage()" title="勾選後，製作時程不會出現在輸出圖片（報價單）上">
+          <span class="mini-box" id="check-sched-hide"></span>
+          <span class="mini-label">不顯示於輸出圖片</span>
+        </span>
+        <span id="sched-chevron" onclick="toggleSchedule()" style="cursor:pointer; user-select:none; font-size:11px; color:var(--text-dim);">▼</span>
+      </div>
     </div>
     <div id="sched-body" style="display:none; flex-direction:column; gap:10px; margin-top:16px;">
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -836,6 +842,7 @@ let state = {
   extraCover: false,
   coverCopy: false,
   coverPending: false,
+  hideSchedInImage: false,
   gifts: { adplace: false, footage: false, multicam: false, cover: false },
   customExtras: [],
 };
@@ -1173,6 +1180,12 @@ function toggleSchedule() {
   chev.textContent = open ? '▲' : '▼';
 }
 
+function toggleSchedHideImage() {
+  state.hideSchedInImage = !state.hideSchedInImage;
+  document.getElementById('sched-hide-check').classList.toggle('active', state.hideSchedInImage);
+  calculate();
+}
+
 function addCustomExtra() {
   const id = ++customExtraId;
   state.customExtras.push({ id, name: '', price: 0, gift: false, note: '' });
@@ -1289,7 +1302,7 @@ function openSnapModal(mode) {
 
   const img = document.createElement('img');
   img.alt = '報價明細';
-  img.style.cssText = 'max-width:min(500px,100%); width:100%; height:auto; display:block; flex:none;' +
+  img.style.cssText = 'max-width:min(550px,100%); width:100%; height:auto; display:block; flex:none;' +
     'box-shadow:0 12px 40px rgba(0,0,0,0.28); background:#fff;';
 
   const hint = document.createElement('div');
@@ -1393,15 +1406,18 @@ function drawQuoteCard(q, mode) {
   const PRICE_NOTES_H = priceNoteLines
     ? (30 + 28 + priceNoteLines * NOTE_LH + (priceNotes.length - 1) * 4 + 8) : 0;
 
+  // 時程隱藏：結算明細一律不放；報價單則看使用者是否勾選「不顯示於輸出圖片」
+  const schedHidden = isSettle || !!q.hideSchedInImage;
+
   // 時程註腳：緊接在時程之後
-  const schedNoteRaw = (!isSettle && (q.sched || []).some(function (it) { return it.role !== 'us'; }))
+  const schedNoteRaw = (!schedHidden && (q.sched || []).some(function (it) { return it.role !== 'us'; }))
     ? ['回饋請於標示日期當天提供；未如期回饋時，後續交件日將依延遲天數順延'] : [];
   const schedNotes = schedNoteRaw.map(wrapNote);
   const schedNoteLines = schedNotes.reduce(function (n, l) { return n + l.length; }, 0);
   const SCHED_NOTES_H = schedNoteLines ? (34 + schedNoteLines * 22) : 0;
 
   // 階段說明
-  const stageRows = (!isSettle && (q.sched || []).length) ? STAGE_INFO : [];
+  const stageRows = (!schedHidden && (q.sched || []).length) ? STAGE_INFO : [];
   const STAGE_ROW_H = 54;
   const STAGE_PAD = 20;
   const stageRowsN = Math.ceil(stageRows.length / 2);
@@ -1419,8 +1435,8 @@ function drawQuoteCard(q, mode) {
   const rateRows = isSettle ? [] : (q.rateRows || []);
   const drawRows = paidRows.concat(rateRows, giftRows);
 
-  // 製作時程（只放在報價單，兩欄排列）
-  const sched = isSettle ? [] : (q.sched || []);
+  // 製作時程（只放在報價單，兩欄排列；勾選「不顯示於輸出圖片」時也不放）
+  const sched = schedHidden ? [] : (q.sched || []);
   // 單排時間軸：8 個節點剛好排滿一行；超過 8 個自動折成兩排
   const schedPerRow = sched.length > 8 ? Math.ceil(sched.length / 2) : sched.length;
   const schedBands = sched.length ? Math.ceil(sched.length / schedPerRow) : 0;
@@ -1449,7 +1465,7 @@ function drawQuoteCard(q, mode) {
   const rowsH = drawRows.reduce(function (a, r) { return a + rowH(r); }, 0);
 
 
-  const fRows = q.floatRows || [];
+  const fRows = isSettle ? [] : (q.floatRows || []);
   const FLOAT_ROW_H = 34;
   const FLOAT_H = fRows.length ? (30 + 26 + fRows.length * FLOAT_ROW_H + 8) : 0;
 
@@ -2278,7 +2294,7 @@ function calculate() {
   // 依日期排序，同一天則維持原本的階段順序
   schedPairs.sort((a, b) => (a.raw < b.raw ? -1 : a.raw > b.raw ? 1 : a.ord - b.ord));
   const schedLines = schedPairs.map((p, i) => (i + 1) + '. ' + p.label + '｜' + p.who + '　' + p.full);
-  if (lastQuote) lastQuote.sched = schedPairs;
+  if (lastQuote) { lastQuote.sched = schedPairs; lastQuote.hideSchedInImage = state.hideSchedInImage; }
 
   const notes = serviceNotes(state.plan, state.type, baseMins);
   if (notes.length) {
@@ -2379,6 +2395,7 @@ function applyState(data) {
   state.cameraCount = st.cameraCount || 1;
   state.coverCopy = false;
   state.showTax = true;
+  state.hideSchedInImage = false;
   ['adplace','footage','multicam','cover'].forEach(function (k) {
     const cap = k === 'adplace' ? 'AdPlace' : k.charAt(0).toUpperCase() + k.slice(1);
     if (state['extra' + cap]) toggleExtra(k);
@@ -2401,6 +2418,7 @@ function applyState(data) {
 
   if (st.coverCopy && !state.coverCopy) toggleCoverCopy();
   if (st.showTax === false && state.showTax) toggleTax();
+  if (st.hideSchedInImage && !state.hideSchedInImage) toggleSchedHideImage();
   ['adplace','footage','multicam','cover'].forEach(function (k) {
     if (st.gifts && st.gifts[k] && !state.gifts[k]) toggleGift(k);
   });
