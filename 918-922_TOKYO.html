@@ -145,6 +145,11 @@ body { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px
 .arc-btn { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-top: 1px solid var(--rule); cursor: pointer; font-size: 12px; color: var(--ink3); border-radius: 0; }
 .arc-body { display: none; padding: 10px 0 14px; font-size: 12px; color: var(--ink3); line-height: 1.7; border-top: 1px solid var(--rule); }
 .arc-body.open { display: block; }
+  .todo-item.checked {
+    color: #b0a48e !important;
+    text-decoration: line-through !important;
+    background: #f5f5f5 !important;
+  }
 </style>
 </head>
 <body>
@@ -399,7 +404,7 @@ body { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px
       <div class="tl-time">14:00</div>
       <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
       <div class="tl-card sight" onclick="tog(this)">
-        <div class="card-top"><div class="card-main">💇 SALOWIN 表參道 FLAT 店</div><div class="card-chev">▾</div></div>
+        <div class="card-top"><div class="card-main">💇 SALOWIN 表參道 FLAT 店<span class="card-badge">已預約</span></div><div class="card-chev">▾</div></div>
         <div class="card-detail">
           <div class="d-sub"><a href="https://www.google.com/maps/search/SALOWIN%20%E8%A1%A8%E5%8F%83%E9%81%93%20FLAT%20%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%BE%80%E8%B0%B7%E5%8D%80%E7%A5%9E%E5%AE%AE%E5%89%8D4-14-18" target="_blank">神宮前 4-14-18 表參道 J-FLAT 1F</a>・至 16:00</div>
           <a class="map-btn" href="https://www.google.com/maps/search/SALOWIN%20%E8%A1%A8%E5%8F%83%E9%81%93%20FLAT%20%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%BE%80%E8%B0%B7%E5%8D%80%E7%A5%9E%E5%AE%AE%E5%89%8D4-14-18" target="_blank">📍 在 Google Maps 開啟</a>
@@ -756,7 +761,7 @@ body { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px
       <input type="checkbox"> ROKUSAN ANGEL・確認預約＋準備現金 ¥27,000
     </label>
     <label class="todo-item">
-      <input type="checkbox"> SALOWIN 表參道 FLAT・14:00 確認預約
+      <input type="checkbox"> SALOWIN 表參道 FLAT・已預約，確認時間
     </label>
 
     <div style="font-size:11px;letter-spacing:0.08em;color:var(--ink3);margin-top:12px;margin-bottom:4px;">🎟️ 票券・通關</div>
@@ -828,6 +833,8 @@ window.addEventListener('load', () => {
       cb.closest('.todo-item').classList.toggle('checked', cb.checked);
       saveTodo();
     });
+    // 立即套用已儲存的 checked 狀態樣式
+    if (cb.checked) cb.closest('.todo-item').classList.add('checked');
   });
 });
 </script>
