@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>9/18–9/22 東京</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --y:      #d4a843;
+  --y-lt:   #fdf3c0;
+  --y-pale: #fffde8;
+  --ink:    #2a2a2a;
+  --ink2:   #4a4a6a;
+  --ink3:   #9090a8;
+  --red:    #c84848;
+  --red-lt: #fef2f2;
+  --ora-lt: #fef6ee;
+  --bg:     #ffffff;
+  --card:   #ffffff;
+  --rule:   #e8e8f0;
+  --serif:  'Noto Serif TC', serif;
+  --sans:   -apple-system, 'Hiragino Sans', sans-serif;
+}
+html { background: linear-gradient(to bottom, #ffffff 0%, #fffdf0 100%); min-height: 100%; } body { background: transparent; color: var(--ink); font-family: var(--sans); }
+body { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
+
+/* ── Cover ── */
+.cover { padding: 48px 28px 32px; }
+.cover-label { font-size: 11px; letter-spacing: 0.15em; color: var(--ink3); margin-bottom: 12px; }
+.cover-title {
+  font-family: var(--serif); font-size: 32px; font-weight: 700;
+  line-height: 1.15; color: var(--ink); letter-spacing: -0.01em;
+}
+.cover-title em { font-style: normal; color: var(--y); }
+.cover-sub { margin-top: 10px; font-size: 12.5px; color: var(--ink2); line-height: 1.7; }
+.cover-hotel {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px; font-size: 12.5px; color: var(--ink2);
+  text-decoration: none; border-bottom: 1px solid var(--y); padding-bottom: 2px;
+}
+.cover-hotel:active { opacity: 0.7; }
+.cover-rule { margin-top: 28px; height: 1px; background: var(--rule); opacity: 0.6; }
+
+/* ── Bottom tabs ── */
+.tabs {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--card); border-top: 1px solid var(--rule); box-shadow: 0 -2px 12px rgba(60,60,100,0.06);
+  display: flex; z-index: 100;
+}
+.tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px 14px; cursor: pointer; position: relative;
+  color: var(--ink3); transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab .t-num { font-family: var(--serif); font-size: 18px; font-weight: 700; line-height: 1; }
+.tab .t-wd  { font-size: 10px; margin-top: 2px; letter-spacing: 0.05em; }
+.tab::after {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%;
+  height: 2px; background: var(--y); border-radius: 0 0 2px 2px;
+  opacity: 0; transition: opacity 0.15s;
+}
+.tab.active { color: var(--ink); }
+.tab.active::after { opacity: 1; }
+
+/* ── Day panel ── */
+.panel { display: none; }
+.panel.active { display: block; }
+.day-wrap { padding: 28px 28px 20px; }
+
+.day-hd { margin-bottom: 24px; }
+.day-date { font-size: 11px; color: var(--ink3); letter-spacing: 0.1em; margin-bottom: 6px; }
+.day-title { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+.day-sub { margin-top: 6px; font-size: 12.5px; color: var(--ink2); line-height: 1.7; }
+
+.hotel-line {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.07);
+  font-size: 12px; color: var(--ink2);
+}
+.hotel-line .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--y); flex-shrink: 0; }
+.hotel-line a { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--y); padding-bottom: 1px; }
+
+/* ── Timeline ── */
+.tl { position: relative; }
+.tl-row { display: grid; grid-template-columns: 44px 20px 1fr; margin-bottom: 2px; align-items: stretch; }
+.tl-time { font-size: 11px; color: var(--ink3); text-align: right; padding-top: 14px; padding-right: 4px; font-variant-numeric: tabular-nums; align-self: start; }
+.tl-axis { display: flex; flex-direction: column; align-items: center; }
+.ax-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 16px; flex-shrink: 0; }
+.ax-line { width: 1px; background: var(--rule); flex: 1; min-height: 8px; margin-top: 3px; }
+
+/* cards */
+.tl-card {
+  background: #ffffff; border-radius: 12px; margin: 4px 0 4px 8px;
+  overflow: hidden; cursor: pointer; border: none;
+  box-shadow: 0 1px 6px rgba(60,60,100,0.08);
+  transition: box-shadow 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.tl-card:active { box-shadow: 0 0 0 2px var(--y); }
+.tl-card.sight { background: #ffffff; }
+.tl-card.transit { background: #ffffff; }
+.tl-card.transit .card-main { color: #7090b0; }
+.tl-card.transit .card-chev { color: #7090b0 !important; }
+.tl-card.resto { background: #ffffff; }
+.tl-card.fest  { background: #ffffff; }
+
+.card-top { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; gap: 8px; }
+.card-main { font-size: 13.5px; font-weight: 500; color: var(--ink); line-height: 1.4; flex: 1; }
+.tl-card.resto .card-main { color: #b04040; }
+.tl-card.resto .card-chev { color: #b04040 !important; }
+.tl-card.fest  .card-main { color: #2a2a2a; }
+.tl-card.fest  .card-chev { color: #2a2a2a; }
+.card-badge {
+  font-size: 9.5px; font-weight: 600; color: var(--ink2);
+  background: var(--y-lt); border-radius: 3px; padding: 2px 6px;
+  margin-left: 6px; white-space: nowrap; border: 1px solid var(--y);
+}
+.card-chev { font-size: 9px; color: var(--ink3); flex-shrink: 0; transition: transform 0.2s; }
+.tl-card.open .card-chev { transform: rotate(180deg); }
+
+.card-detail { display: none; padding: 0 14px 14px; border-top: 1px solid rgba(0,0,0,0.06); }
+.tl-card.open .card-detail { display: block; }
+.d-sub { margin-top: 10px; font-size: 12px; color: var(--ink2); line-height: 1.75; }
+.d-sub a { color: var(--ink2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.d-note { margin-top: 10px; padding: 9px 12px; border-left: 2px solid var(--y); font-size: 12px; color: var(--ink2); line-height: 1.8; }
+.d-note strong { color: var(--ink); font-weight: 600; }
+.d-tag { display: inline-block; font-size: 10px; color: var(--ink2); background: var(--y-pale); border: 1px solid var(--y-lt); border-radius: 3px; padding: 2px 7px; margin-top: 8px; }
+.map-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 11px; padding: 7px 14px; background: var(--ink); color: #fff;
+  font-size: 11.5px; font-weight: 500; border-radius: 4px; text-decoration: none;
+  transition: opacity 0.15s; margin-right: 6px;
+}
+.map-btn.sec { background: var(--ink2); }
+.map-btn:active { opacity: 0.75; }
+
+/* transit */
+.tl-transit { padding: 8px 0 8px 8px; font-size: 12px; color: #7090b0; line-height: 1.65; align-self: center; }
+
+/* archive */
+.archive { margin: 8px 28px 0; }
+.arc-btn { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-top: 1px solid var(--rule); cursor: pointer; font-size: 12px; color: var(--ink3); border-radius: 0; }
+.arc-body { display: none; padding: 10px 0 14px; font-size: 12px; color: var(--ink3); line-height: 1.7; border-top: 1px solid var(--rule); }
+.arc-body.open { display: block; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-label">旅行記錄 · 2026.09</div>
+  <div class="cover-title">東京<em>。</em><br>五天四夜</div>
+  <div class="cover-sub">木更津 Outlet · The Weeknd · 電玩展 · 澀谷 · 新宿 · 秋葉原</div>
+  <a class="cover-hotel" href="https://www.google.com/maps/search/Minato-ku+Shinbashi+4-10-2+Tokyo+105-0004" target="_blank">🏨 新橋飯店・港區新橋 4-10-2</a>
+  <div class="cover-rule"></div>
+</div>
+
+<!-- ===== 9/18 ===== -->
+<div class="panel active" id="p0"><div class="day-wrap">
+  <div class="day-hd">
+    <div class="day-date">09 / 18 · 五</div>
+    <div class="day-title">出發・木更津 Outlet</div>
+    <div class="day-sub">桃園起飛，成田入境後直奔木更津，傍晚購物，夜抵新橋。</div>
+  </div>
+  <div class="tl">
+    <div class="tl-row">
+      <div class="tl-time">06:45</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">✈️ TR866 桃園 T1 起飛</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">TPE T1 → NRT T1 · 落地 11:15</div>
+          <div class="d-note">出發前完成 <strong>Visit Japan Web</strong> 申請，可用 KIOSK 自助通關，大幅縮短排隊時間。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">11:15</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛬 抵達成田 T1</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">入境審查 → 領行李 → 海關申報</div>
+          <div class="d-note"><strong>入境時間</strong>：VJW + KIOSK 約 20–40 分 · 紙本 40–90 分<br><strong>行李</strong>：大件可宅急便直送新橋飯店（T1 B1F，¥1,800–2,500）<br><strong>換錢</strong>：T1 地下 7-11 ATM 領日圓，匯率優於機場換匯所</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">12:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-card transit" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🚃 成田 → 木更津 Outlet</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">JR 成田線 → 千葉站 → JR 內房線 → 袖ケ浦站 → 公車・約 2–2.5 小時</div>
+          <div class="d-note">袖ケ浦站北口搭公車約 10 分到 Outlet<br>實際班次出發前用 Google Maps／乘換案內確認</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/三井アウトレットパーク木更津" target="_blank">📍 三井 Outlet</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">15:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛍️ 三井 Outlet Park 木更津</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 19:30</div>
+          <div class="d-note"><strong>營業時間</strong>：ショップ 10–20:00 · 餐廳至 21:00<br>約 330 店，日本最大規模之一<br>19:30 開始往巴士站，回程班次有限</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/三井アウトレットパーク木更津" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">19:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚌 木更津 → 新橋・約 1.5 小時・21:00 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">21:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🧳 抵達新橋・Check in</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+
+          <a class="map-btn" href="https://www.google.com/maps/search/Minato-ku+Shinbashi+4-10-2+Tokyo" target="_blank">📍 飯店位置</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">19:50</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚶 飯店 → 餐廳・步行約 5 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">22:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🥚 広島焼き HIDE坊 新橋本店<span class="card-badge">已預約</span></div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-note">廣島燒專門店，抵達新橋後步行可達。</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/広島焼き+HIDE坊+新橋本店" target="_blank">📍 Google Maps</a>
+          <a class="map-btn sec" href="https://www.hotpepper.jp/strJ000121147/yoyaku/?vos=othpporgzzzzx00000001" target="_blank">🍽️ Hot Pepper 訂位</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">深夜</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div></div>
+      <div class="tl-transit">🚶 步行回飯店</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ===== 9/19 ===== -->
+<div class="panel" id="p1"><div class="day-wrap">
+  <div class="day-hd">
+    <div class="day-date">09 / 19 · 六</div>
+    <div class="day-title">駒込・The Weeknd</div>
+    <div class="day-sub">悠閒出發，妙義神社走走，轉往 Belluna Dome 看演唱會。</div>
+  </div>
+  <div class="tl">
+    <div class="tl-row">
+      <div class="tl-time">11:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">😴 起床・整理</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">演唱會日不需早起，把體力留給晚上。</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">12:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div><div class="ax-line"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🏪 超商買午餐・車上吃</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">Belluna Dome 場館內餐點貴且排隊長，建議出發前超商解決。</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">12:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 新橋 → 駒込・約 30 分・13:00 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:05</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">⛩️ 妙義神社</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 13:45</div>
+          <div class="d-note">自由參拜，無門票。從駒込站步行約 7–10 分。</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/妙義神社+駒込" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:45</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚶 妙義神社 → 駒込站・步行約 15 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">14:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-card transit" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🚃 駒込 → Belluna Dome</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">約 75 分・15:15–15:40 抵達</div>
+          <div class="d-note">路線：駒込 → 池袋（山手線）→ 西武池袋線 → 西武球場前<br>演唱會日月台可能管制，提早出發較穩。🎟️ 確認票券在手機 App 或已列印。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">16:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card fest" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🎵 開場</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/Belluna+Dome+西武ドーム" target="_blank">Belluna Dome・埼玉縣所澤市</a></div>
+          <div class="d-note">開場前先確認座位方向，場館大，走到位置需要時間。</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/Belluna+Dome+西武ドーム" target="_blank">📍 場館位置</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">17:50</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card fest" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🎵 Creepy Nuts</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">演出前洗手間提前解決。</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">18:50</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div></div>
+      <div class="tl-card fest" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🎵 The Weeknd</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">演出結束後人潮擁擠，建議稍等 15–20 分再移動。回程西武線末班需確認時間。</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">22:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div></div>
+      <div class="tl-transit">🚃 西武球場前 → 新橋・回飯店</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ===== 9/20 ===== -->
+<div class="panel" id="p2"><div class="day-wrap">
+  <div class="day-hd">
+    <div class="day-date">09 / 20 · 日</div>
+    <div class="day-title">電玩展・表參道・東京站</div>
+    <div class="day-sub">東京電玩展，表參道弄頭髮，東京站和 Ryan 吃晚餐。</div>
+  </div>
+  <div class="tl">
+    <div class="tl-row">
+      <div class="tl-time">上午</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">😴 起床・整理</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">09:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 新橋 → 幕張メッセ・約 60 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">10:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🎮 東京電玩展 TGS2026</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/%E5%B9%95%E5%BC%B5%E3%83%A1%E3%83%83%E3%82%BB%20%E5%8D%83%E8%91%89" target="_blank">幕張メッセ・千葉</a>・至 12:30</div>
+          <div class="d-note">🕙 一般公開日 9:30–17:00<br>🎮 30 週年，史上最長 5 日間開催<br>⚠️ 12:30 離開趕表參道，控制時間</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/%E5%B9%95%E5%BC%B5%E3%83%A1%E3%83%83%E3%82%BB%20%E5%8D%83%E8%91%89" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">12:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 幕張メッセ → 表參道・約 60 分・13:30 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div><div class="ax-line"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🍱 表參道快速午餐</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 13:55</div>
+          <div class="d-note">⚠️ 14:00 弄頭髮，時間很趕，選快速的。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-row">
+      <div class="tl-time">14:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">💇 SALOWIN 表參道 FLAT 店</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/SALOWIN%20%E8%A1%A8%E5%8F%83%E9%81%93%20FLAT%20%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%BE%80%E8%B0%B7%E5%8D%80%E7%A5%9E%E5%AE%AE%E5%89%8D4-14-18" target="_blank">神宮前 4-14-18 表參道 J-FLAT 1F</a>・至 16:00</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/SALOWIN%20%E8%A1%A8%E5%8F%83%E9%81%93%20FLAT%20%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%BE%80%E8%B0%B7%E5%8D%80%E7%A5%9E%E5%AE%AE%E5%89%8D4-14-18" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">16:10</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 表參道 → 東京站・約 20 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">18:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🍽️ 與 Ryan 吃晚餐</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <a class="map-btn" href="https://www.google.com/maps/search/%E6%9D%B1%E4%BA%AC%E9%A7%85%20%E5%91%A8%E8%BE%BA%20%E3%83%AC%E3%82%B9%E3%83%88%E3%83%A9%E3%83%B3" target="_blank">📍 東京站周邊</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-row">
+      <div class="tl-time">21:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div></div>
+      <div class="tl-transit">🚃 東京站 → 新橋・回飯店（約 5 分）</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ===== 9/21 ===== -->
+<div class="panel" id="p3"><div class="day-wrap">
+  <div class="day-hd">
+    <div class="day-date">09 / 21 · 一</div>
+    <div class="day-title">澀谷・新宿</div>
+    <div class="day-sub">LINE FRIENDS 地瓜球快閃，進擊の巨人 Café，蟹道楽晚餐。</div>
+  </div>
+  <div class="tl">
+    <div class="tl-row">
+      <div class="tl-time">上午</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">😴 起床・整理</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">11:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 新橋 → 代々木・約 25 分・12:00 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">12:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div><div class="ax-line"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🍜 伊之瀨 Inose・特上昆布水沾麵</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/%E4%BC%8A%E4%B9%8B%E7%80%A8%20Inose%20Tsukemen%20%E6%B8%8B%E8%B0%B7%E5%8C%BA%E4%BB%A3%E3%80%85%E6%9C%A8%EF%BC%92%E4%B8%81%E7%9B%AE%EF%BC%92%EF%BC%90%E2%88%9219" target="_blank">代々木 2-20-19 新宿東洋ビル 102</a>・至 13:00</div>
+          <div class="d-note">
+            💰 特上昆布水沾麵 ¥1,800（鰹魚湯底／東京醬油／豆乳擔擔麵／蘑菇蘿蔔泥 四種口味）<br>
+            🕙 營業時間：11:00–15:00・17:30–21:00<br>
+            ⚠️ 週二公休・用餐完步行約 8 分到澀谷
+          </div>
+          <a class="map-btn" href="https://www.google.com/maps/search/%E4%BC%8A%E4%B9%8B%E7%80%A8%20Inose%20Tsukemen%20%E6%B8%8B%E8%B0%B7%E5%8C%BA%E4%BB%A3%E3%80%85%E6%9C%A8%EF%BC%92%E4%B8%81%E7%9B%AE%EF%BC%92%EF%BC%90%E2%88%9219" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 伊之瀨 → 新宿站南口（步行 7 分）→ JR → 澀谷・13:20–13:30 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">☺️ LINE FRIENDS SQUARE SHIBUYA 排隊</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-note">快閃店 14:00 開放，提早約 50 分排隊取號。確認是否需預約或整理券。</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/LINE+FRIENDS+SQUARE+SHIBUYA" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">14:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card fest" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛍️ LINE FRIENDS 地瓜球 快閃店</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 15:00</div>
+          <div class="d-note">通常限購，確認購買上限及付款方式。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">15:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 澀谷 → 新宿・約 30 分・15:30 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">15:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛍️ 新宿逛街</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 16:50</div>
+          <div class="d-note">東口：OIOI、伊勢丹、高島屋。西口：Yodobashi Camera。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">17:15</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card fest" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">☕ BOX cafe&space 進擊の巨人<span class="card-badge">已預約</span></div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/?api=1&query=none&query_place_id=ChIJwwjROwCNGGARq0RbMy-h2Fg" target="_blank">Lumine Est 新宿 8F・新宿 3-38-1</a></div>
+          <div class="d-tag">2 人・17:15</div>
+          <div class="d-note">確認預訂號碼在手，通常需出示 QR Code，提前 5 分鐘到場。</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/?api=1&query=none&query_place_id=ChIJwwjROwCNGGARq0RbMy-h2Fg" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">18:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div><div class="ax-line"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🦀 蟹道楱 新宿駅前店<span class="card-badge">已預約</span></div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/蟹道楱+新宿駅前店" target="_blank">新宿 3-27-10 武蔵野ビル 4F</a>・至 20:00</div>
+          <div class="d-note">2 人・18:30 預約・人均 ¥5,000–10,000 左右。</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/蟹道楽+新宿駅前店" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">20:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛍️ 新宿繼續逛</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 21:30</div>
+          <div class="d-note">ドン・キホーテ 歌舞伎町店 24 小時，藥妝零食最後補貨。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">21:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 新宿 → 六本木・都營大江戶線・約 10 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">21:40</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div><div class="ax-line"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🎭 ROKUSAN ANGEL・開場<span class="card-badge">已預約</span></div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/ROKUSAN%20ANGEL%20%E5%85%AD%E6%9C%AC%E6%9C%A8%203-8-15%20%E6%97%A5%E6%8B%93%E3%83%93%E3%83%AB%20B2F" target="_blank">六本木 3-8-15 日拓ビル B2F</a></div>
+          <div class="d-note">
+            🎬 演出 22:40 開始・約 24:45 結束<br>
+            💰 現場付款 ¥27,000（2 人）<br>
+            🎭 Burlesque 歌舞秀，非脫衣舞，適合情侶和觀光客<br>
+            ⚠️ 20 歲以上才可入場・現金準備好
+          </div>
+          <a class="map-btn" href="https://www.google.com/maps/search/ROKUSAN%20ANGEL%20%E5%85%AD%E6%9C%AC%E6%9C%A8%203-8-15%20%E6%97%A5%E6%8B%93%E3%83%93%E3%83%AB%20B2F" target="_blank">📍 在 Google Maps 開啟</a>
+          <a class="map-btn sec" href="https://rokusanangel.jp/" target="_blank">🎟️ 官網預約</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">24:45</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div></div>
+      <div class="tl-transit">🚕 六本木 → 新橋・計程車</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ===== 9/22 ===== -->
+<div class="panel" id="p4"><div class="day-wrap">
+  <div class="day-hd">
+    <div class="day-date">09 / 22 · 二</div>
+    <div class="day-title">晴空塔・秋葉原・返台</div>
+    <div class="day-sub">晴空塔展望台，秋葉原掃貨，進擊聯名＋正反対 POP UP，Skyliner 返台。</div>
+  </div>
+  <div class="tl">
+    <div class="tl-row">
+      <div class="tl-time">上午</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">☀️ 起床・行李寄放飯店</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">日本免稅額 ¥200,000 等值，超過需申報。液體、噴霧類藥妝放托運。</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">09:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🧳 Check-out</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">退房後行李寄放，輕裝出發。也可宅急便寄成田（飯店或附近便利店），省去拖行李。</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">10:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 新橋 → 押上（スカイツリー前）・約 25 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">10:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🗼 東京晴空塔・展望台</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 11:30</div>
+          <div class="d-note">
+            天望デッキ（350m）＋拍照・約 1 小時<br>
+            💰 天望デッキ ¥2,950 起，建議事先 Klook 預約<br>
+            🕙 平日 10:00 開門
+          </div>
+          <a class="map-btn" href="https://www.google.com/maps/search/%E6%9D%B1%E4%BA%AC%E3%82%B9%E3%82%AB%E3%82%A4%E3%83%84%E3%83%AA%E3%83%BC%20%E6%8A%BC%E4%B8%8A" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">11:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#c17070"></div><div class="ax-line"></div></div>
+      <div class="tl-card resto" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🍱 宙寅屋 Tokyo Solamachi</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">東京スカイツリータウン・ソラマチ・至 12:30</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/%E5%AE%99%E5%AF%85%E5%B1%8B%20Tokyo%20Solamachi%20%E6%9D%B1%E4%BA%AC%E3%82%B9%E3%82%AB%E3%82%A4%E3%83%84%E3%83%AA%E3%83%BC" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">12:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 押上 → 秋葉原・半蔵門線・約 5 分・13:00 抵達</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:00</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">👕 graniph 進擊の巨人聯名</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/アトレ秋葉原1+外神田1-17-6" target="_blank">アトレ秋葉原1・3F</a>・至 12:15</div>
+          <div class="d-note">アトレ秋葉原 10:00–21:00・JR 秋葉原站直結</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/アトレ秋葉原1+外神田1-17-6" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">13:45</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">📚 三省堂 正反対な君と僕 POP UP</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub"><a href="https://www.google.com/maps/search/アトレ秋葉原1+外神田1-17-6" target="_blank">アトレ秋葉原1・2F</a>・至 13:00</div>
+          <div class="d-tag">活動期間 9/12–9/27</div>
+          <div class="d-note">三省堂書店 アトレ秋葉原1・10:00–21:00</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/アトレ秋葉原1+外神田1-17-6" target="_blank">📍 在 Google Maps 開啟</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-row">
+      <div class="tl-time">14:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛍️ 秋葉原逛街</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">至 16:30</div>
+          <div class="d-note">Animate・Toranoana・Sofmap 等。⚠️ 17:00 前務必結束。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">16:30</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-transit">🚃 秋葉原 → 京成上野・JR 山手線 → 步行・約 15 分</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">16:50</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#7090b0"></div><div class="ax-line"></div></div>
+      <div class="tl-card transit" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🚄 Skyliner 京成上野 → 成田 T1</div><div class="card-chev">▾</div></div>
+        <div class="card-detail">
+          <div class="d-sub">約 41 分・18:15–18:40 抵達</div>
+          <div class="d-note">票價 ¥2,520・⚠️ 確認是<strong>成田 T1</strong>，非 T2/T3</div>
+          <a class="map-btn" href="https://www.google.com/maps/search/京成上野駅" target="_blank">📍 京成上野站</a>
+        </div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">18:40</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🧳 成田機場 T1・辦理登機</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">Tiger Air 通常在 T1 南翼 Check-in 櫃台・液體類藥妝放托運・出境後免稅店最後採購</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">21:15</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:#3a3a3a"></div><div class="ax-line"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">✈️ TR875 成田起飛</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-sub">NRT T1 → TPE T1・落地 23:55</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-time">23:55</div>
+      <div class="tl-axis"><div class="ax-dot" style="background:var(--ink3)"></div></div>
+      <div class="tl-card sight" onclick="tog(this)">
+        <div class="card-top"><div class="card-main">🛬 抵達桃園機場 T1</div><div class="card-chev">▾</div></div>
+        <div class="card-detail"><div class="d-note">機場捷運末班約 00:13，趕得上；超過可搭計程車。</div></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+
+
+<!-- bottom tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="sw(0)"><span class="t-num">18</span><span class="t-wd">五</span></div>
+  <div class="tab" onclick="sw(1)"><span class="t-num">19</span><span class="t-wd">六</span></div>
+  <div class="tab" onclick="sw(2)"><span class="t-num">20</span><span class="t-wd">日</span></div>
+  <div class="tab" onclick="sw(3)"><span class="t-num">21</span><span class="t-wd">一</span></div>
+  <div class="tab" onclick="sw(4)"><span class="t-num">22</span><span class="t-wd">二</span></div>
+  <div class="tab" onclick="sw(5)"><span class="t-num">✓</span><span class="t-wd">待辦</span></div>
+</div>
+
+
+<!-- ===== 待辦 ===== -->
+<div class="panel" id="p5"><div class="day-wrap">
+  <div class="day-hd">
+    <div class="day-date">出發前確認清單</div>
+    <div class="day-title">待辦・待確認</div>
+  </div>
+
+  <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;">
+
+    <div style="font-size:11px;letter-spacing:0.08em;color:var(--ink3);margin-bottom:4px;">📋 預約確認</div>
+
+    <label class="todo-item">
+      <input type="checkbox"> 広島焼き HIDE坊 新橋本店・已預約，確認時間
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> BOX cafe&space 進擊の巨人・確認預訂號碼
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> 蟹道楱 新宿駅前店・18:30 2 人・已預約，確認
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> ROKUSAN ANGEL・確認預約＋準備現金 ¥27,000
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> SALOWIN 表參道 FLAT・14:00 確認預約
+    </label>
+
+    <div style="font-size:11px;letter-spacing:0.08em;color:var(--ink3);margin-top:12px;margin-bottom:4px;">🎟️ 票券・通關</div>
+
+    <label class="todo-item">
+      <input type="checkbox"> Visit Japan Web 申請（入境前完成）
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> 東京電玩展 TGS2026 票券購買確認
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> The Weeknd 演唱會票券確認（手機 App 或列印）
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> Skyliner 票（¥2,520，可現場買或事先購）
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> 晴空塔展望台票（¥2,950 起，Klook 事先預約）
+    </label>
+    
+
+
+    <div style="font-size:11px;letter-spacing:0.08em;color:var(--ink3);margin-top:12px;margin-bottom:4px;">🚃 交通確認</div>
+
+    <label class="todo-item">
+      <input type="checkbox"> 9/18 成田→木更津 電車班次（乘換案內確認）
+    </label>
+    <label class="todo-item">
+      <input type="checkbox"> 9/19 回程西武線末班時間確認
+    </label>
+
+    <div style="font-size:11px;letter-spacing:0.08em;color:var(--ink3);margin-top:12px;margin-bottom:4px;">🧳 行前準備</div>
+
+    <label class="todo-item">
+      <input type="checkbox"> 9/20 出發前預訂宅急便寄機場行李（9/22 飯店 → 成田 T1）
+    </label>
+
+  </div>
+</div></div>
+
+<script>
+function sw(i) {
+  document.querySelectorAll('.tab').forEach((t,idx)=>t.classList.toggle('active',idx===i));
+  document.querySelectorAll('.panel').forEach((p,idx)=>p.classList.toggle('active',idx===i));
+  window.scrollTo(0,0);
+}
+function tog(el){ el.classList.toggle('open'); }
+
+// Todo localStorage
+function saveTodo() {
+  const states = {};
+  document.querySelectorAll('.todo-item input[type="checkbox"]').forEach((cb, i) => {
+    states[i] = cb.checked;
+  });
+  try { localStorage.setItem('todo_918_922', JSON.stringify(states)); } catch(e) {}
+}
+function loadTodo() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('todo_918_922') || '{}');
+    document.querySelectorAll('.todo-item input[type="checkbox"]').forEach((cb, i) => {
+      if (saved[i]) { cb.checked = true; cb.closest('.todo-item').classList.add('checked'); }
+    });
+  } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', () => {
+  loadTodo();
+  document.querySelectorAll('.todo-item input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.todo-item').classList.toggle('checked', cb.checked);
+      saveTodo();
+    });
+  });
+});
+</script>
+</body>
+</html>
