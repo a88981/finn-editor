@@ -216,6 +216,27 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ft-r.on{color:var(--ink);font-weight:500}
 .feas-say{font-size:12px;line-height:1.8;color:var(--ink);background:#FCFCFA;border-left:2px solid var(--yellow);padding:9px 13px;margin-bottom:6px}
 .feas-empty{font-size:12px;color:var(--ink-light);padding:16px 0;text-align:center}
+.txt-lines{border:0.5px solid var(--line);border-radius:5px;margin:10px 0 14px;overflow:hidden}
+.txt-line{display:grid;grid-template-columns:64px 82px 1fr;gap:4px 10px;padding:7px 12px;font-size:11.5px;align-items:baseline;border-top:0.5px solid var(--line-soft)}
+.txt-line:first-child{border-top:0}
+.txt-k{font-size:10px;font-weight:500;color:var(--yellow-mid)}
+.txt-d{font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.txt-t{color:var(--ink)}
+.txt-n{grid-column:2 / -1;font-size:10.5px;color:var(--red)}
+.txt-line.hit{background:var(--yellow-lightest)}
+.txt-line.info .txt-k{color:var(--ink-light);font-weight:400}
+.txt-line.info .txt-t{color:var(--ink-soft)}
+.txt-line.skip{color:var(--ink-light)}
+.txt-line.skip .txt-k,.txt-line.skip .txt-t{color:var(--ink-light)}
+.txt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.txt-stage{border:0.5px solid var(--line);border-radius:5px;padding:10px 12px}
+.txt-sh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--ink);margin-bottom:8px}
+.txt-sh .mstage-skip{margin-left:auto}
+.txt-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.txt-tonote{display:block;margin-top:12px;font-size:11.5px;color:var(--ink-soft);line-height:1.6;cursor:pointer}
+.txt-tonote input{margin:0 6px 0 0;vertical-align:-1px}
+.txt-tonote span{display:block;margin:4px 0 0 19px;font-size:10.5px;color:var(--ink-light)}
+@media (max-width:600px){.txt-grid{grid-template-columns:1fr}.txt-line{grid-template-columns:56px 1fr}.txt-t{grid-column:1 / -1}}
 </style>
 </head>
 <body>
@@ -225,7 +246,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V31";
+var PLAN_BUILD="V32";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -577,6 +598,7 @@ function render(){
   html+='<button class="btn" onclick="openFeas()" title="給一個交件日，試算能不能接">🧮 試算新案</button>';
   html+='<button class="btn" onclick="openExport()" title="把待執行的案整理成 Prompt，複製給 Claude 排">📋 產生 Prompt</button>';
   html+='<button class="btn" onclick="openImport()" title="把 Claude 排好的 JSON 貼回來，一鍵填入">📥 貼上排程</button>';
+  html+='<button class="btn" onclick="openTxt()" title="把客戶給的文字時程，填進追蹤器已建好的卡片">✍️ 貼時程</button>';
   html+='<button class="btn primary" id="save-btn-top" onclick="saveAll()" style="margin-left:auto" '+(dirty===0?'disabled':'')+'>💾 存回 Notion'+(dirty>0?' ('+dirty+')':'')+'</button>';
   html+='<div class="legend" style="margin-left:0;flex-basis:100%;margin-top:8px;padding-top:8px;border-top:0.5px dashed var(--line)">';
   [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
@@ -665,6 +687,7 @@ function render(){
   if(state.feas){html+=renderFeas();}
   if(state.exp){html+=renderExport();}
   if(state.imp){html+=renderImport();}
+  if(state.txt){html+=renderTxt();}
   
   // Toast
   if(state.toast){html+='<div class="toast">'+escapeHtml(state.toast)+'</div>';}
@@ -2217,6 +2240,292 @@ function renderSummary(){
 }
 
 load();
+
+/* ═══ 4. 貼時程 · 把客戶給的文字時程填進追蹤器已建好的卡片 ═══════════════
+   流程：追蹤器先建空白卡 → 這裡選那張卡、貼文字 → 預覽可改 → 填入甘特圖
+   → 照平常按「存回 Notion」。不新增 Notion 頁面，只用既有的 update。
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 我在時程文字裡的稱呼。這幾個字出現在「交」的那一行，就當成我的交件 */
+var TXT_ME = ["剪輯","我","小玩"];
+
+/* 每一行判斷成什麼。由上往下比，先中先贏。need 是同一行必須還有的字 */
+var TXT_RULES = [
+  {k:"air",   re:/上線|上片|首播|發布|發佈|公開|上架/},
+  {k:"mat",   re:/硬碟|素材|檔案|原檔|拍攝完|帶子/, need:/提供|給|到|交|寄|傳/},
+  {k:"final", re:/f\s*-?\s*copy|\bfc\b|final|完成版|定剪/i, need:/交/},
+  {k:"v1",    re:/a\s*-?\s*copy|\bac\b|v1|\bes\b|初版/i, need:/交/},
+  {k:"cut1",  re:/初剪|粗剪|rough/i, need:/交/},
+  {k:"biz",   re:/業配/, need:/交/}
+];
+var TXT_KLABEL = {air:"上線",mat:"素材到",final:"Final",v1:"V1/ES 交",cut1:"初剪交",biz:"業配交",info:"其他節點"};
+
+function txtNorm(s){
+  s=String(s||"");
+  try{s=s.normalize("NFKC");}catch(e){}
+  return s;
+}
+/* 抓一行裡的第一個日期，回傳 {y,m,d,wd}，wd 是括號裡寫的星期 */
+function txtDate(line){
+  var m=line.match(/(?:(\d{4})\s*[\/\-.年]\s*)?(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})\s*日?\s*(?:\(\s*(?:週|星期|周)?\s*([一二三四五六日天])\s*\))?/);
+  if(!m)return null;
+  var mo=+m[2], d=+m[3];
+  if(mo<1||mo>12||d<1||d>31)return null;
+  var wd=m[5]?"日一二三四五六".indexOf(m[5]==="天"?"日":m[5]):-1;
+  return {y:m[1]?+m[1]:null,m:mo,d:d,wd:wd,raw:m[0]};
+}
+function ymdStr(y,m,d){return y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");}
+
+function parseSchedText(txt){
+  var lines=txtNorm(txt).split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+  var out=[], prev=null, today=todayStr();
+  lines.forEach(function(line){
+    var dt=txtDate(line);
+    if(!dt){out.push({line:line,k:"skip"});return;}
+    var y=dt.y;
+    if(!y){
+      y=+today.slice(0,4);
+      var cand=ymdStr(y,dt.m,dt.d);
+      if(prev){ if(cand<prev)y++; }
+      /* 第一行就比今天早兩個月以上，多半是明年 */
+      else if(workDaysBetween(cand,today)>40)y++;
+    }
+    var ds=ymdStr(y,dt.m,dt.d), real=toDate(ds);
+    if(real.getMonth()+1!==dt.m){out.push({line:line,k:"skip",err:"日期不存在"});return;}
+    prev=ds;
+    var rest=line.replace(dt.raw,"");
+    var k="info";
+    for(var i=0;i<TXT_RULES.length;i++){
+      var r=TXT_RULES[i];
+      if(r.re.test(rest)&&(!r.need||r.need.test(rest))){k=r.k;break;}
+    }
+    var me=TXT_ME.some(function(w){return rest.indexOf(w)>=0;});
+    var wdBad=(dt.wd>=0&&real.getDay()!==dt.wd);
+    out.push({line:line,date:ds,k:k,me:me,text:rest.replace(/^[\s:：、,，]+/,""),
+              wdBad:wdBad,wdSaid:dt.wd});
+  });
+  /* 同一階段出現好幾行（例如「剪輯交 Acopy 給 Peggy」和「交 AC 給客戶」），
+     有寫到我的那行才是我的交件，其他的當成別人的節點 */
+  ["final","v1","cut1","biz"].forEach(function(k){
+    var hits=out.filter(function(o){return o.k===k;});
+    if(hits.length<2)return;
+    var mine=hits.filter(function(o){return o.me;});
+    var keep=mine.length?mine[0]:hits[0];
+    hits.forEach(function(o){if(o!==keep){o.k="info";o.demoted=TXT_KLABEL[k];}});
+  });
+  ["air","mat"].forEach(function(k){
+    var hits=out.filter(function(o){return o.k===k;});
+    hits.slice(1).forEach(function(o){o.k="info";});
+  });
+  return out;
+}
+
+/* 從解析結果推出各階段的起訖。開始日沒寫就從素材到那天（或上一階段交件隔天）開始 */
+function txtNextWD(ds){var a=workdaysFwd(shiftDay(ds,1),1);return a[0]||ds;}
+function schedFromParsed(rows){
+  function get(k){var r=rows.filter(function(o){return o.k===k;})[0];return r?r.date:"";}
+  var mat=get("mat"), cut1=get("cut1"), v1=get("v1"), biz=get("biz"), fin=get("final"), air=get("air");
+  var f={noCut1:!cut1,noBiz:!biz};
+  var cursor=mat||"";
+  if(cut1){f.cut1S=cursor||cut1;f.cut1Due=cut1;cursor=txtNextWD(cut1);}
+  if(v1){f.v1S=cursor||v1;f.v1Due=v1;}
+  if(biz){f.bizS=v1?txtNextWD(v1):(cursor||biz);f.bizDue=biz;}
+  if(fin)f.finalDue=fin;
+  return {f:f,mat:mat,air:air,fin:fin};
+}
+
+function txtTargets(){
+  return state.projects.filter(function(p){return !p.closed&&!p.finalDone;})
+    .sort(function(a,b){
+      var x=hasSchedule(a)?1:0, y=hasSchedule(b)?1:0;
+      if(x!==y)return x-y;
+      return String(a.name).localeCompare(String(b.name),"zh-Hant");
+    });
+}
+
+function openTxt(){
+  var t=txtTargets();
+  state.txt={pid:t.length&&!hasSchedule(t[0])?t[0].id:"",text:"",rows:null,f:null,err:null,toNote:false};
+  state.skipScroll=true;render();
+}
+function closeTxt(){state.txt=null;state.skipScroll=true;render();}
+
+function parseTxt(){
+  var m=state.txt;
+  var ta=document.getElementById("txt-in"); if(ta)m.text=ta.value;
+  var sel=document.getElementById("txt-target"); if(sel)m.pid=sel.value;
+  if(!m.pid){m.err="先選要填入哪一張卡。追蹤器還沒建的話，先去建一張空白卡再按 ⟲ 重整。";render();return;}
+  if(!m.text.trim()){m.err="還沒貼上時程文字。";render();return;}
+  var rows=parseSchedText(m.text);
+  if(!rows.some(function(r){return r.date;})){m.err="這段文字裡找不到日期。日期要寫成 11/2、11月2日 或 2026-11-02。";render();return;}
+  var s=schedFromParsed(rows);
+  m.rows=rows; m.f=s.f; m.mat=s.mat; m.air=s.air; m.err=null;
+  render();
+}
+
+/* 預覽裡手動改日期 */
+function txtSet(k,v){
+  var f=state.txt.f;
+  if(k==="noCut1"||k==="noBiz"){f[k]=v;}
+  else f[k]=v||"";
+  render();
+}
+
+/* 組成跟「貼上排程」一樣的 row，直接用 expandRow 做同一套檢查 */
+function txtRow(){
+  var m=state.txt, f=m.f;
+  return {id:m.pid,
+    cut1S:f.noCut1?null:(f.cut1S||null), cut1Due:f.noCut1?null:(f.cut1Due||null),
+    v1S:f.v1S||null, v1Due:f.v1Due||null,
+    bizS:f.noBiz?null:(f.bizS||null), bizDue:f.noBiz?null:(f.bizDue||null),
+    finalDue:f.finalDue||null, noCut1:!!f.noCut1, noBiz:!!f.noBiz};
+}
+
+function txtInfoNote(){
+  var m=state.txt;
+  return (m.rows||[]).filter(function(r){return r.k==="info"&&r.date;})
+    .map(function(r){return md(r.date)+" "+r.text;}).join("；");
+}
+
+function applyTxt(){
+  var m=state.txt;
+  var p=state.projects.find(function(x){return x.id===m.pid;});
+  if(!p){closeTxt();return;}
+  var ex=expandRow(txtRow());
+  Object.keys(ex.fields).forEach(function(k){setField(p,k,ex.fields[k]);});
+  /* 可工作期間只在卡片上是空的時候才補，已經填過的不碰 */
+  var rf=workRangeFields();
+  if(rf){
+    if(m.mat&&!p[rf[0]])setField(p,rf[0],m.mat);
+    var endD=m.f.finalDue||"";
+    if(endD&&!p[rf[1]])setField(p,rf[1],endD);
+  }
+  if(m.toNote){
+    var note=txtInfoNote();
+    if(note){
+      var old=pNote(p);
+      setPNote(p.id,(old?old+"；":"")+"客戶端時程："+note);
+    }
+  }
+  state.txt=null;
+  showToast("已填入「"+p.name+"」· 檢查甘特圖後按「存回 Notion」");
+}
+
+function renderTxt(){
+  var m=state.txt;
+  var h='<div class="modal-overlay"><div class="modal" style="max-width:700px">';
+  h+='<div class="modal-title">✍️ 貼時程</div>';
+  h+='<div class="modal-sub">把客戶給的文字時程填進追蹤器已建好的卡片 · 先預覽再填入</div>';
+  var list=txtTargets();
+
+  if(!m.rows){
+    if(m.err)h+='<div class="imp-err">⚠ '+escapeHtml(m.err)+'</div>';
+    h+='<div class="flabel">填入哪一張卡</div>';
+    h+='<select class="fc" id="txt-target" style="margin-bottom:12px">';
+    h+='<option value="">— 選一張卡 —</option>';
+    var shownSep=false;
+    list.forEach(function(p){
+      if(hasSchedule(p)&&!shownSep){h+='<option disabled>──── 已有日期的卡 ────</option>';shownSep=true;}
+      h+='<option value="'+escAttr(p.id)+'"'+(p.id===m.pid?' selected':'')+'>'+escapeHtml(p.name)+(p.client?'（'+escapeHtml(p.client)+'）':'')+(p.status?' · '+escapeHtml(p.status):'')+'</option>';
+    });
+    h+='</select>';
+    h+='<div class="pnote">一行一個節點，日期寫成 <b>11/2</b>、<b>11月2日</b> 或 <b>2026-11-02</b> 都可以。沒寫年份會照順序往後推。<br>'+
+       '有寫「剪輯」的那行會當成你的交件：Acopy／AC → V1/ES，Fcopy → Final，初剪、業配照字面，硬碟／素材 → 開工日，上線 → 上片日。</div>';
+    h+='<textarea class="pta" id="txt-in" rows="10" placeholder="11/2（一）提供硬碟檔案給剪輯&#10;11/16（一）剪輯交Acopy給Peggy&#10;…">'+escapeHtml(m.text||"")+'</textarea>';
+    h+='<div class="modal-btns"><button class="btn" onclick="closeTxt()">取消</button>';
+    h+='<button class="btn primary" onclick="parseTxt()">解析並預覽</button></div></div></div>';
+    return h;
+  }
+
+  var p=state.projects.find(function(x){return x.id===m.pid;})||{};
+  var f=m.f;
+  h+='<div class="imp-name" style="margin-bottom:4px">→ '+escapeHtml(p.name||"")+(p.client?' <span class="imp-target" style="margin:0">'+escapeHtml(p.client)+'</span>':'')+'</div>';
+  var INCLUDE=["等待素材","待確認","初剪待執行"];
+  if(INCLUDE.indexOf(p.status)<0){
+    h+='<div class="imp-err">⚠ 這張卡的狀態是「'+escapeHtml(p.status||"未標")+'」，甘特圖只顯示等待素材／待確認／初剪待執行。日期還是會存，但要把狀態改掉才看得到。</div>';
+  }
+
+  /* 逐行對照：每一行被當成什麼 */
+  h+='<div class="txt-lines">';
+  m.rows.forEach(function(r){
+    var cls=r.k==="skip"?"skip":(r.k==="info"?"info":"hit");
+    h+='<div class="txt-line '+cls+'">';
+    h+='<span class="txt-k">'+(r.k==="skip"?"略過":TXT_KLABEL[r.k])+'</span>';
+    h+='<span class="txt-d">'+(r.date?r.date:"")+'</span>';
+    h+='<span class="txt-t">'+escapeHtml(r.date?r.text:r.line)+'</span>';
+    var notes=[];
+    if(r.demoted)notes.push("沒寫到剪輯，不算你的"+r.demoted);
+    if(r.wdBad)notes.push("文字寫星期"+WD_CH[r.wdSaid]+"，但 "+r.date+" 是星期"+WD_CH[toDate(r.date).getDay()]+"，年份可能推錯");
+    if(r.err)notes.push(r.err);
+    if(notes.length)h+='<span class="txt-n">'+escapeHtml(notes.join("；"))+'</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  /* 可改的欄位 */
+  function dIn(k,lab){
+    return '<div><div class="flabel">'+lab+'</div><input type="date" class="fc" value="'+escAttr(f[k]||"")+'" onchange="txtSet(\''+k+'\',this.value)"></div>';
+  }
+  h+='<div class="txt-grid">';
+  h+='<div class="txt-stage"><div class="txt-sh"><span style="color:var(--c-cut1)">✂️</span> 初剪<label class="mstage-skip"><input type="checkbox"'+(f.noCut1?' checked':'')+' onchange="txtSet(\'noCut1\',this.checked)">無此階段</label></div>';
+  if(!f.noCut1)h+='<div class="txt-2">'+dIn("cut1S","開始")+dIn("cut1Due","交件")+'</div>';
+  h+='</div>';
+  h+='<div class="txt-stage"><div class="txt-sh"><span style="color:var(--c-v1)">✨</span> V1/ES</div><div class="txt-2">'+dIn("v1S","開始")+dIn("v1Due","交件")+'</div></div>';
+  h+='<div class="txt-stage"><div class="txt-sh"><span style="color:var(--c-biz)">💰</span> 業配<label class="mstage-skip"><input type="checkbox"'+(f.noBiz?' checked':'')+' onchange="txtSet(\'noBiz\',this.checked)">無此階段</label></div>';
+  if(!f.noBiz)h+='<div class="txt-2">'+dIn("bizS","開始")+dIn("bizDue","交件")+'</div>';
+  h+='</div>';
+  h+='<div class="txt-stage"><div class="txt-sh"><span style="color:var(--c-fin)">●</span> Final</div><div class="txt-2">'+dIn("finalDue","交件")+'<div></div></div></div>';
+  h+='</div>';
+
+  var ex=expandRow(txtRow());
+  var soft=dueDayNote(p,ex.fields);
+  if(ex.warn.length)h+='<div class="imp-note2" style="color:var(--red)">⚠ '+escapeHtml(ex.warn.join(" / "))+'</div>';
+  if(soft)h+='<div class="imp-note2" style="color:var(--ink-light)">○ '+escapeHtml(soft)+'</div>';
+
+  /* 跟卡片現有日期比 */
+  var changes=[];
+  Object.keys(ex.fields).forEach(function(k){
+    if(k==="cut1E"||k==="v1E"||k==="bizE")return;
+    var o=p[k]; o=(o===null||o===undefined)?"":o;
+    var n=ex.fields[k];
+    var a=(typeof o==="boolean")?(o?"是":"否"):o, b=(typeof n==="boolean")?(n?"是":"否"):n;
+    if(String(a)!==String(b))changes.push({k:k,old:a,nw:b});
+  });
+  var rf=workRangeFields();
+  var extra=[];
+  if(rf){
+    if(m.mat&&!p[rf[0]])extra.push({k:rf[0],old:"",nw:m.mat});
+    if(f.finalDue&&!p[rf[1]])extra.push({k:rf[1],old:"",nw:f.finalDue});
+  }
+  var all=extra.concat(changes);
+  if(all.length){
+    h+='<div class="imp-diff" style="margin-top:10px">';
+    all.forEach(function(c){
+      h+='<div class="imp-d"><span class="k">'+(FIELD_LABEL[c.k]||c.k)+'</span>';
+      if(c.old!=="")h+='<span class="old">'+escapeHtml(String(c.old))+'</span>';
+      h+='<span class="new">'+escapeHtml(String(c.nw))+'</span></div>';
+    });
+    h+='</div>';
+  }
+  if(m.air){
+    var pa=String(p.airDate||"").trim();
+    if(!pa)h+='<div class="pnote" style="margin-top:12px">上線日 <b>'+m.air+'</b> 這裡不會寫回，請在追蹤器的卡片上填。</div>';
+    else if(airKey(p)!==m.air)h+='<div class="imp-err" style="margin-top:12px">⚠ 卡片上的上片日是 '+escapeHtml(pa)+'，文字裡寫的是 '+m.air+'，兩邊不一樣。</div>';
+  }
+  var note=txtInfoNote();
+  if(note){
+    h+='<label class="txt-tonote"><input type="checkbox"'+(m.toNote?' checked':'')+' onchange="state.txt.toNote=this.checked">把其他節點記進這張卡的「排程限制」，產生 Prompt 時 Claude 會看到'+
+       '<span>'+escapeHtml(note)+'</span></label>';
+  }
+
+  h+='<div class="modal-btns">';
+  h+='<button class="btn" onclick="state.txt.rows=null;render()" style="margin-right:auto">← 改貼別的</button>';
+  h+='<button class="btn" onclick="closeTxt()">取消</button>';
+  h+='<button class="btn primary" onclick="applyTxt()">填入甘特圖</button>';
+  h+='</div></div></div>';
+  return h;
+}
+
 </script>
 </body>
 </html>
