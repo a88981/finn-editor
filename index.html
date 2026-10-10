@@ -161,7 +161,7 @@ function saveClients(c){
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
-var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:true,invoice:true,feeItems:[],costItems:[],length:"",bizLength:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
+var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:false,invoice:true,feeItems:[],costItems:[],length:"",bizLength:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
 
 // 開發票時的營業稅率（顯示用，不影響實際收入計算）
@@ -559,7 +559,6 @@ function Modal(props){
       var n=Object.assign({},f);
       n.type=t;
       var isShort=(t==="\u77ed\u5f71");
-      n.taxCut=!isShort;
       n.invoice=!isShort;
       return n;
     });
@@ -701,9 +700,9 @@ function Modal(props){
             h("div",{style:{background:C.errBg,borderRadius:4,padding:"9px",border:"1px solid #f0a8a8"}},
               h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
                 h("div",{style:{fontSize:10,color:C.err,fontWeight:700}},"\u652f\u51fa"),
-                h("label",{style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:10,color:form.taxCut?"#c05020":"#e08080",background:form.taxCut?"#ffe0d8":"#fff0ee",borderRadius:4,padding:"2px 8px"}},
+                form.taxCut&&h("label",{title:"\u820a\u6848\u7684\u6263\u7a05\u7d00\u9304\uff0c\u53d6\u6d88\u52fe\u9078\u5f8c\u9019\u500b\u9078\u9805\u5c31\u6703\u6d88\u5931",style:{display:"flex",alignItems:"center",gap:4,cursor:"pointer",fontSize:10,color:form.taxCut?"#c05020":"#e08080",background:form.taxCut?"#ffe0d8":"#fff0ee",borderRadius:4,padding:"2px 8px"}},
                   h("input",{type:"checkbox",checked:!!form.taxCut,onChange:function(e){set("taxCut",e.target.checked);},style:{accentColor:"#c05020"}}),
-                  "\u6263 10% \u7a05",form.taxCut&&tr>0&&h("span",{style:{marginLeft:4,color:"#c05020",fontWeight:700}},"\u2212"+NT(tax))
+                  "\u820a\u6848\u6263 10%",form.taxCut&&tr>0&&h("span",{style:{marginLeft:4,color:"#c05020",fontWeight:700}},"\u2212"+NT(tax))
                 )
               ),
               h(CostItemList,{items:form.costItems||[],onChange:function(v){set("costItems",v);}})
