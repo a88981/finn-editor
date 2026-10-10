@@ -161,7 +161,7 @@ function saveClients(c){
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
-var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:true,invoice:true,feeItems:[],costItems:[],length:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
+var DEFS={id:"",name:"",airDate:"",client:"-",status:"\u7b49\u5f85\u7d20\u6750",type:"\u9577\u7247",month:"",fee:"",taxCut:true,invoice:true,feeItems:[],costItems:[],length:"",bizLength:"",note:"",closed:false,order:"-",kanbanPos:null,overRate:850,editS:"",editE:"",cut1S:"",cut1E:"",cut1Due:"",cut1Done:false,noCut1:false,v1S:"",v1E:"",v1Due:"",v1Done:false,bizS:"",bizE:"",bizDue:"",bizDone:false,noBiz:true,finalDue:"",finalDone:false};
 var EMPTY=Object.assign({},DEFS);
 
 // 開發票時的營業稅率（顯示用，不影響實際收入計算）
@@ -254,12 +254,24 @@ function parseMinutes(str){
   var s=parseInt(parts[1])||0;
   return m+(s>10?1:0);
 }
+// 業配長度扣掉後的「正片」分鐘數：先用秒數相減，再套同一條 10 秒進位規則
+function parseSeconds(str){
+  if(!str)return 0;
+  var parts=String(str).split(":");
+  if(parts.length<2)return (parseInt(str)||0)*60;
+  return (parseInt(parts[0])||0)*60+(parseInt(parts[1])||0);
+}
+function netMinutes(len,biz){
+  var sec=Math.max(0,parseSeconds(len)-parseSeconds(biz));
+  var m=Math.floor(sec/60),s=sec%60;
+  return m+(s>10?1:0);
+}
 function calcP(p){
   var g=Number(p.fee)||0;
   var rc=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   // 超時費：跟 Modal 的 parseMinutes 一樣
   var overRate=Number(p.overRate)||0;
-  var lenMins=parseMinutes(p.length);
+  var lenMins=netMinutes(p.length,p.bizLength);
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=p.taxCut?Math.round(tr*0.1):0;
@@ -557,7 +569,7 @@ function Modal(props){
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   // 超時費計算：用全域的 parseMinutes，不要在這裡另外寫一份
   var overRate=Number(form.overRate)||0;
-  var lenMins=parseMinutes(form.length);
+  var lenMins=netMinutes(form.length,form.bizLength);
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var tr=g+rc+overFee,tax=form.taxCut?Math.round(tr*0.1):0;
@@ -613,10 +625,14 @@ function Modal(props){
               )
             )
           ),
-          h("div",{style:{display:"grid",gridTemplateColumns:"63px 1fr",gap:8}},
+          h("div",{style:{display:"grid",gridTemplateColumns:"63px 63px 1fr",gap:8}},
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u9577\u5ea6"),
               h("input",{style:INP,value:form.length||"",onChange:function(e){set("length",e.target.value);},placeholder:"25:30"})
+            ),
+            h("div",null,
+              h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3,whiteSpace:"nowrap"}},"\u696d\u914d\u9577\u5ea6"),
+              h("input",{style:INP,value:form.bizLength||"",onChange:function(e){set("bizLength",e.target.value);},placeholder:"1:30"})
             ),
             h("div",null,
               h("div",{style:{fontSize:11,color:C.txt3,fontWeight:700,marginBottom:3}},"\u5c08\u6848\u540d\u7a31"),
@@ -652,7 +668,7 @@ function Modal(props){
                   var lines=[];
                   var title=(form.client&&form.client!=="-"?"【"+form.client+"】":"")+( form.name||"");
                   lines.push("\ud83c\udfac "+title);
-                  if(form.length)lines.push("\u5f71\u7247\u9577\u5ea6\uff1a"+form.length+(overMins>0?"(\u591a"+overMins+"\u5206)":""));
+                  if(form.length)lines.push("\u5f71\u7247\u9577\u5ea6\uff1a"+form.length+(form.bizLength?"\uff08\u6263\u696d\u914d "+form.bizLength+"\uff09":"")+(overMins>0?"(\u591a"+overMins+"\u5206)":""));
                   if(form.fee)lines.push("\u57fa\u672c\u6536\u8cbb\uff1a"+NT(Number(form.fee)));
                   if(overFee2>0)lines.push("\u8d85\u6642\u8cbb\uff1a"+overMins+"\u5206 \xd7 "+NT(Number(form.overRate)||850)+" = "+NT(overFee2));
                   feeItems.forEach(function(x){var lt=(Number(x.qty)||0)*(Number(x.price)||0);if(lt>0)lines.push((x.label||"\u7d30\u9805")+"\uff1a"+NT(lt));});
@@ -678,7 +694,7 @@ function Modal(props){
                 )
               ),
               overFee>0&&h("div",{style:{fontSize:10,color:C.ok,background:"#d8f0e4",borderRadius:4,padding:"4px 8px",marginBottom:6}},
-                "\u23f1 "+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
+                "\u23f1 "+(form.bizLength?"\u6263\u696d\u914d\u5f8c ":"")+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
               ),
               h(FeeItemList,{items:form.feeItems||[],onChange:function(v){set("feeItems",v);},overFee:overFee,baseFee:Number(form.fee)||0,projectName:form.name||""})
             ),
