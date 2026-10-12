@@ -1526,24 +1526,9 @@ function drawQuoteCard(q, mode) {
   y += 34;
   c.fillStyle = ACCENT;
   c.font = '700 31px ' + SANS;
-  // 右側：成品長度（報價單＝預估，結算明細＝實際）
-  let lenW = 0;
-  if (q.durLabel && q.durLabel !== '—') {
-    c.textAlign = 'right';
-    c.fillStyle = ACCENT;
-    c.font = '700 22px ' + MONO;
-    c.fillText(q.durLabel, W - PAD, y);
-    const nw = c.measureText(q.durLabel).width;
-    c.fillStyle = MID;
-    c.font = '500 13.5px ' + SANS;
-    const lab = isSettle ? '成品長度' : '預估成品長度';
-    c.fillText(lab, W - PAD - nw - 10, y - 2);
-    lenW = nw + 10 + c.measureText(lab).width + 24;
-    c.textAlign = 'left';
-  }
   c.fillStyle = ACCENT;
   c.font = '700 31px ' + SANS;
-  c.fillText(clip(c, q.title, W - PAD * 2 - lenW), PAD, y);
+  c.fillText(clip(c, q.title, W - PAD * 2), PAD, y);
 
   // 分隔線
   y += 30;
@@ -1666,8 +1651,18 @@ function drawQuoteCard(q, mode) {
   c.fillStyle = MID;
   c.font = '500 14px ' + SANS;
   c.letterSpacing = '1px';
-  c.fillText(isSettle ? '應付總額' : '總報價', PAD, mainY - 2);
+  const hasLen = q.durLabel && q.durLabel !== '—';
+  c.fillText(isSettle ? '應付總額' : '總報價', PAD, hasLen ? mainY - 12 : mainY - 2);
   c.letterSpacing = '0px';
+  if (hasLen) {
+    c.fillStyle = DIM;
+    c.font = '400 13px ' + SANS;
+    const lab = (isSettle ? '成品長度' : '預估成品長度');
+    c.fillText(lab, PAD, mainY + 10);
+    c.fillStyle = ACCENT;
+    c.font = '700 14px ' + MONO;
+    c.fillText(q.durLabel, PAD + c.measureText(lab).width + 6, mainY + 10);
+  }
 
   // 一行排完：未稅在前，含稅在後
   c.textAlign = 'right';
