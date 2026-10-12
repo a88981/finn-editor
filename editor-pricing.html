@@ -668,6 +668,18 @@ input::placeholder { color: var(--text-dim); }
         </div>
       </div>
 
+      <!-- 滿檔插單 -->
+      <div class="ad-toggle" id="extra-rush" onclick="toggleExtra('rush')">
+        <div class="ad-info">
+          <div class="ad-name">滿檔插單</div>
+          <div class="ad-desc">（方案價＋影片超時＋毛片超時＋多機位）× 30%，最低 $3,000</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="ad-price" id="rush-price">＋ NT$0</span>
+          <div class="ad-check" id="check-rush"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Custom extra items -->
@@ -826,6 +838,9 @@ const OVERTIME_RATES = { regular: 850, loyal: 800 };
 const URGENT_RATE = 1500;
 const FOOTAGE_FEE = 500;
 const CAM_FEE = 1000;
+const RUSH_RATE = 0.3;
+const RUSH_MIN = 3000;
+const RUSH_NOTE = '若檔期已滿仍希望插單製作，將酌收插單費，是否能承接需視當下排程而定';
 
 let customExtraId = 0;
 
@@ -840,6 +855,7 @@ let state = {
   extraMulticam: false,
   cameraCount: 1,
   extraCover: false,
+  extraRush: false,
   coverCopy: false,
   coverPending: false,
   hideSchedInImage: false,
@@ -1053,6 +1069,10 @@ function toggleExtra(which, keepOpen) {
     document.getElementById('multicam-count-wrap').style.display = state.extraMulticam ? 'flex' : 'none';
     if (!state.extraMulticam) resetGift('multicam');
     updateMulticamPrice();
+  } else if (which === 'rush') {
+    state.extraRush = !state.extraRush;
+    document.getElementById('extra-rush').classList.toggle('active', state.extraRush);
+    document.getElementById('check-rush').textContent = state.extraRush ? '✓' : '';
   } else if (which === 'cover') {
     if (!keepOpen) state.extraCover = !state.extraCover;
     else state.extraCover = true;
@@ -2046,7 +2066,15 @@ function calculate() {
     ((g.cover && !state.coverPending) ? coverFee : 0) +
     state.customExtras.reduce((s, e) => s + (e.gift ? (e.price || 0) : 0), 0);
 
-  const total = base + overtime + adPlaceCharge + urgentFee + footageCharge + multicamCharge + coverCharge + customTotal;
+  // 滿檔插單：Reels 不適用；（方案價＋影片超時＋毛片超時＋多機位）× 30%，最低 $3,000
+  const rushEligible = !(state.plan === 'D' && state.type === 'post');
+  document.getElementById('extra-rush').style.display = rushEligible ? '' : 'none';
+  const rushBase = base + adPlaceCharge + overtime + footageCharge + multicamCharge;
+  const rushRaw = Math.round(rushBase * RUSH_RATE);
+  const rushFee = (state.extraRush && rushEligible) ? Math.max(RUSH_MIN, rushRaw) : 0;
+  document.getElementById('rush-price').textContent = '＋ NT$' + rushFee.toLocaleString();
+
+  const total = base + overtime + adPlaceCharge + urgentFee + footageCharge + multicamCharge + coverCharge + customTotal + rushFee;
 
   // Breakdown rows
   let rows = [];
@@ -2128,6 +2156,17 @@ function calculate() {
   }
   if (adPlaceFee) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
   if (urgentFee > 0) rows.push({ label: '加急費（少' + (urgentThreshold - deliveryDays) + '天 × $' + URGENT_RATE.toLocaleString() + '）', amt: urgentFee, sign: '+' });
+  if (rushFee > 0) {
+    rows.push({
+      label: '滿檔插單費',
+      sub: '結算金額 30%，最低 $3,000',
+      note: [{ align: 'sub', kind: 'calc', segs: [
+        { t: '方案＋超時＋毛片＋機位 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × 30%', c: 'plain' },
+        { t: rushRaw < RUSH_MIN ? '，未達最低以 $3,000 計' : '', c: 'plain' }
+      ] }, { align: 'left', kind: 'user', segs: [{ t: RUSH_NOTE, c: 'user' }] }],
+      amt: rushFee, sign: '+'
+    });
+  }
   const coverLabel = '封面圖製作';
   if (coverFee && state.coverPending) {
     floatRows.push({
@@ -2246,6 +2285,7 @@ function calculate() {
   // Extra items
   const extraLines = [];
   if (overtime > 0) extraLines.push('成品超時 ' + overMins + ' 分鐘（每 1 分鐘 $' + OVERTIME_RATE.toLocaleString() + '）：+' + fmt(overtime));
+  if (rushFee > 0) extraLines.push('滿檔插單費（結算金額 30%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + RUSH_NOTE);
   if (urgentFee > 0) extraLines.push('加急費（工作天 ' + deliveryDays + '天）：+' + fmt(urgentFee));
   const giftLines = [];
   const pushExtra = (label, amt, isGift, note) => {
@@ -2401,6 +2441,7 @@ function applyState(data) {
     if (state['extra' + cap]) toggleExtra(k);
   });
   if (state.projType === 'ad') toggleProjAd();
+  if (state.extraRush) toggleExtra('rush');
 
   // 還原方案與類型
   if (st.plan && st.type) selectPlanType(st.plan, st.type);
@@ -2409,6 +2450,7 @@ function applyState(data) {
   if (st.extraFootage && !state.extraFootage) toggleExtra('footage');
   if (st.extraMulticam && !state.extraMulticam) toggleExtra('multicam');
   if (st.extraCover && !state.extraCover) toggleExtra('cover');
+  if (st.extraRush && !state.extraRush) toggleExtra('rush');
 
   state.cameraCount = st.cameraCount || 1;
   const cc = document.getElementById('camera-count');
