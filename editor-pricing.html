@@ -628,7 +628,7 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-multicam" onclick="toggleExtra('multicam')">
         <div class="ad-info">
           <div class="ad-name">多機位</div>
-          <div class="ad-desc" id="multicam-desc">台數 − 1 × $500</div>
+          <div class="ad-desc" id="multicam-desc">每機 × $1,000</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
           <div id="multicam-count-wrap" style="display:none; align-items:center; gap:6px;">
@@ -636,7 +636,7 @@ input::placeholder { color: var(--text-dim); }
             <span id="camera-count" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:20px;text-align:center;">2</span>
             <button onclick="event.stopPropagation(); changeCamera(1)" style="width:26px;height:26px;border:1.5px solid var(--line);border-radius:4px;background:var(--paper);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">＋</button>
           </div>
-          <span class="ad-price" id="multicam-price">＋ NT$500</span>
+          <span class="ad-price" id="multicam-price">＋ NT$1,000</span>
           <button class="gift-btn" id="gift-multicam" onclick="event.stopPropagation(); toggleGift('multicam')" title="改列為贈送，不計入總價">🎁 送</button>
           <div class="ad-check" id="check-multicam"></div>
         </div>
@@ -825,7 +825,7 @@ const DEFAULT_PLANS = JSON.parse(JSON.stringify(PLANS));   // 供「還原預設
 const OVERTIME_RATES = { regular: 850, loyal: 800 };
 const URGENT_RATE = 1500;
 const FOOTAGE_FEE = 500;
-const CAM_FEE = 500;
+const CAM_FEE = 1000;
 
 let customExtraId = 0;
 
@@ -1095,7 +1095,7 @@ function changeCamera(delta) {
 function updateMulticamPrice() {
   const total = state.cameraCount * CAM_FEE;
   document.getElementById('multicam-price').textContent = '＋ NT$' + total.toLocaleString();
-  document.getElementById('multicam-desc').textContent = state.cameraCount + ' 機 × $500';
+  document.getElementById('multicam-desc').textContent = state.cameraCount + ' 機 × $1,000';
 }
 
 // ── Custom extra items ───────────────────────────────
@@ -2109,10 +2109,10 @@ function calculate() {
       if (multicamFee > 0) {
         rows.push({
           label: '多機位',
-          sub: '第 2 機起，每加 1 機 $500',
+          sub: '第 2 機起，每加 1 機 $1,000',
           note: [
             { align: 'sub', kind: 'calc', segs: [P('此次拍攝機位 '), K(cams + ' 機'), P('，加收 '),
-              K((cams - 1) + ' 機'), P(' × $500')] },
+              K((cams - 1) + ' 機'), P(' × $1,000')] },
             noteOf('multicam') ? { align: 'sub', kind: 'user', segs: [U(noteOf('multicam'))] } : null
           ].filter(Boolean),
           amt: multicamFee, sign: '+', gift: g.multicam
@@ -2121,7 +2121,7 @@ function calculate() {
         floatRows.push({
           label: '多機位',
           sub: '第 2 機起，每加 1 機加收',
-          rate: 'NT$500 / 機'
+          rate: 'NT$1,000 / 機'
         });
       }
     }
@@ -2226,7 +2226,7 @@ function calculate() {
         const cams = state.extraMulticam ? state.cameraCount : 1;
         rows.push({
           label: '拍攝機位', now: cams + ' 機',
-          over: cams > 1 ? '多 ' + (cams - 1) + ' 機 · 每加 1 機 $500' : '未超出',
+          over: cams > 1 ? '多 ' + (cams - 1) + ' 機 · 每加 1 機 $1,000' : '未超出',
           amt: multicamFee, gift: g.multicam, note: noteOf('multicam')
         });
       }
