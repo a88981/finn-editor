@@ -1526,7 +1526,24 @@ function drawQuoteCard(q, mode) {
   y += 34;
   c.fillStyle = ACCENT;
   c.font = '700 31px ' + SANS;
-  c.fillText(clip(c, q.title, W - PAD * 2), PAD, y);
+  // 右側：成品長度（報價單＝預估，結算明細＝實際）
+  let lenW = 0;
+  if (q.durLabel && q.durLabel !== '—') {
+    c.textAlign = 'right';
+    c.fillStyle = ACCENT;
+    c.font = '700 22px ' + MONO;
+    c.fillText(q.durLabel, W - PAD, y);
+    const nw = c.measureText(q.durLabel).width;
+    c.fillStyle = MID;
+    c.font = '500 13.5px ' + SANS;
+    const lab = isSettle ? '成品長度' : '預估成品長度';
+    c.fillText(lab, W - PAD - nw - 10, y - 2);
+    lenW = nw + 10 + c.measureText(lab).width + 24;
+    c.textAlign = 'left';
+  }
+  c.fillStyle = ACCENT;
+  c.font = '700 31px ' + SANS;
+  c.fillText(clip(c, q.title, W - PAD * 2 - lenW), PAD, y);
 
   // 分隔線
   y += 30;
@@ -2232,6 +2249,8 @@ function calculate() {
 
   lastQuote = {
     title: projName || plan.name,
+    durLabel: durLabel,
+    isD: state.plan === 'D',
     meta: '',
     rows: rows,
     total: total,
