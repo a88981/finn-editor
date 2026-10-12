@@ -564,7 +564,7 @@ input::placeholder { color: var(--text-dim); }
       </div>
       <div style="color:var(--border2); font-size:16px;">·</div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:11px; color:var(--text-dim); white-space:nowrap;">影片長度</span>
+        <span style="font-size:11px; color:var(--text-dim); white-space:nowrap;">預估影片長度</span>
         <input class="duration-input" type="text" id="duration" value="10:00" placeholder="12:30" inputmode="numeric" oninput="calculate()"
           style="width:88px; font-size:18px; letter-spacing:0.5px;" />
         <span class="duration-unit">分:秒</span>
@@ -1402,6 +1402,8 @@ function closeSnapModal() {
 
 function drawQuoteCard(q, mode) {
   const isSettle = mode === 'settle';
+  // 報價單：長度、毛片、機位都還是預估值；結算明細才是實際值
+  const segT = function (t) { return isSettle ? t : String(t).replace(/^此次/, '預估'); };
   const W = 700;
   const PAD = 36;
   const ROW_H = 58;
@@ -1606,7 +1608,7 @@ function drawQuoteCard(q, mode) {
           let wsum = 0;
           ln.segs.forEach(function (sg) {
             c.font = ((sg.c === 'key') ? '700 14px ' : '400 14px ') + SANS;
-            wsum += c.measureText(sg.t).width;
+            wsum += c.measureText(segT(sg.t)).width;
           });
           c.fillStyle = 'rgba(196,112,138,0.09)';
           roundRect(c, x0 - 8, ny - 14, wsum + 16, 21, 3);
@@ -1624,8 +1626,8 @@ function drawQuoteCard(q, mode) {
           if (sg.c === 'key') { c.fillStyle = ACCENT; c.font = '700 14px ' + SANS; }
           else if (isCalc)    { c.fillStyle = MID;    c.font = '400 14px ' + SANS; }
           else                { c.fillStyle = DIM;    c.font = '400 13.5px ' + SANS; }
-          c.fillText(sg.t, nx, ny);
-          nx += c.measureText(sg.t).width;
+          c.fillText(segT(sg.t), nx, ny);
+          nx += c.measureText(segT(sg.t)).width;
         });
       });
     }
@@ -1891,7 +1893,7 @@ function drawQuoteCard(q, mode) {
   if (isSettle) {
     c.fillText('結算日期 ' + ds + '　·　本明細為專案實際製作內容與金額', PAD, y);
   } else {
-    c.fillText('報價日期 ' + ds + '　·　最終費用以實際完成之成品內容為準', PAD, y);
+    c.fillText('報價日期 ' + ds + '　·　金額依預估內容試算，最終依實際成品結算', PAD, y);
   }
 
   return cv;
@@ -2278,7 +2280,7 @@ function calculate() {
   // Quote text
   let quote = projName ? '【' + projName + '_報價】\n' : '【剪輯報價】\n';
   quote += typeLabel(state.plan, state.type) +
-           '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）　片長 ' + durLabel + '\n\n';
+           '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）　預估片長 ' + durLabel + '\n\n';
   quote += '基本報價：' + fmt(base) + '\n';
   if (overtime <= 0) quote += '超時費：' + fmt(OVERTIME_RATE) + ' / 1m（成片超過 ' + baseMins + 'm 後加收）\n';
   quote += '\n';
