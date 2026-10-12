@@ -628,12 +628,12 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-multicam" onclick="toggleExtra('multicam')">
         <div class="ad-info">
           <div class="ad-name">多機位</div>
-          <div class="ad-desc" id="multicam-desc">2 機，加收 1 機 × $1,000</div>
+          <div class="ad-desc" id="multicam-desc">加 1 機 × $1,000（共 2 機）</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
           <div id="multicam-count-wrap" style="display:none; align-items:center; gap:6px;">
             <button onclick="event.stopPropagation(); changeCamera(-1)" style="width:26px;height:26px;border:1.5px solid var(--line);border-radius:4px;background:var(--paper);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">−</button>
-            <span id="camera-count" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:20px;text-align:center;">2</span>
+            <span id="camera-count" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:20px;text-align:center;">+1</span>
             <button onclick="event.stopPropagation(); changeCamera(1)" style="width:26px;height:26px;border:1.5px solid var(--line);border-radius:4px;background:var(--paper);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">＋</button>
           </div>
           <span class="ad-price" id="multicam-price">＋ NT$1,000</span>
@@ -1107,7 +1107,7 @@ function toggleGift(which) {
 
 function changeCamera(delta) {
   state.cameraCount = Math.max(2, state.cameraCount + delta);
-  document.getElementById('camera-count').textContent = state.cameraCount;
+  document.getElementById('camera-count').textContent = '+' + (state.cameraCount - 1);
   updateMulticamPrice();
   calculate();
 }
@@ -1115,7 +1115,7 @@ function changeCamera(delta) {
 function updateMulticamPrice() {
   const total = (state.cameraCount - 1) * CAM_FEE;
   document.getElementById('multicam-price').textContent = '＋ NT$' + total.toLocaleString();
-  document.getElementById('multicam-desc').textContent = state.cameraCount + ' 機，加收 ' + (state.cameraCount - 1) + ' 機 × $1,000';
+  document.getElementById('multicam-desc').textContent = '加 ' + (state.cameraCount - 1) + ' 機 × $1,000（共 ' + state.cameraCount + ' 機）';
 }
 
 // ── Custom extra items ───────────────────────────────
@@ -2454,7 +2454,7 @@ function applyState(data) {
 
   state.cameraCount = Math.max(2, st.cameraCount || 2);
   const cc = document.getElementById('camera-count');
-  if (cc) cc.textContent = state.cameraCount;
+  if (cc) cc.textContent = '+' + (state.cameraCount - 1);
   updateMulticamPrice();
   calculateFootage();
 
