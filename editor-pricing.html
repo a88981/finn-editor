@@ -628,7 +628,7 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-multicam" onclick="toggleExtra('multicam')">
         <div class="ad-info">
           <div class="ad-name">多機位</div>
-          <div class="ad-desc" id="multicam-desc">每機 × $1,000</div>
+          <div class="ad-desc" id="multicam-desc">2 機，加收 1 機 × $1,000</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
           <div id="multicam-count-wrap" style="display:none; align-items:center; gap:6px;">
@@ -672,7 +672,7 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-rush" onclick="toggleExtra('rush')">
         <div class="ad-info">
           <div class="ad-name">滿檔插單</div>
-          <div class="ad-desc">（方案價＋影片超時＋毛片超時＋多機位）× 30%，最低 $3,000</div>
+          <div class="ad-desc">（方案費用＋成片超時）× 30%，最低 $3,000</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
           <span class="ad-price" id="rush-price">＋ NT$0</span>
@@ -840,7 +840,7 @@ const FOOTAGE_FEE = 500;
 const CAM_FEE = 1000;
 const RUSH_RATE = 0.3;
 const RUSH_MIN = 3000;
-const RUSH_NOTE = '若檔期已滿仍希望插單製作，將酌收插單費，是否能承接需視當下排程而定';
+const RUSH_NOTE = '檔期已滿需插單製作，將酌收插單費，是否能承接需視當下排程而定';
 
 let customExtraId = 0;
 
@@ -853,7 +853,7 @@ let state = {
   extraAdPlace: false,
   extraFootage: false,
   extraMulticam: false,
-  cameraCount: 1,
+  cameraCount: 2,
   extraCover: false,
   extraRush: false,
   coverCopy: false,
@@ -1106,16 +1106,16 @@ function toggleGift(which) {
 }
 
 function changeCamera(delta) {
-  state.cameraCount = Math.max(1, state.cameraCount + delta);
+  state.cameraCount = Math.max(2, state.cameraCount + delta);
   document.getElementById('camera-count').textContent = state.cameraCount;
   updateMulticamPrice();
   calculate();
 }
 
 function updateMulticamPrice() {
-  const total = state.cameraCount * CAM_FEE;
+  const total = (state.cameraCount - 1) * CAM_FEE;
   document.getElementById('multicam-price').textContent = '＋ NT$' + total.toLocaleString();
-  document.getElementById('multicam-desc').textContent = state.cameraCount + ' 機 × $1,000';
+  document.getElementById('multicam-desc').textContent = state.cameraCount + ' 機，加收 ' + (state.cameraCount - 1) + ' 機 × $1,000';
 }
 
 // ── Custom extra items ───────────────────────────────
@@ -2049,7 +2049,7 @@ function calculate() {
   } else {
     document.getElementById('footage-price').textContent = '＋ NT$0';
   }
-  const multicamFee = state.extraMulticam ? state.cameraCount * CAM_FEE : 0;
+  const multicamFee = state.extraMulticam ? (state.cameraCount - 1) * CAM_FEE : 0;
   const coverFee = state.extraCover ? (parseFloat(document.getElementById('cover-price-input').value) || 0) : 0;
 
   // 贈送：原價保留供顯示，實收為 0
@@ -2066,10 +2066,10 @@ function calculate() {
     ((g.cover && !state.coverPending) ? coverFee : 0) +
     state.customExtras.reduce((s, e) => s + (e.gift ? (e.price || 0) : 0), 0);
 
-  // 滿檔插單：Reels 不適用；（方案價＋影片超時＋毛片超時＋多機位）× 30%，最低 $3,000
+  // 滿檔插單：Reels 不適用；（方案費用＋成片超時）× 30%，最低 $3,000
   const rushEligible = !(state.plan === 'D' && state.type === 'post');
   document.getElementById('extra-rush').style.display = rushEligible ? '' : 'none';
-  const rushBase = base + adPlaceCharge + overtime + footageCharge + multicamCharge;
+  const rushBase = base + adPlaceCharge + overtime;
   const rushRaw = Math.round(rushBase * RUSH_RATE);
   const rushFee = (state.extraRush && rushEligible) ? Math.max(RUSH_MIN, rushRaw) : 0;
   document.getElementById('rush-price').textContent = '＋ NT$' + rushFee.toLocaleString();
@@ -2161,7 +2161,7 @@ function calculate() {
       label: '滿檔插單費',
       sub: '結算金額 30%，最低 $3,000',
       note: [{ align: 'sub', kind: 'calc', segs: [
-        { t: '方案＋超時＋毛片＋機位 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × 30%', c: 'plain' },
+        { t: '方案＋成片超時 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × 30%', c: 'plain' },
         { t: rushRaw < RUSH_MIN ? '，未達最低以 $3,000 計' : '', c: 'plain' }
       ] }, { align: 'left', kind: 'user', segs: [{ t: RUSH_NOTE, c: 'user' }] }],
       amt: rushFee, sign: '+'
@@ -2432,7 +2432,7 @@ function applyState(data) {
   // 先把所有開關歸零，再依存檔還原
   state.gifts = { adplace: false, footage: false, multicam: false, cover: false };
   state.customExtras = st.customExtras || [];
-  state.cameraCount = st.cameraCount || 1;
+  state.cameraCount = Math.max(2, st.cameraCount || 2);
   state.coverCopy = false;
   state.showTax = true;
   state.hideSchedInImage = false;
@@ -2452,7 +2452,7 @@ function applyState(data) {
   if (st.extraCover && !state.extraCover) toggleExtra('cover');
   if (st.extraRush && !state.extraRush) toggleExtra('rush');
 
-  state.cameraCount = st.cameraCount || 1;
+  state.cameraCount = Math.max(2, st.cameraCount || 2);
   const cc = document.getElementById('camera-count');
   if (cc) cc.textContent = state.cameraCount;
   updateMulticamPrice();
