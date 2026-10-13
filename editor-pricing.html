@@ -2081,10 +2081,10 @@ function calculate() {
     state.customExtras.reduce((s, e) => s + (e.gift ? (e.price || 0) : 0), 0);
 
   // 滿檔插單：Reels 不適用；MAX（製作費用 × 20%，$3,000）
-  // 製作費用＝基本剪輯（含工商差額）＋成品超時＋毛片超時＋多機位；不含加急、封面等加購、營業稅、插單費本身
+  // 製作費用＝基本剪輯＋成品超時＋毛片超時＋多機位；不含工商置入、加急、封面等加購、營業稅、插單費本身
   const rushEligible = !(state.plan === 'D' && state.type === 'post');
   document.getElementById('extra-rush').style.display = rushEligible ? '' : 'none';
-  const rushBase = base + adPlaceCharge + overtime + footageCharge + multicamCharge;
+  const rushBase = base + overtime + footageCharge + multicamCharge;
   const rushRaw = Math.round(rushBase * RUSH_RATE);
   const rushFee = (state.extraRush && rushEligible) ? Math.max(RUSH_MIN, rushRaw) : 0;
   document.getElementById('rush-price').textContent = '＋ NT$' + rushFee.toLocaleString();
