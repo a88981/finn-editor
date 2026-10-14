@@ -174,7 +174,13 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .row-link{display:block;width:100%;text-align:left;font-family:var(--px);color:var(--ink);cursor:pointer;padding:0}
 .row-link:hover{background:var(--panel-hi)}
 .row-link .top{cursor:pointer}
-.row-link .top>div:first-child{flex:1;min-width:0}
+.row-link .top>div:not(.when){flex:1;min-width:0}
+.sortable .card{-webkit-touch-callout:none}
+.sortable.is-drag,.sortable.is-drag *{user-select:none;-webkit-user-select:none;cursor:grabbing}
+.card.dragging{position:relative;z-index:5;background:var(--panel-hi);box-shadow:inset 3px 3px 0 var(--bev-l),inset -3px -3px 0 var(--bev-d),6px 8px 0 rgba(0,0,0,.25);transform:scale(1.01)}
+.sortable.is-drag .card:not(.dragging){opacity:.85}
+.sort-tip{font-size:12.5px;color:#fff;opacity:.85;text-shadow:1px 1px 0 rgba(0,0,0,.25);font-weight:normal}
+#tOrderRow{display:none!important}
 .arrow{color:#9fb9cf;font-size:14px;flex:none}
 .cnt-s{font-size:13px;color:var(--muted)}
 .tag.kids{background:#3d6f2a}
@@ -580,11 +586,14 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self60:["2026-10-15","V4.12","工具總表自己的更新紀錄自動沿用上一次的對話連結，不會再變空白","工具管理與命名規則","","01:51"],
+ self59:["2026-10-15","V4.11","拿掉拖曳把手：電腦上按住卡片直接拖，手機長按卡片再拖","工具管理與命名規則","","01:49"],
+ self58:["2026-10-15","V4.10","排列順序改成在列表上直接拖曳（按住 ⠿），編輯視窗裡的排序拿掉","工具管理與命名規則","","01:46"],
  self57:["2026-10-15","V4.9","「同步・備份」改名「設定」","工具管理與命名規則","","01:41"],
- self56:["2026-10-15","V4.8","新增「整理更新紀錄」：依規則清掉舊紀錄，可每月自動清、可復原上次清除","工具管理與命名規則","","01:45"],
- self55:["2026-10-15","V4.7","同步設定加上「立刻同步」的說明","工具管理與命名規則","","01:38"],
- self54:["2026-10-15","V4.6","工具更新的提示詞：todo 只寫需要動手處理的事，不再列不用注意的技術說明","工具管理與命名規則","","01:37"],
- self53:["2026-10-15","V4.5","修正對話連結會被蓋掉：兩邊都改時自動合併，不再用雲端舊資料覆蓋；主工具頁顯示自己的對話連結","工具管理與命名規則","","01:45"],
+ self56:["2026-10-15","V4.8","新增「整理更新紀錄」：依規則清掉舊紀錄，可每月自動清、可復原上次清除","工具管理與命名規則","","01:39"],
+ self55:["2026-10-15","V4.7","同步設定加上「立刻同步」的說明","工具管理與命名規則","","01:37"],
+ self54:["2026-10-15","V4.6","工具更新的提示詞：todo 只寫需要動手處理的事，不再列不用注意的技術說明","工具管理與命名規則","","01:36"],
+ self53:["2026-10-15","V4.5","修正對話連結會被蓋掉：兩邊都改時自動合併，不再用雲端舊資料覆蓋；主工具頁顯示自己的對話連結","工具管理與命名規則","","01:33"],
  self52:["2026-10-15","V4.4","修正「從備份檔還原」按了沒反應；還原完成會跳提示","工具管理與命名規則","","01:09"],
  self51:["2026-10-15","V4.3","修正：瀏覽器會把 Apps Script 網址自動填進搜尋框","工具管理與命名規則","","01:06"],
  self50:["2026-10-15","V4.2","同步設定顯示資料實際存在哪一份試算表（附連結）","工具管理與命名規則","","00:40"],
@@ -669,7 +678,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57,self58,self59,self60",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -736,7 +745,10 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v460','','',[['工具總表','self54']],''],
  ['finn-tool-index-add-v470','','',[['工具總表','self55']],''],
  ['finn-tool-index-add-v480','','',[['工具總表','self56']],''],
- ['finn-tool-index-add-v490','','',[['工具總表','self57']],'']];
+ ['finn-tool-index-add-v490','','',[['工具總表','self57']],''],
+ ['finn-tool-index-add-v4100','','',[['工具總表','self58']],''],
+ ['finn-tool-index-add-v4110','','',[['工具總表','self59']],''],
+ ['finn-tool-index-add-v4120','','',[['工具總表','self60']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -794,7 +806,7 @@ function load(){
     if(did)return;
     const m=S.find(x=>x.name===main&&!x.parent);
     if(kid&&m&&!S.some(x=>x.name===kid&&x.parent===m.id))S.push({id:uid(),name:kid,cat:m.cat,slug:'',file:file||'',todo:'',ext:'html',parent:m.id,order:9999,logs:[]});
-    (lgs||[]).forEach(([tool,lk])=>{const tt=S.find(x=>x.name===tool);if(tt){const l=mkLog(lk);if(!tt.logs.some(x=>logKey(x)===logKey(l)))tt.logs.push(l);}});
+    (lgs||[]).forEach(([tool,lk])=>{const tt=S.find(x=>x.name===tool);if(tt){const l=mkLog(lk);if(!l.url){const pc=lastChatOf(tt,false);l.url=(pc&&pc.url)||tt.chat||'';}if(!tt.logs.some(x=>logKey(x)===logKey(l)))tt.logs.push(l);}});
     try{localStorage.setItem(key,'1');}catch(e){}
   });
   let mt=false; try{mt=localStorage.getItem('finn-tool-index-merge-tracker')==='1';}catch(e){}
@@ -818,6 +830,12 @@ function load(){
   if(!sk){S.forEach(x=>{if(['工具總表','答案桌遊紀錄工具','日本行程表（9/18–9/22 東京）'].includes(x.name))x.skip.url=1;});try{localStorage.setItem('finn-tool-index-skip-url','1');}catch(e){}}
   let tx=false; try{tx=localStorage.getItem('finn-tool-index-timefix-v343')==='1';}catch(e){}
   if(!tx){const T={"V3.35": "23:33", "V3.36": "23:34", "V3.37": "23:36", "V3.38": "23:43", "V3.39": "23:45", "V3.40": "23:47", "V3.41": "23:48", "V3.42": "23:50", "V3.43": "23:52"};const me=S.find(x=>x.name==='工具總表');if(me)me.logs.forEach(l=>{if(l.date==='2026-10-14'&&T[l.version])l.time=T[l.version];});try{localStorage.setItem('finn-tool-index-timefix-v343','1');}catch(e){}}
+  let tz=false; try{tz=localStorage.getItem('finn-tool-index-timefix-v412')==='1';}catch(e){}
+  if(!tz){const T={"V4.5": "01:33", "V4.6": "01:36", "V4.7": "01:37", "V4.8": "01:39", "V4.9": "01:41", "V4.10": "01:46", "V4.11": "01:49", "V4.12": "01:51"};const me=S.find(x=>x.name==='工具總表');if(me)me.logs.forEach(l=>{if(l.date==='2026-10-15'&&T[l.version])l.time=T[l.version];});try{localStorage.setItem('finn-tool-index-timefix-v412','1');}catch(e){}}
+  let sf=false; try{sf=localStorage.getItem('finn-tool-index-selfurl')==='1';}catch(e){}
+  if(!sf){const me=S.find(x=>x.name==='工具總表');if(me){let u='';sortLogs(me).slice().reverse().forEach(l=>{if(l.url)u=l.url;else if(u)l.url=u;});
+      const top=sortLogs(me)[0];if(top&&!top.url){const any=sortLogs(me).find(l=>l.url)||{};top.url=any.url||me.chat||'';}}
+    try{localStorage.setItem('finn-tool-index-selfurl','1');}catch(e){}}
   let tf=false; try{tf=localStorage.getItem('finn-tool-index-time-fill')==='1';}catch(e){}
   if(!tf){const all=Object.values(LG);S.forEach(x=>x.logs.forEach(l=>{if(l.time)return;const m=all.find(a=>a[0]===l.date&&a[2]===l.change&&a[1]===l.version);if(m&&m[5])l.time=m[5];}));try{localStorage.setItem('finn-tool-index-time-fill','1');}catch(e){}}
   let od=false; try{od=localStorage.getItem('finn-tool-index-order-261014')==='1';}catch(e){}
@@ -893,7 +911,7 @@ function render(){
   const ts=S.filter(t=>t.cat===cat&&!t.parent).sort(byOrder);
   v.innerHTML=`<div class="crumb"><button class="btn sm" onclick="go('')">← 分類</button><h2><img src="${iconUrl(ci.i)}" alt="">${cat}</h2><span class="cnt">${ts.length} 個主工具・共 ${S.filter(t=>t.cat===cat).length} 個工具</span></div>`+
     (ts.length?'':'<div class="empty">這個分類還沒有工具</div>')+
-    (ts.length?`<div class="sec">主工具</div>`+ts.map(t=>card(t)).join(''):'');
+    (ts.length?`<div class="sec">主工具${ts.length>1?' <span class="sort-tip">・按住卡片拖曳可以排序</span>':''}</div><div class="sortable">`+ts.map(t=>card(t,false,ts.length>1)).join('')+'</div>':'');
 }
 function missList(){
   const ord=[];CATS.forEach(c=>S.filter(t=>t.cat===c.k&&!t.parent).sort(byOrder).forEach(m=>{ord.push(m);kids(m).forEach(k=>ord.push(k));}));
@@ -938,10 +956,10 @@ function freshness(d){
   return `<div class="days${d>60?' old':''}">${d===0?'今天':d}<small>${d===0?'':'天前'}</small></div>
     <div class="xp${d>60?' old':''}" title="越滿代表越近期有改過"><i style="width:${d>60?100:Math.round(fill*100)}%"></i></div>`;
 }
-function card(t,showCat){
+function card(t,showCat,sortable){
   const L=latest(t), ks=kids(t), g=groupLatest(t), gd=g?daysSince(lastDate(g)):null;
   const pa=parentOf(t);
-  return `<button class="card row-link" onclick="go('tool/${t.id}')">
+  return `<button class="card row-link" data-id="${t.id}" onclick="if(!DRAG_JUST)go('tool/${t.id}')"${sortable?` onpointerdown="cardDown(event,'${t.id}')" oncontextmenu="if(DRAG||PRESS)event.preventDefault()"`:''}>
     <div class="top">
       <div><p class="name">${esc(t.name)}</p>${t.desc?`<p class="row-desc">${esc(t.desc)}</p>`:''}
         <div class="sub">${showCat?`<span class="tag cat-tag">${t.cat}</span>`:''}${L&&L.version?`<span class="tag">${esc(L.version)}</span>`:''}${t.todo?'<span class="excl">！ 待辦</span>':''}${ks.length?`<span class="tag kids">含 ${ks.length} 個小工具</span>`:`<span class="cnt-s">${t.logs.length} 筆紀錄</span>`}${showCat&&pa?`<span class="cnt-s">在「${esc(pa.name)}」裡</span>`:''}</div>
@@ -1001,7 +1019,7 @@ function detail(t){
     </div>
   </div>
   ${isGroup?`<div class="sec">小工具・${ks.length} 個</div>
-  ${ks.map(k=>card(k)).join('')}`:''}
+  <div class="sortable">${ks.map(k=>card(k,false,ks.length>1)).join('')}</div>`:''}
   <div class="sec">更新紀錄・共 ${feed.length} 筆</div>
   ${feed.length?(()=>{const pages=Math.ceil(feed.length/PER), pg=Math.min(PAGE[t.id]||0,pages-1), vis=feed.slice(pg*PER,pg*PER+PER);return '<div class="timeline">'+vis.map((x,i)=>logCard(x.l,x.o,isGroup,pg===0&&i===0)).join('')+'</div>'+(pages>1?`<div class="pager"><button class="btn sm" ${pg===0?'disabled':''} onclick="turnPage('${t.id}',-1)">‹ 較新</button><span>第 ${pg+1}／${pages} 頁</span><button class="btn sm" ${pg>=pages-1?'disabled':''} onclick="turnPage('${t.id}',1)">較舊 ›</button></div>`:'');})():`<div class="empty small">${isGroup?'底下的小工具還沒有任何更新。':'還沒有修改紀錄'}</div>`}`;
 }
@@ -1068,6 +1086,52 @@ function moveTool(dir){
   const i=ORD.indexOf(t.id), j=i+dir; if(i<0||j<0||j>=ORD.length)return;
   [ORD[i],ORD[j]]=[ORD[j],ORD[i]]; orderHint(t);
 }
+/* ---------- 拖曳排序 ---------- */
+let DRAG=null, DRAG_JUST=false, PRESS=null;
+function cardDown(e,id){
+  if(e.button>0||DRAG)return;
+  const el=e.currentTarget, box=el.parentElement;
+  if(e.pointerType==='mouse')e.preventDefault();          // 不要選到文字
+  PRESS={id,el,box,x:e.clientX,y:e.clientY,pid:e.pointerId,touch:e.pointerType!=='mouse',timer:null};
+  if(PRESS.touch)PRESS.timer=setTimeout(()=>{if(PRESS){if(navigator.vibrate)navigator.vibrate(12);startDrag(PRESS.y);}},380);
+  addEventListener('pointermove',gripMove);addEventListener('pointerup',gripUp);addEventListener('pointercancel',gripUp);
+}
+function startDrag(y){
+  const {id,el,box,pid}=PRESS; clearTimeout(PRESS.timer); PRESS=null;
+  DRAG={id,el,box,y,pid,moved:false};
+  el.classList.add('dragging');box.classList.add('is-drag');
+}
+addEventListener('touchmove',e=>{if(DRAG)e.preventDefault();},{passive:false});
+function gripMove(e){
+  if(PRESS&&e.pointerId===PRESS.pid){
+    const dx=e.clientX-PRESS.x, dy=e.clientY-PRESS.y, d=Math.hypot(dx,dy);
+    if(PRESS.touch){if(d>8){clearTimeout(PRESS.timer);PRESS=null;endListen();}return;}   // 手指在滑動頁面
+    if(d>6)startDrag(PRESS.y);else return;
+  }
+  if(!DRAG||e.pointerId!==DRAG.pid)return;e.preventDefault();
+  const {el,box}=DRAG; DRAG.moved=true;
+  el.style.transform=`translateY(${e.clientY-DRAG.y}px) scale(1.01)`;
+  const sib=[...box.children].filter(c=>c!==el);
+  let before=null;
+  for(const c of sib){const r=c.getBoundingClientRect();if(e.clientY<r.top+r.height/2){before=c;break;}}
+  if(before!==el.nextElementSibling){box.insertBefore(el,before);el.style.transform='';DRAG.y=e.clientY;}
+  const rect=el.getBoundingClientRect();
+  if(rect.bottom>innerHeight-30)scrollBy(0,12);else if(rect.top<30)scrollBy(0,-12);
+}
+function endListen(){removeEventListener('pointermove',gripMove);removeEventListener('pointerup',gripUp);removeEventListener('pointercancel',gripUp);}
+function gripUp(e){
+  if(PRESS&&e.pointerId===PRESS.pid){clearTimeout(PRESS.timer);PRESS=null;endListen();return;}  // 只是點一下：照常進入工具
+  if(!DRAG||e.pointerId!==DRAG.pid)return;
+  const {el,box,moved}=DRAG; DRAG=null;
+  el.classList.remove('dragging');box.classList.remove('is-drag');el.style.transform='';
+  endListen();
+  DRAG_JUST=true;setTimeout(()=>DRAG_JUST=false,350);
+  if(!moved)return;
+  const ids=[...box.children].map(c=>c.dataset.id).filter(Boolean);
+  let changed=false;
+  ids.forEach((id,i)=>{const x=S.find(y=>y.id===id);if(x&&x.order!==i){x.order=i;changed=true;}});
+  if(changed){save();const y=scrollY;render();scrollTo(0,y);}
+}
 function openTool(id,parentId){
   if(syOn()&&!SY.dirty)pull();
   editId=id||null; const t=id?S.find(x=>x.id===id):null;
@@ -1084,9 +1148,9 @@ function openTool(id,parentId){
   else pv='cat:'+(curCat()||'剪輯');
   tPlace.value=pv; if(!tPlace.value)tPlace.value='cat:'+(curCat()||'剪輯');
   const upd=()=>{tPlaceHint.textContent=(hasKids?'這個工具裡面有小工具，所以只能當主工具。':'')+placeHintText(tPlace.value);};
-  tPlace.onchange=()=>{upd();if(t){const pl=parsePlace(tPlace.value);const same=pl.parent===t.parent&&(t.parent||pl.cat===t.cat);tOrderRow.style.display=same?'':'none';}}; upd();
+  tPlace.onchange=upd; upd();
   tDel.style.visibility=t?'visible':'hidden';
-  ORD=null; tOrderRow.style.display=t?'':'none'; if(t)orderHint(t);
+  ORD=null;
   dTool.showModal();
 }
 function saveTool(e){
