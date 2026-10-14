@@ -586,6 +586,7 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self61:["2026-10-15","V4.13","工具更新：有小工具的主工具也能選「主工具本身」來記錄","工具管理與命名規則","","02:52"],
  self60:["2026-10-15","V4.12","工具總表自己的更新紀錄自動沿用上一次的對話連結，不會再變空白","工具管理與命名規則","","01:51"],
  self59:["2026-10-15","V4.11","拿掉拖曳把手：電腦上按住卡片直接拖，手機長按卡片再拖","工具管理與命名規則","","01:49"],
  self58:["2026-10-15","V4.10","排列順序改成在列表上直接拖曳（按住 ⠿），編輯視窗裡的排序拿掉","工具管理與命名規則","","01:46"],
@@ -678,7 +679,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57,self58,self59,self60",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57,self58,self59,self60,self61",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -748,7 +749,8 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v490','','',[['工具總表','self57']],''],
  ['finn-tool-index-add-v4100','','',[['工具總表','self58']],''],
  ['finn-tool-index-add-v4110','','',[['工具總表','self59']],''],
- ['finn-tool-index-add-v4120','','',[['工具總表','self60']],'']];
+ ['finn-tool-index-add-v4120','','',[['工具總表','self60']],''],
+ ['finn-tool-index-add-v4130','','',[['工具總表','self61']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -1212,7 +1214,6 @@ function resolvePick(ps){
   if(ps.main==='NEW')return {isNew:true,name:ps.newMain.trim(),parent:'',cat:ps.cat,slug:ps.slug};
   const m=S.find(x=>x.id===ps.main); if(!m)return {isNew:true,name:'',parent:'',cat:ps.cat,slug:ps.slug};
   if(ps.kid==='NEW')return {isNew:true,name:ps.newKid.trim(),parent:m.id,cat:m.cat,slug:ps.slug};
-  if(!ps.kid&&kids(m).length&&!isReal(m))return {id:kids(m)[0].id};
   return {id:ps.kid||ps.main};
 }
 const pickKey=rp=>rp.id?rp.id:`new:${rp.parent}:${rp.cat}:${rp.name}`;
@@ -1228,7 +1229,7 @@ function pickerHTML(ps,where){
     <div class="f"><label>分類</label><select ${on('cat')}>${CATS.map(c=>`<option${c.k===ps.cat?' selected':''}>${c.k}</option>`).join('')}</select></div>
     <div class="f"><label>主工具</label><select ${on('main')}>${mains.map(x=>`<option value="${x.id}"${x.id===ps.main?' selected':''}>${esc(x.name)}</option>`).join('')}<option value="NEW"${ps.main==='NEW'?' selected':''}>＋ 新增主工具</option></select></div>
     ${ps.main==='NEW'?`<div class="f"><label>新主工具的名稱</label>${inp('newMain','例：塔羅牌陣產生器',ps.newMain)}</div>`:
-    `<div class="f"><label>小工具</label><select ${on('kid')}>${!ks.length?`<option value=""${!ps.kid?' selected':''}>（沒有小工具）</option>`:(isReal(m)?`<option value=""${!ps.kid?' selected':''}>${esc(m.name)}（主程式）</option>`:'')}${ks.map(x=>`<option value="${x.id}"${x.id===ps.kid?' selected':''}>${esc(x.name)}</option>`).join('')}<option value="NEW"${ps.kid==='NEW'?' selected':''}>＋ 新增小工具</option></select></div>`}
+    `<div class="f"><label>小工具</label><select ${on('kid')}>${!ks.length?`<option value=""${!ps.kid?' selected':''}>（沒有小工具）</option>`:`<option value=""${!ps.kid?' selected':''}>${esc(m.name)}（主工具本身）</option>`}${ks.map(x=>`<option value="${x.id}"${x.id===ps.kid?' selected':''}>${esc(x.name)}</option>`).join('')}<option value="NEW"${ps.kid==='NEW'?' selected':''}>＋ 新增小工具</option></select></div>`}
     ${ps.main!=='NEW'&&ps.kid==='NEW'?`<div class="f"><label>新小工具的名稱</label>${inp('newKid','例：月曆排程',ps.newKid)}</div>`:''}
     ${ps.main==='NEW'||ps.kid==='NEW'?`<div class="f"><label>檔名代號（選填）</label>${inp('slug','例：tarot-spread',ps.slug)}</div>`:''}
   </div>`;
