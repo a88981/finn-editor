@@ -426,7 +426,8 @@ const KEY = '在這裡換成妳自己的密碼';
 
 function doGet(e) {
   if ((e.parameter.key || '') !== KEY) return out({ ok: false, err: 'key' });
-  return out(Object.assign({ ok: true }, readData()));
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return out(Object.assign({ ok: true, sheet: { name: ss.getName(), url: ss.getUrl() } }, readData()));
 }
 
 function doPost(e) {
@@ -441,7 +442,8 @@ function doPost(e) {
     }
     writeData(b.data, b.updated);
     writeTable((b.data && b.data.tools) || []);
-    return out({ ok: true, updated: b.updated });
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    return out({ ok: true, updated: b.updated, sheet: { name: ss.getName(), url: ss.getUrl() } });
   } finally {
     lock.releaseLock();
   }
@@ -558,6 +560,7 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self50:["2026-10-15","V4.2","同步設定顯示資料實際存在哪一份試算表（附連結）","工具管理與命名規則","","00:40"],
  self49:["2026-10-15","V4.1","雲端同步：上傳失敗時跳出錯誤內容，不再默默失敗；成功時提示試算表多出的分頁","工具管理與命名規則","","00:36"],
  self48:["2026-10-15","V4.0","新增雲端同步：資料存到 Google 試算表，電腦和手機自動同步；「資料備份」改名「同步・備份」","工具管理與命名規則","","00:19"],
  self47:["2026-10-15","V3.50","標題和瀏覽器分頁加上像素工作台圖示","工具管理與命名規則","","00:12"],
@@ -639,7 +642,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -698,7 +701,8 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v349','','',[['工具總表','self46']],''],
  ['finn-tool-index-add-v350','','',[['工具總表','self47']],''],
  ['finn-tool-index-add-v400','','',[['工具總表','self48']],''],
- ['finn-tool-index-add-v410','','',[['工具總表','self49']],'']];
+ ['finn-tool-index-add-v410','','',[['工具總表','self49']],''],
+ ['finn-tool-index-add-v420','','',[['工具總表','self50']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -1317,7 +1321,7 @@ function setSy(s){SYST=s;const b=document.getElementById('syncSt');if(!syOn()){b
 function syRender(){
   const on=syOn();syForm.hidden=on;syLinked.hidden=!on;
   syUrl.value=SY.url||'';syKey.value=SY.key||'';
-  syState.innerHTML=on?(SYST==='off'?`<span class="warn">目前連不上雲端。</span>修改都會先存在這台，連上之後自動補傳。${SYERR?`<br><small>錯誤內容：${esc(SYERR)}</small>`:''}`:`<span class="ok">已開啟</span>・上次同步 ${SY.last?fullDT(SY.last):'—'}`):'還沒設定。設定好之後，每次修改都會自動存到妳的 Google 試算表。';
+  syState.innerHTML=on?(SYST==='off'?`<span class="warn">目前連不上雲端。</span>修改都會先存在這台，連上之後自動補傳。${SYERR?`<br><small>錯誤內容：${esc(SYERR)}</small>`:''}`:`<span class="ok">已開啟</span>・上次同步 ${SY.last?fullDT(SY.last):'—'}${SY.sheet?`<br>資料存在：<a class="link" href="${esc(SY.sheet.url)}" target="_blank" rel="noopener">${esc(SY.sheet.name)}</a>（看最下方「工具清單」分頁）`:''}`):'還沒設定。設定好之後，每次修改都會自動存到妳的 Google 試算表。';
   syHint.textContent=SYST==='sync'?'同步中…':'';
   bkDot.hidden=on||bkDot.hidden;
 }
@@ -1326,7 +1330,7 @@ function copyGas(){const s=document.getElementById('gasCode').textContent;
   if(navigator.clipboard)navigator.clipboard.writeText(s).then(done,()=>fallbackCopy(s,done));else fallbackCopy(s,done);}
 function fallbackCopy(s,done){const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}ta.remove();}
 let SYERR='';
-async function syJson(r){const s=await r.text();try{const j=JSON.parse(s);if(!j.ok&&j.err!=='conflict')SYERR=j.err==='key'?'密碼不對':'Apps Script 回傳：'+(j.msg||j.err);return j;}catch(e){
+async function syJson(r){const s=await r.text();try{const j=JSON.parse(s);if(j.sheet&&j.sheet.url){SY.sheet=j.sheet;sySave();}if(!j.ok&&j.err!=='conflict')SYERR=j.err==='key'?'密碼不對':'Apps Script 回傳：'+(j.msg||j.err);return j;}catch(e){
   const m=/<title>([^<]*)<\/title>/i.exec(s), body=s.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   SYERR=`（HTTP ${r.status}）${/accounts\.google\.com|ServiceLogin|登入/.test(s)?'Google 要求登入：部署時「誰可以存取」要選「所有人」。':''}${(m?m[1]+'：':'')+body.slice(0,160)}`;throw e;}}
 async function syGet(url,key){let r;try{r=await fetch(url+(url.includes('?')?'&':'?')+'key='+encodeURIComponent(key)+'&t='+Date.now());}catch(e){SYERR='連不上網址（網路或網址錯誤）';throw e;}return syJson(r);}
@@ -1348,7 +1352,7 @@ async function syLink(dir){
   if(dir==='up'){
     if(j.data&&!confirm(`雲端已經有資料（${fullDT(j.updated)} 更新的）。確定用這台的 ${S.length} 個工具覆蓋嗎？`))return;
     SY.linked=true;SY.syncedAt=j.updated||0;SY.dirty=true;sySave();await push();
-    if(!SY.dirty)alert('上傳完成，雲端同步已開啟。\n試算表下方會多出「工具清單」和「_data」兩個分頁。\n其他裝置打開工具箱後，到這裡按「下載雲端的資料」。');
+    if(!SY.dirty)alert('上傳完成，雲端同步已開啟。\n'+(SY.sheet?'資料存在試算表「'+SY.sheet.name+'」，':'')+'試算表最下方會多出「工具清單」和「_data」兩個分頁。\n其他裝置打開工具箱後，到這裡按「下載雲端的資料」。');
     else{SY.linked=false;sySave();setSy('');alert('上傳失敗，同步還沒開啟。\n\n錯誤內容：'+(SYERR||'不明')+'\n\n可以把這段訊息傳給 Claude。');}
   }else{
     if(!j.data){alert('雲端還沒有資料。請先到資料最完整的那台按「上傳這台的資料」。');return;}
