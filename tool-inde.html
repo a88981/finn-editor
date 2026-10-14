@@ -217,6 +217,8 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .sy-steps b{font-weight:400;color:var(--ink)}
 details.sy-how{margin-top:12px;font-size:14px}
 details.sy-how summary{cursor:pointer;color:#2c5aa0}
+.set-h{margin:0 0 6px;font-weight:400;font-size:17px}
+.cl-auto{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--ink-soft);cursor:pointer}
 .masked{-webkit-text-security:disc;text-security:disc}
 .sy-off{font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:10px;display:inline-block}
 .th-desc{margin:4px 0 8px;font-size:15px;color:var(--ink-soft);line-height:1.6}
@@ -321,7 +323,7 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
     <input type="search" id="q" name="tool-search" autocomplete="off" data-lpignore="true" data-1p-ignore class="slot-input" placeholder="搜尋全部工具…">
     <button class="btn primary" onclick="openAI()">✦ 工具更新</button>
     <button class="btn" id="guideBtn" onclick="go('命名規則')"><img src="" alt="" id="guideIco">命名規則</button>
-    <button class="btn" id="bkBtn" onclick="openBk()">同步・備份<span class="bk-dot" id="bkDot" hidden></span></button>
+    <button class="btn" id="bkBtn" onclick="openBk()">設定<span class="bk-dot" id="bkDot" hidden></span></button>
   </div>
   <div class="spacer"></div>
   <div id="view"></div>
@@ -384,7 +386,8 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
 </form></dialog>
 
 <dialog id="dBk"><div class="dlg">
-  <h3>同步・備份</h3>
+  <h3>設定</h3>
+  <h4 class="set-h">資料備份</h4>
   <p class="bk-status" id="bkStatus"></p>
   <p class="hint">資料存在這台裝置的這個瀏覽器裡。換電腦、換瀏覽器或清除瀏覽紀錄之前，先下載一份備份檔，之後用「從備份檔還原」就能把資料帶回來。</p>
   <div class="bk-grid">
@@ -419,6 +422,21 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
       <p class="hint" style="margin:6px 0 0">兩個方向都會做：這台有還沒上傳的修改就先上傳，雲端有比較新的資料就下載下來；兩邊都改過會自動合併。平常會自動同步，不用按，這顆只是想馬上確認時用。</p>
       <span class="sy-off" onclick="syUnlink()">停止這台的同步</span>
     </div>
+  </div>
+  <div class="sy-box">
+    <h4>整理更新紀錄</h4>
+    <div class="f"><label>清除規則</label><select id="clRule" onchange="clSet()">
+      <option value="k10">每個工具只留最近 10 筆</option>
+      <option value="k20">每個工具只留最近 20 筆</option>
+      <option value="a3">刪掉 3 個月以前的</option>
+      <option value="a6">刪掉 6 個月以前的</option>
+      <option value="a12">刪掉 1 年以前的</option>
+    </select></div>
+    <p class="sy-state" id="clPrev"></p>
+    <div class="order-row"><button type="button" class="btn sm" id="clBtn" onclick="doClean(false)">現在清除</button>
+      <label class="cl-auto"><input type="checkbox" id="clAuto" onchange="clSet()"> 每個月自動照這個規則清一次</label></div>
+    <p class="hint" style="margin:6px 0 0">每個工具最新的那一筆一定會留著（版本和日期要用）。</p>
+    <span class="sy-off" id="clUndo" hidden onclick="undoClean()"></span>
   </div>
   <div class="dlg-act"><div class="r"><button type="button" class="btn ghost" onclick="dBk.close()">關閉</button></div></div>
 </div></dialog>
@@ -562,6 +580,8 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self57:["2026-10-15","V4.9","「同步・備份」改名「設定」","工具管理與命名規則","","01:41"],
+ self56:["2026-10-15","V4.8","新增「整理更新紀錄」：依規則清掉舊紀錄，可每月自動清、可復原上次清除","工具管理與命名規則","","01:45"],
  self55:["2026-10-15","V4.7","同步設定加上「立刻同步」的說明","工具管理與命名規則","","01:38"],
  self54:["2026-10-15","V4.6","工具更新的提示詞：todo 只寫需要動手處理的事，不再列不用注意的技術說明","工具管理與命名規則","","01:37"],
  self53:["2026-10-15","V4.5","修正對話連結會被蓋掉：兩邊都改時自動合併，不再用雲端舊資料覆蓋；主工具頁顯示自己的對話連結","工具管理與命名規則","","01:45"],
@@ -649,7 +669,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -714,7 +734,9 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v440','','',[['工具總表','self52']],''],
  ['finn-tool-index-add-v450','','',[['工具總表','self53']],''],
  ['finn-tool-index-add-v460','','',[['工具總表','self54']],''],
- ['finn-tool-index-add-v470','','',[['工具總表','self55']],'']];
+ ['finn-tool-index-add-v470','','',[['工具總表','self55']],''],
+ ['finn-tool-index-add-v480','','',[['工具總表','self56']],''],
+ ['finn-tool-index-add-v490','','',[['工具總表','self57']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -1319,7 +1341,44 @@ function renderBackup(){
   bkBtn.title=b?`上次備份：${fmt(b)}`:'還沒有備份過';
   bkStatus.innerHTML=syOn()?`<span style="color:var(--green-d)">雲端同步已開啟</span>，資料會自動存到 Google 試算表。${b?`<br><small>上次手動備份：${fmt(b)}</small>`:''}`:b?`上次備份：<b>${fmt(b)}</b>（${ago(d)}）${stale?'<br><span class="warn">已經超過 30 天，建議再備份一次。</span>':''}`:'<span class="warn">還沒有備份過。</span>';
 }
-function openBk(){renderBackup();syRender();dBk.showModal();}
+function openBk(){renderBackup();syRender();clRender();dBk.showModal();}
+/* ---------- 整理更新紀錄 ---------- */
+const CLKEY='finn-tool-index-clean', TRKEY='finn-tool-index-trash';
+let CL={rule:'k10',auto:false,last:''};
+try{Object.assign(CL,JSON.parse(localStorage.getItem(CLKEY)||'{}'));}catch(e){}
+const clSave=()=>{try{localStorage.setItem(CLKEY,JSON.stringify(CL));}catch(e){}};
+function cutoff(m){const d=new Date();d.setMonth(d.getMonth()-m);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function planClean(rule){
+  const out=[], k=/^k(\d+)/.exec(rule), a=/^a(\d+)/.exec(rule), cut=a?cutoff(+a[1]):'';
+  S.forEach(t=>{sortLogs(t).forEach((l,i)=>{if(i===0)return;if((k&&i>=+k[1])||(a&&(l.date||'')<cut))out.push({tid:t.id,tname:t.name,log:l});});});
+  return out;}
+function clSet(){CL.rule=clRule.value;CL.auto=clAuto.checked;clSave();clRender();}
+function clRender(){
+  clRule.value=CL.rule;clAuto.checked=!!CL.auto;
+  const n=planClean(CL.rule).length, total=S.reduce((s,t)=>s+t.logs.length,0);
+  clPrev.innerHTML=`目前共 ${total} 筆紀錄，照這個規則會刪掉 <b>${n}</b> 筆。`+(CL.last?`<br><small>上次清除：${fmt(CL.last)}</small>`:'');
+  clBtn.disabled=!n;
+  let tr=null;try{tr=JSON.parse(localStorage.getItem(TRKEY)||'null');}catch(e){}
+  clUndo.hidden=!(tr&&tr.items&&tr.items.length);
+  if(tr&&tr.items)clUndo.textContent=`復原上次清除的 ${tr.items.length} 筆（${fmt(tr.at)}）`;
+}
+function doClean(auto){
+  const plan=planClean(CL.rule); if(!plan.length)return 0;
+  if(!auto&&!confirm(`要刪掉 ${plan.length} 筆更新紀錄嗎？\n刪掉之後可以按「復原上次清除」救回來（只能救最近一次）。`))return 0;
+  const rm=new Set(plan.map(x=>x.log.id));
+  S.forEach(t=>{t.logs=t.logs.filter(l=>!rm.has(l.id));});
+  try{localStorage.setItem(TRKEY,JSON.stringify({at:today(),items:plan.map(x=>({tid:x.tid,log:x.log}))}));}catch(e){}
+  CL.last=today();clSave();save();
+  if(!auto){render();clRender();}
+  return plan.length;}
+function undoClean(){
+  let tr=null;try{tr=JSON.parse(localStorage.getItem(TRKEY)||'null');}catch(e){}
+  if(!tr||!tr.items)return;
+  if(!confirm(`要把 ${tr.items.length} 筆紀錄加回來嗎？`))return;
+  let n=0;tr.items.forEach(({tid,log})=>{const t=S.find(x=>x.id===tid);if(t&&!t.logs.some(l=>l.id===log.id)){t.logs.push(log);n++;}});
+  try{localStorage.removeItem(TRKEY);}catch(e){}
+  save();render();clRender();alert(`已加回 ${n} 筆。`);}
+function autoClean(){if(!CL.auto)return;const d=CL.last?daysSince(CL.last):999;if(d>=30)doClean(true);}
 /* ---------- 雲端同步 ---------- */
 const SKEY='finn-tool-index-sync';
 let SY={url:'',key:'',linked:false,syncedAt:0,dirty:false,last:0}, READY=false, REV=0, pushT=null, BUSY=false, SYST='';
@@ -1442,7 +1501,7 @@ document.getElementById('q').addEventListener('input',render);
 window.addEventListener('hashchange',render);
 guideIco.src=iconUrl('book');
 q.value=''; setTimeout(()=>{if(/^https?:\/\//.test(q.value)){q.value='';render();}},800);
-load(); rawSave(); render(); renderBackup(); READY=true; if(syOn()){setSy(SY.dirty?'wait':'ok');pull();}
+load(); rawSave(); render(); renderBackup(); READY=true; setTimeout(()=>{autoClean();render();},2500); if(syOn()){setSy(SY.dirty?'wait':'ok');pull();}
 </script>
 </body>
 </html>
