@@ -53,6 +53,11 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .gantt-head-days .we{color:var(--red);opacity:0.6}
 .gantt-row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line-soft);min-height:42px}
 .gantt-row:hover{background:rgba(232,179,64,0.03)}
+.gantt-row.running{background:#FFF6D9;border-bottom-color:#F3E6B8}
+.gantt-row.running:hover{background:#FFF1C9}
+.gantt-row.running .row-canvas{background:repeating-linear-gradient(90deg,transparent,transparent calc(100%/30 - 0.5px),#F3E6B8 calc(100%/30 - 0.5px),#F3E6B8 calc(100%/30))}
+.row-label .st{color:var(--ink-light)}
+.row-label .st.st-run{color:var(--yellow-mid);font-weight:500}
 .row-label{font-size:12px;color:var(--ink);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding-right:4px}
 .row-label .name{font-weight:500;font-family:'Noto Serif TC',serif}
 .row-label .name.dirty::after{content:" •";color:var(--red);font-family:sans-serif}
@@ -82,7 +87,10 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 .modal-overlay{position:fixed;inset:0;background:rgba(20,20,15,0.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
 .modal{background:#fff;border-radius:6px;padding:24px;width:100%;max-width:840px;max-height:90vh;overflow:auto}
-.modal-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:4px}
+.modal-xwrap{position:sticky;top:0;height:0;z-index:20;display:flex;justify-content:flex-end}
+.modal-x{margin:-14px -14px 0 0;width:32px;height:32px;border-radius:50%;border:0.5px solid var(--line);background:#fff;color:var(--ink-soft);font-size:14px;cursor:pointer;font-family:inherit;box-shadow:0 1px 6px rgba(0,0,0,0.08);flex-shrink:0}
+.modal-x:hover{color:var(--red);border-color:var(--red);background:#fdf0ef}
+.modal-title{padding-right:30px;font-family:'Noto Serif TC',serif;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:4px}
 .modal-sub{font-size:11px;color:var(--ink-light);margin-bottom:16px}
 
 .mfull{background:var(--yellow-lightest);border:0.5px solid var(--yellow-pale);border-radius:6px;padding:14px 16px;margin-bottom:14px}
@@ -110,7 +118,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .fc{width:100%;padding:8px 10px;border:0.5px solid var(--line);border-radius:3px;font-family:inherit;font-size:13px;color:var(--ink);background:#fff;font-variant-numeric:tabular-nums}
 .fc:focus{outline:none;border-color:var(--yellow)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.modal-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.modal-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding:14px 0 6px;border-top:1px solid var(--line);position:sticky;bottom:-24px;background:#fff;z-index:15;margin-bottom:-6px}
 
 .toast{position:fixed;top:30px;right:30px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:4px;font-size:12px;z-index:300;font-family:inherit;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
 
@@ -246,7 +254,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V32";
+var PLAN_BUILD="V32.2";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -371,6 +379,7 @@ function saveModal(){
     var orig=!!p[f],cur=!!m[f];
     if(orig!==cur){setField(p,f,cur);changed=true;}
   });
+  if(syncFullRange(p))changed=true;
   if(!changed)clearEdit(m.pid);
   closeModal();
 }
@@ -492,11 +501,11 @@ function renderGanttMonth(visible,yr,mo,now){
     if(rd.bars.length===0&&rd.dots.length===0)return null;
     var pct=100/dim;
     var isDirty=!!state.edits[p.id];
-    var row='<div class="gantt-row">';
+    var row='<div class="gantt-row'+(isRunning(p)?' running':'')+'">';
     row+='<div class="row-label" onclick="openEdit(state.projects.find(function(x){return x.id===\''+p.id+'\';}))">';
     var pn=state.planNotes[p.id]||null;
     row+='<div class="name'+(isDirty?' dirty':'')+'">'+escapeHtml(p.name)+(pn&&pn.flag?' <span class="flag">'+escapeHtml(pn.flag)+'</span>':'')+'</div>';
-    row+='<div class="meta">'+escapeHtml(p.client||"")+(p.airDate?" · "+p.airDate+"上片":"")+'</div>';
+    row+='<div class="meta">'+escapeHtml(p.client||"")+(p.airDate?" · "+p.airDate+"上片":"")+(p.status?' · <span class="st'+(isRunning(p)?' st-run':'')+'">'+escapeHtml(p.status)+'</span>':'')+'</div>';
     if(pn&&pn.note)row+='<div class="pnote-s" title="'+escAttr(pn.note)+'">'+escapeHtml(pn.note)+'</div>';
     row+='</div>';
     row+='<div class="row-canvas">';
@@ -532,11 +541,7 @@ function render(){
   var yr=state.ym[0],mo=state.ym[1];
   var now=new Date();
   
-  var INCLUDE=["等待素材","待確認","初剪待執行"];
-  var visible=state.projects.filter(function(p){
-    if(p.closed||p.finalDone)return false;
-    return INCLUDE.indexOf(p.status)>=0;
-  });
+  var visible=ganttProjects();
   
   state.mCount=ganttMonths(visible,yr,mo);
   var mList=monthList(yr,mo,state.mCount);
@@ -596,21 +601,22 @@ function render(){
   if(dirty>0)html+='<span class="dirty-badge">· '+dirty+' 筆未存</span>';
   html+='<button class="btn" onclick="load()" style="margin-left:8px">⟲ 重整</button>';
   html+='<button class="btn" onclick="openFeas()" title="給一個交件日，試算能不能接">🧮 試算新案</button>';
-  html+='<button class="btn" onclick="openExport()" title="把待執行的案整理成 Prompt，複製給 Claude 排">📋 產生 Prompt</button>';
-  html+='<button class="btn" onclick="openImport()" title="把 Claude 排好的 JSON 貼回來，一鍵填入">📥 貼上排程</button>';
+  html+='<button class="btn" onclick="openExport()" title="把待執行的案整理成 Prompt，複製給 Claude 排；複製後會直接接到貼上排程">📋 排排程</button>';
   html+='<button class="btn" onclick="openTxt()" title="把客戶給的文字時程，填進追蹤器已建好的卡片">✍️ 貼時程</button>';
   html+='<button class="btn primary" id="save-btn-top" onclick="saveAll()" style="margin-left:auto" '+(dirty===0?'disabled':'')+'>💾 存回 Notion'+(dirty>0?' ('+dirty+')':'')+'</button>';
   html+='<div class="legend" style="margin-left:0;flex-basis:100%;margin-top:8px;padding-top:8px;border-top:0.5px dashed var(--line)">';
   [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
     html+='<div>'+(l.d?'<div class="dot" style="background:'+l.c+'"></div>':'<div class="swatch" style="background:'+l.c+'"></div>')+l.l+'</div>';
   });
+  html+='<div><div class="swatch" style="background:#FFF6D9;border:0.5px solid #E8D79A;opacity:1"></div>執行中</div>';
+  html+='<div><div class="swatch" style="background:var(--paper);border:0.5px solid var(--line);opacity:1"></div>未執行</div>';
   html+='</div>';
   html+='</div>';
   
   html+=renderSummary();
   
   if(visible.length===0){
-    html+='<div class="empty">沒有待執行的案(等待素材 / 待確認 / 初剪待執行)</div>';
+    html+='<div class="empty">沒有執行中或待執行的案</div>';
     root.innerHTML=html;
     restoreScroll(_sc);
     return;
@@ -635,18 +641,19 @@ function render(){
     var m=state.modal;
     html+='<div class="modal-overlay">';
     html+='<div class="modal">';
+    html+='<div class="modal-xwrap"><button class="modal-x" onclick="closeModal()" title="關閉（Esc）">✕</button></div>';
     html+='<div class="modal-title">'+escapeHtml(m.name)+'</div>';
     html+='<div class="modal-sub">'+escapeHtml(m.client||"")+' · 修改階段日期(僅暫存,需點外部「存回 Notion」才會同步)</div>';
     
-    var fullS=earliest([m.cut1S,m.v1S,m.bizS,m.cut1Due,m.v1Due,m.bizDue,m.finalDue]);
-    var fullE=latest([m.cut1Due,m.v1Due,m.bizDue,m.cut1E,m.v1E,m.bizE,m.finalDue]);
+    var fsp=fullSpanOf(function(k){return m[k];});
+    var fullS=fsp.s, fullE=fsp.e;
     var fullDays=daysBetween(fullS,fullE);
     
     html+='<div class="mfull">';
     html+='<div class="mfull-hd"><span class="mfull-icon">🎬</span><span class="mfull-title">完整時程</span>'+(fullDays?'<span class="mday-badge">'+fullDays+'天</span>':'')+'</div>';
     html+='<div class="row3">';
-    html+='<div><div class="flabel">開始</div><input type="date" class="fc" value="'+escAttr(fullS)+'"></div>';
-    html+='<div><div class="flabel">結束</div><input type="date" class="fc" value="'+escAttr(fullE)+'"></div>';
+    html+='<div><div class="flabel">開始 · 自動</div><input type="date" class="fc" value="'+escAttr(fullS)+'" readonly tabindex="-1" style="background:var(--line-soft);color:var(--ink-soft)"></div>';
+    html+='<div><div class="flabel">結束 · 自動</div><input type="date" class="fc" value="'+escAttr(fullE)+'" readonly tabindex="-1" style="background:var(--line-soft);color:var(--ink-soft)"></div>';
     html+='<div><div class="flabel">Final</div><input type="date" class="fc" value="'+escAttr(m.finalDue)+'" oninput="state.modal.finalDue=this.value"></div>';
     html+='</div>';
     html+='</div>';
@@ -678,7 +685,6 @@ function render(){
     
     html+='<div class="modal-btns">';
     if(state.edits[m.pid])html+='<button class="btn danger" onclick="discardEdit(\''+m.pid+'\');closeModal()">↺ 還原</button>';
-    html+='<button class="btn" onclick="closeModal()">取消</button>';
     html+='<button class="btn primary" onclick="saveModal()">儲存</button>';
     html+='</div></div></div>';
   }
@@ -711,6 +717,31 @@ function daysBetween(a,b){
   if(!da||!db)return null;
   var d=Math.round((db-da)/86400000)+1;
   return d>0?d:null;
+}
+
+/* 完整時程 = 最早開工的那一天 → Final（沒有 Final 就取最晚的交件日）。
+   跳過「無此階段」的欄位。給一個取值函式，modal 跟卡片都能共用。 */
+function fullSpanOf(get){
+  var noC=!!get("noCut1"), noB=!!get("noBiz");
+  var st=[get("v1S"),get("v1Due")], en=[get("v1Due"),get("v1E")];
+  if(!noC){st.push(get("cut1S"),get("cut1Due"));en.push(get("cut1Due"),get("cut1E"));}
+  if(!noB){st.push(get("bizS"),get("bizDue"));en.push(get("bizDue"),get("bizE"));}
+  st.push(get("finalDue"));en.push(get("finalDue"));
+  var fin=get("finalDue");
+  return {s:earliest(st), e:fin||latest(en)};
+}
+/* 依目前（含未存改動）的階段日期，把完整時程寫進卡片的工作起迄欄位 */
+function syncFullRange(p){
+  var rf=workRangeFields();
+  if(!rf||!p)return false;
+  var sp=fullSpanOf(function(k){return getField(p,k);});
+  if(!sp.s&&!sp.e)return false;
+  var changed=false;
+  [[rf[0],sp.s],[rf[1],sp.e]].forEach(function(x){
+    var cur=getField(p,x[0]); cur=(cur==null?"":cur);
+    if(x[1]&&cur!==x[1]){setField(p,x[0],x[1]);changed=true;}
+  });
+  return changed;
 }
 
 
@@ -874,15 +905,29 @@ function airKey(p){
   return key;
 }
 
+/* 還沒開工的狀態 */
+var WAIT_STATUS=["等待素材","待確認","初剪待執行"];
+/* 已經在做 Final、或已結束的狀態，甘特圖不顯示 */
+var FINAL_STATUS_RE=/final|fcopy|定剪|完成|結案|已上片|已交件|已結束/i;
+function isWaiting(p){return WAIT_STATUS.indexOf(p.status)>=0;}
+/* 執行中＝沒結案、Final 沒交、狀態也不在 Final 階段，且不是還沒開工的那三種 */
+function isRunning(p){
+  if(p.closed||p.finalDone)return false;
+  if(isWaiting(p))return false;
+  return !FINAL_STATUS_RE.test(String(p.status||""));
+}
+function byAir(a,b){var x=airKey(a), y=airKey(b);return x<y?-1:(x>y?1:0);}
+/* 排程對象：未執行 + 執行中。執行中的會佔額度，排新案時要算進去 */
 function pendingProjects(){
-  var INCLUDE=["等待素材","待確認","初剪待執行"];
   return state.projects.filter(function(p){
     if(p.closed||p.finalDone)return false;
-    return INCLUDE.indexOf(p.status)>=0;
-  }).sort(function(a,b){
-    var x=airKey(a), y=airKey(b);
-    return x<y?-1:(x>y?1:0);
-  });
+    return isWaiting(p)||isRunning(p);
+  }).sort(byAir);
+}
+/* 甘特圖：執行中排上面，再來是未執行，各自照上片日 */
+function ganttProjects(){
+  var all=pendingProjects();
+  return all.filter(isRunning).concat(all.filter(function(p){return !isRunning(p);}));
 }
 
 /* ─── 已排好的案：略過不重排，但要算進額度 ─────────────────── */
@@ -919,6 +964,8 @@ function isShort(p){return /短影|短片|shorts/i.test(projType(p));}
 function basePick(p){
   /* 短影不預先勾選，要排再自己勾起來 */
   if(isShort(p))return false;
+  /* 執行中的案已經在跑，預設不重排，只佔額度 */
+  if(isRunning(p))return false;
   var m=planMode();
   if(m==="all")return true;
   if(m==="keep")return !hasSchedule(p);
@@ -1491,7 +1538,7 @@ var FEAS_MARK={
 function renderFeas(){
   var f=state.feas;
   var h='<div class="modal-overlay">';
-  h+='<div class="modal"><div class="modal-title">\ud83e\uddee \u8a66\u7b97\u65b0\u6848</div>';
+  h+='<div class="modal">'+'<div class="modal-xwrap"><button class="modal-x" onclick="closeFeas()" title="關閉（Esc）">✕</button></div>'+'<div class="modal-title">\ud83e\uddee \u8a66\u7b97\u65b0\u6848</div>';
   var ask=(f.mode==="ask");
   h+='<div class="modal-sub">'+(ask
     ?"\u7531\u6211\u5f9e\u73fe\u6709\u6392\u7a0b\u5f80\u5f8c\u627e\uff0c\u7b97\u51fa\u6700\u5feb\u80fd\u7d66\u7684\u4ea4\u4ef6\u65e5"
@@ -1528,14 +1575,12 @@ function renderFeas(){
 
   if(f.rush){
     h+=renderRush(f);
-    h+='<div class="modal-btns"><button class="btn" onclick="closeFeas()">\u95dc\u9589</button></div>';
     h+='</div></div>';
     return h;
   }
 
   if(ask){
     h+=renderEarliest(f);
-    h+='<div class="modal-btns"><button class="btn" onclick="closeFeas()">\u95dc\u9589</button></div>';
     h+='</div></div>';
     return h;
   }
@@ -1596,7 +1641,6 @@ function renderFeas(){
     h+='<div class="feas-say">'+say+'</div>';
   }
 
-  h+='<div class="modal-btns"><button class="btn" onclick="closeFeas()">\u95dc\u9589</button></div>';
   h+='</div></div>';
   return h;
 }
@@ -1638,8 +1682,13 @@ function workWindow(p){
   return (v[0]||"?")+" → "+(v[1]||"?");
 }
 /* 寫進 Prompt 的版本：把「有沒有填開始日」講清楚，不然 AI 看到 ? 不知道該怎麼辦 */
-function workWindowLine(p){
+function workWindowLine(p,replan){
   var v=workWindowVals(p), s=v[0], e=v[1];
+  /* 完整時程是上一輪排出來的結果，這次要重排就只當參考，不然會一輪一輪被自己綁死 */
+  if(replan){
+    if(!s&&!e)return "未排";
+    return (s||"?")+" → "+(e||"?")+"  ← 這是上一次排出來的完整時程，這次會重排，僅供參考，不是限制";
+  }
   var t=(s||"未填")+" → "+(e||"未填");
   if(s)t+="  ← 開始日已確定，工作開始日不得早於 "+s+"(中間怎麼安排你決定)";
   else t+="  ← 開始日未填，請自行判斷何時開工，並倒推出素材最晚到齊日";
@@ -1650,11 +1699,11 @@ function projType(p){
   return p.type||p.kind||p["類型"]||"長片";
 }
 
-function projBlock(p,i){
+function projBlock(p,i,replan){
   var t="";
   t+="\n### "+(i+1)+". "+p.name+(p.client?" · "+p.client:"")+"\n";
   t+="- 類型: "+projType(p)+" / 上片日: "+md(p.airDate)+" / 狀態: "+(p.status||"未標")+"\n";
-  t+="- 可工作期間: "+workWindowLine(p)+"\n";
+  t+=(replan?"- 目前完整時程: ":"- 可工作期間: ")+workWindowLine(p,replan)+"\n";
   t+="- 進度: "+progressLine(p)+"\n";
   if(p.length)t+="- 片長: "+p.length+"\n";
   if(p.note)t+="- 備註: "+String(p.note).replace(/\n/g," ")+"\n";
@@ -1730,7 +1779,7 @@ function buildPrompt(){
   if(!sp.open.length){
     t+="(沒有需要排的案，全部都已經排好了)\n";
   }
-  sp.open.forEach(function(p,i){t+=projBlock(p,i);});
+  sp.open.forEach(function(p,i){t+=projBlock(p,i,true);});
 
   t+="\n---\n\n## 輸出格式要求\n";
   t+="請依照以下格式，**逐一專案列出**(不要用大表格)：\n\n";
@@ -1831,12 +1880,13 @@ function renderExport(){
    要關請按「關閉」。 */
   var h='<div class="modal-overlay">';
   h+='<div class="modal" style="max-width:780px">';
-  h+='<div class="modal-title">📋 產生 Prompt</div>';
+  h+='<div class="modal-xwrap"><button class="modal-x" onclick="closeExport()" title="關閉（Esc）">✕</button></div>';
+  h+='<div class="modal-title">📋 排排程</div>';
   h+='<div class="modal-sub">待執行共 '+sp.all.length+' 案 · 這次要排 '+sp.open.length+' 案，'+sp.locked.length+' 案已排好只列入考量</div>';
 
   if(!sp.all.length){
     h+='<div class="imp-err">目前沒有狀態為「等待素材 / 待確認 / 初剪待執行」的案，沒東西可以排。</div>';
-    h+='<div class="modal-btns"><button class="btn" onclick="closeExport()">關閉</button></div></div></div>';
+    h+='</div></div>';
     return h;
   }
 
@@ -1876,6 +1926,7 @@ function renderExport(){
     h+='<div>';
     h+='<div class="lock-nm">'+escapeHtml(p.name);
     if(isShort(p))h+=' <span class="lock-tag short">短影</span>';
+    if(isRunning(p))h+=' <span class="lock-tag short">執行中</span>';
     if(!has)h+=' <span class="lock-tag">還沒排</span>';
     else if(stale)h+=' <span class="lock-tag stale">排程已過期</span>';
     h+='</div>';
@@ -1892,10 +1943,10 @@ function renderExport(){
   }
   h+='<textarea class="pta" id="exp-out" rows="12" readonly onclick="this.select()">'+escapeHtml(buildPrompt())+'</textarea>';
 
-  h+='<div class="pnote" style="margin-top:12px">Claude 回覆的最後會有一段 <b>```json</b>，只包含要排的案。把那段(或整則回覆)複製起來，回到這裡按 <b>📥 貼上排程</b> 就能一鍵填入，排程說明和 🚨 也會一起帶回甘特圖。</div>';
+  h+='<div class="pnote" style="margin-top:12px">Claude 回覆的最後會有一段 <b>```json</b>，只包含要排的案。把那段(或整則回覆)複製起來，按下「複製 Prompt」後會直接切到貼上的畫面，排程說明和 🚨 也會一起帶回甘特圖。</div>';
 
   h+='<div class="modal-btns">';
-  h+='<button class="btn" onclick="closeExport()">關閉</button>';
+  h+='<button class="btn" onclick="gotoImport()" style="margin-right:auto" title="之前已經複製過、Claude 也回覆了，直接貼回來">已經有回覆了，直接貼上 →</button>';
   h+='<button class="btn primary" onclick="copyPrompt()"'+(sp.open.length?'':' disabled')+'>📋 複製 Prompt</button>';
   h+='</div></div></div>';
   return h;
@@ -1989,20 +2040,6 @@ function expandRow(row){
   if(f.cut1S&&f.noCut1!==true)f.noCut1=false;
   if(f.bizS&&f.noBiz!==true)f.noBiz=false;
 
-  /* 可工作期間(editS/editE)是我自己填的條件——最早可開始、最晚要完成，
-     不是排程算出來的結果，所以匯入時絕對不能覆寫，否則下一輪 AI 會拿
-     自己上次排的日期當成素材可用日，一輪一輪偏掉。 */
-  var rf=workRangeFields();
-  if(rf){
-    var ws=state.projects.filter(function(x){return x.id===(row.id||"");})[0];
-    var all=[f.cut1S,f.v1S,f.bizS,f.cut1Due,f.v1Due,f.bizDue,f.finalDue]
-            .filter(function(x){return !!x;}).sort();
-    if(ws&&all.length){
-      var lo=ws[rf[0]]||"", hi=ws[rf[1]]||"";
-      if(lo&&all[0]<lo)warn.push("工作開始日 "+all[0]+" 早於可工作期間起始日 "+lo);
-      if(hi&&all[all.length-1]>hi)warn.push("最後交件日 "+all[all.length-1]+" 超過可工作期間結束日 "+hi);
-    }
-  }
   /* 回饋緩衝檢查：V1 交件到 Final 之間至少要隔 3 個工作天 */
   var vd=f.v1Due||null, fdue=f.finalDue||null, bd=f.bizDue||null;
   if(vd&&fdue){
@@ -2123,6 +2160,7 @@ function applyImport(){
     }
     if(!state.imp.sel[r.i])return;
     Object.keys(r.fields).forEach(function(k){setField(p,k,r.fields[k]);});
+    syncFullRange(p);
     done++;
   });
   if(state.imp.summary)state.summary=state.imp.summary;
@@ -2136,6 +2174,7 @@ function renderImport(){
   /* 同上，貼上排程也不綁背景關閉，避免貼到一半誤觸。 */
   var h='<div class="modal-overlay">';
   h+='<div class="modal" style="max-width:700px">';
+  h+='<div class="modal-xwrap"><button class="modal-x" onclick="closeImport()" title="關閉（Esc）">✕</button></div>';
   h+='<div class="modal-title">📥 貼上排程</div>';
   h+='<div class="modal-sub">把 Claude 回覆裡的 json 貼進來 · 先預覽再填入</div>';
 
@@ -2144,7 +2183,6 @@ function renderImport(){
     if(m.err)h+='<div class="imp-err">⚠ '+escapeHtml(m.err)+'</div>';
     h+='<textarea class="pta" id="imp-in" rows="11" placeholder="在這裡貼上 Claude 的回覆…">'+escapeHtml(m.text||"")+'</textarea>';
     h+='<div class="modal-btns">';
-    h+='<button class="btn" onclick="closeImport()">取消</button>';
     h+='<button class="btn primary" onclick="parseImport()">解析並預覽</button>';
     h+='</div></div></div>';
     return h;
@@ -2206,7 +2244,6 @@ function renderImport(){
   }
   h+='<div class="modal-btns">';
   h+='<button class="btn" onclick="state.imp.rows=null;render()" style="margin-right:auto">← 改貼別的</button>';
-  h+='<button class="btn" onclick="closeImport()">取消</button>';
   h+='<button class="btn primary" onclick="applyImport()"'+(okCount===0?' disabled':'')+'>填入甘特圖'+(okCount?' ('+okCount+')':'')+'</button>';
   h+='</div></div></div>';
   return h;
@@ -2240,6 +2277,16 @@ function renderSummary(){
 }
 
 load();
+
+/* Esc 關掉最上層的視窗 */
+document.addEventListener("keydown",function(e){
+  if(e.key!=="Escape")return;
+  if(state.feas)closeFeas();
+  else if(state.imp)closeImport();
+  else if(state.exp)closeExport();
+  else if(state.txt)closeTxt();
+  else if(state.modal)closeModal();
+});
 
 /* ═══ 4. 貼時程 · 把客戶給的文字時程填進追蹤器已建好的卡片 ═══════════════
    流程：追蹤器先建空白卡 → 這裡選那張卡、貼文字 → 預覽可改 → 填入甘特圖
@@ -2393,12 +2440,12 @@ function applyTxt(){
   if(!p){closeTxt();return;}
   var ex=expandRow(txtRow());
   Object.keys(ex.fields).forEach(function(k){setField(p,k,ex.fields[k]);});
-  /* 可工作期間只在卡片上是空的時候才補，已經填過的不碰 */
-  var rf=workRangeFields();
-  if(rf){
-    if(m.mat&&!p[rf[0]])setField(p,rf[0],m.mat);
-    var endD=m.f.finalDue||"";
-    if(endD&&!p[rf[1]])setField(p,rf[1],endD);
+  syncFullRange(p);
+  /* 素材到的日子是真的限制，完整時程之後會被重排蓋掉，所以另外記進排程限制 */
+  if(m.mat){
+    var mn="素材 "+m.mat+" 才到，不能早於這天開工";
+    var o0=pNote(p);
+    if(o0.indexOf(mn)<0)setPNote(p.id,(o0?o0+"；":"")+mn);
   }
   if(m.toNote){
     var note=txtInfoNote();
@@ -2414,6 +2461,7 @@ function applyTxt(){
 function renderTxt(){
   var m=state.txt;
   var h='<div class="modal-overlay"><div class="modal" style="max-width:700px">';
+  h+='<div class="modal-xwrap"><button class="modal-x" onclick="closeTxt()" title="關閉（Esc）">✕</button></div>';
   h+='<div class="modal-title">✍️ 貼時程</div>';
   h+='<div class="modal-sub">把客戶給的文字時程填進追蹤器已建好的卡片 · 先預覽再填入</div>';
   var list=txtTargets();
@@ -2432,7 +2480,7 @@ function renderTxt(){
     h+='<div class="pnote">一行一個節點，日期寫成 <b>11/2</b>、<b>11月2日</b> 或 <b>2026-11-02</b> 都可以。沒寫年份會照順序往後推。<br>'+
        '有寫「剪輯」的那行會當成你的交件：Acopy／AC → V1/ES，Fcopy → Final，初剪、業配照字面，硬碟／素材 → 開工日，上線 → 上片日。</div>';
     h+='<textarea class="pta" id="txt-in" rows="10" placeholder="11/2（一）提供硬碟檔案給剪輯&#10;11/16（一）剪輯交Acopy給Peggy&#10;…">'+escapeHtml(m.text||"")+'</textarea>';
-    h+='<div class="modal-btns"><button class="btn" onclick="closeTxt()">取消</button>';
+    h+='<div class="modal-btns">';
     h+='<button class="btn primary" onclick="parseTxt()">解析並預覽</button></div></div></div>';
     return h;
   }
@@ -2440,9 +2488,8 @@ function renderTxt(){
   var p=state.projects.find(function(x){return x.id===m.pid;})||{};
   var f=m.f;
   h+='<div class="imp-name" style="margin-bottom:4px">→ '+escapeHtml(p.name||"")+(p.client?' <span class="imp-target" style="margin:0">'+escapeHtml(p.client)+'</span>':'')+'</div>';
-  var INCLUDE=["等待素材","待確認","初剪待執行"];
-  if(INCLUDE.indexOf(p.status)<0){
-    h+='<div class="imp-err">⚠ 這張卡的狀態是「'+escapeHtml(p.status||"未標")+'」，甘特圖只顯示等待素材／待確認／初剪待執行。日期還是會存，但要把狀態改掉才看得到。</div>';
+  if(!isWaiting(p)&&!isRunning(p)){
+    h+='<div class="imp-err">⚠ 這張卡的狀態是「'+escapeHtml(p.status||"未標")+'」，已經在 Final 階段或結案，甘特圖不會顯示。日期還是會存。</div>';
   }
 
   /* 逐行對照：每一行被當成什麼 */
@@ -2494,8 +2541,11 @@ function renderTxt(){
   var rf=workRangeFields();
   var extra=[];
   if(rf){
-    if(m.mat&&!p[rf[0]])extra.push({k:rf[0],old:"",nw:m.mat});
-    if(f.finalDue&&!p[rf[1]])extra.push({k:rf[1],old:"",nw:f.finalDue});
+    var tsp=fullSpanOf(function(k){return ex.fields[k]!==undefined?ex.fields[k]:f[k];});
+    [[rf[0],tsp.s],[rf[1],tsp.e]].forEach(function(x){
+      var o=p[x[0]]||"";
+      if(x[1]&&o!==x[1])extra.push({k:x[0],old:o,nw:x[1]});
+    });
   }
   var all=extra.concat(changes);
   if(all.length){
@@ -2520,7 +2570,6 @@ function renderTxt(){
 
   h+='<div class="modal-btns">';
   h+='<button class="btn" onclick="state.txt.rows=null;render()" style="margin-right:auto">← 改貼別的</button>';
-  h+='<button class="btn" onclick="closeTxt()">取消</button>';
   h+='<button class="btn primary" onclick="applyTxt()">填入甘特圖</button>';
   h+='</div></div></div>';
   return h;
