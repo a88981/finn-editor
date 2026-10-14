@@ -207,6 +207,17 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .self-ver{margin-top:10px;padding:5px 12px;border:0;background:rgba(255,255,255,.22);color:#fff;font:inherit;font-size:13.5px;cursor:pointer;text-shadow:1px 1px 0 rgba(0,0,0,.25)}
 .self-ver b{font-weight:normal;color:#fff7a8}
 .self-ver:hover{background:rgba(255,255,255,.35)}
+.hd-chips{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.sync-st.off b{color:#ffd0c8}
+.sy-box{margin-top:16px;padding-top:14px;border-top:3px dashed rgba(0,0,0,.12)}
+.sy-box h4{margin:0 0 6px;font-weight:400;font-size:17px}
+.sy-state{font-size:14.5px;margin:0 0 10px;color:var(--ink-soft)}
+.sy-state .ok{color:var(--green-d)}
+.sy-steps{font-size:13.5px;line-height:1.75;color:var(--ink-soft);margin:8px 0 0;padding-left:1.4em}
+.sy-steps b{font-weight:400;color:var(--ink)}
+details.sy-how{margin-top:12px;font-size:14px}
+details.sy-how summary{cursor:pointer;color:#2c5aa0}
+.sy-off{font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:10px;display:inline-block}
 .th-desc{margin:4px 0 8px;font-size:15px;color:var(--ink-soft);line-height:1.6}
 .th-desc.none{font-size:13.5px}
 .row-desc{margin:2px 0 4px;font-size:13px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
@@ -302,14 +313,14 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
   <header>
     <h1><a class="home" onclick="go('')" title="回到首頁"><img id="h1Ico" class="h1-ico" alt="">玩ㄉ工具箱</a></h1>
     <p>每個工具改到哪一版、在哪個對話改的</p>
-    <button id="selfVer" class="self-ver" hidden></button>
+    <div class="hd-chips"><button id="selfVer" class="self-ver" hidden></button><button id="syncSt" class="self-ver sync-st" hidden onclick="openBk()"></button></div>
   </header>
 
   <div class="bar">
     <input type="search" id="q" class="slot-input" placeholder="搜尋全部工具…">
     <button class="btn primary" onclick="openAI()">✦ 工具更新</button>
     <button class="btn" id="guideBtn" onclick="go('命名規則')"><img src="" alt="" id="guideIco">命名規則</button>
-    <button class="btn" id="bkBtn" onclick="openBk()">資料備份<span class="bk-dot" id="bkDot" hidden></span></button>
+    <button class="btn" id="bkBtn" onclick="openBk()">同步・備份<span class="bk-dot" id="bkDot" hidden></span></button>
   </div>
   <div class="spacer"></div>
   <div id="view"></div>
@@ -372,15 +383,130 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
 </form></dialog>
 
 <dialog id="dBk"><div class="dlg">
-  <h3>資料備份</h3>
+  <h3>同步・備份</h3>
   <p class="bk-status" id="bkStatus"></p>
-  <p class="hint">工具總表的資料存在這台電腦的這個瀏覽器裡。換電腦、換瀏覽器或清除瀏覽紀錄之前，先下載一份備份檔，之後用「從備份檔還原」就能把資料帶回來。</p>
+  <p class="hint">資料存在這台裝置的這個瀏覽器裡。換電腦、換瀏覽器或清除瀏覽紀錄之前，先下載一份備份檔，之後用「從備份檔還原」就能把資料帶回來。</p>
   <div class="bk-grid">
     <button type="button" class="btn primary" onclick="exportFile()">下載備份檔</button>
     <button type="button" class="btn" onclick="imp.click()">從備份檔還原</button>
   </div>
+  <div class="sy-box">
+    <h4>☁ 雲端同步（電腦、手機都看得到同一份）</h4>
+    <p class="sy-state" id="syState"></p>
+    <div id="syForm">
+      <div class="f"><label>Apps Script 網址（結尾是 /exec）</label><input id="syUrl" placeholder="https://script.google.com/macros/s/…/exec"></div>
+      <div class="f"><label>密碼（跟 Apps Script 裡設定的一樣）</label><input id="syKey" type="password" autocomplete="off"></div>
+      <div class="bk-grid">
+        <button type="button" class="btn primary" onclick="syLink('up')">上傳這台的資料</button>
+        <button type="button" class="btn" onclick="syLink('down')">下載雲端的資料</button>
+      </div>
+      <p class="hint" style="margin-top:8px">資料最完整的那台按「上傳」；其他裝置按「下載」。之後兩邊會自動同步。</p>
+      <details class="sy-how"><summary>第一次怎麼設定？</summary>
+        <ol class="sy-steps">
+          <li>開一個新的 <b>Google 試算表</b>，名字隨意（例如「玩ㄉ工具箱資料」）。</li>
+          <li>上方選單 <b>擴充功能 → Apps Script</b>。</li>
+          <li>把編輯器裡原本的內容全部刪掉，按下面的按鈕複製程式碼，貼上。</li>
+          <li>把第 3 行的 <b>密碼</b> 換成妳自己的（英文加數字，至少 12 個字），按存檔。</li>
+          <li>右上 <b>部署 → 新增部署作業</b> → 齒輪選 <b>網頁應用程式</b>；執行身分選「<b>我</b>」，誰可以存取選「<b>所有人</b>」→ 部署。第一次會要求授權，照著按允許。</li>
+          <li>複製「網頁應用程式網址」，和密碼一起填到上面。</li>
+        </ol>
+        <div class="order-row" style="margin-top:8px"><button type="button" class="btn sm" onclick="copyGas()">複製 Apps Script 程式碼</button><span class="hint" id="gasCopied"></span></div>
+      </details>
+    </div>
+    <div id="syLinked" hidden>
+      <div class="order-row"><button type="button" class="btn sm" onclick="pull(true)">立刻同步</button><span class="hint" id="syHint"></span></div>
+      <span class="sy-off" onclick="syUnlink()">停止這台的同步</span>
+    </div>
+  </div>
   <div class="dlg-act"><div class="r"><button type="button" class="btn ghost" onclick="dBk.close()">關閉</button></div></div>
 </div></dialog>
+<script type="text/plain" id="gasCode">// 玩ㄉ工具箱｜雲端同步（Google Apps Script）
+// 1. 把下面這行的密碼換成妳自己的（英文加數字，至少 12 個字）
+const KEY = '在這裡換成妳自己的密碼';
+
+function doGet(e) {
+  if ((e.parameter.key || '') !== KEY) return out({ ok: false, err: 'key' });
+  return out(Object.assign({ ok: true }, readData()));
+}
+
+function doPost(e) {
+  const b = JSON.parse(e.postData.contents);
+  if (b.key !== KEY) return out({ ok: false, err: 'key' });
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const cur = readData();
+    if (typeof b.base === 'number' && cur.updated > b.base) {
+      return out(Object.assign({ ok: false, err: 'conflict' }, cur));
+    }
+    writeData(b.data, b.updated);
+    writeTable((b.data && b.data.tools) || []);
+    return out({ ok: true, updated: b.updated });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function out(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function sheet(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+// 完整資料存在「_data」分頁（請不要手動修改這一頁）
+function readData() {
+  const sh = sheet('_data');
+  const last = sh.getLastRow();
+  if (!last) return { data: null, updated: 0 };
+  const rows = sh.getRange(1, 1, last, 2).getValues();
+  const json = rows.map(function (r) { return String(r[0]).slice(1); }).join('');
+  return { data: json ? JSON.parse(json) : null, updated: Number(rows[0][1]) || 0 };
+}
+
+function writeData(data, updated) {
+  const sh = sheet('_data');
+  const s = JSON.stringify(data), size = 40000, rows = [];
+  for (let i = 0; i < s.length; i += size) rows.push(['x' + s.slice(i, i + size), '']);
+  rows[0][1] = updated;
+  sh.clear();
+  sh.getRange(1, 1, rows.length, 2).setValues(rows);
+}
+
+// 「工具清單」分頁：方便直接在試算表裡看，每次同步都會重寫
+function writeTable(tools) {
+  const sh = sheet('工具清單');
+  const CAT = ['剪輯', '占卜', 'Ooniau', '其他'];
+  const byId = {};
+  tools.forEach(function (t) { byId[t.id] = t; });
+  const latest = function (t) {
+    return (t.logs || []).slice().sort(function (a, b) {
+      return ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || ''));
+    })[0] || {};
+  };
+  const safe = function (v) { v = String(v == null ? '' : v); return /^[=+\-@]/.test(v) ? "'" + v : v; };
+  const rows = [['分類', '主工具', '工具', '說明', '最新版本', '最後更新', '公開網頁', '對話連結', '還沒做完']];
+  const ordered = [];
+  tools.filter(function (t) { return !t.parent; })
+    .sort(function (a, b) { return (CAT.indexOf(a.cat) - CAT.indexOf(b.cat)) || (a.order - b.order); })
+    .forEach(function (m) {
+      ordered.push(m);
+      tools.filter(function (k) { return k.parent === m.id; })
+        .sort(function (a, b) { return a.order - b.order; })
+        .forEach(function (k) { ordered.push(k); });
+    });
+  ordered.forEach(function (t) {
+    const L = latest(t), p = byId[t.parent];
+    rows.push([t.cat, p ? p.name : '', t.name, t.desc || '', L.version || '',
+      ((L.date || '') + ' ' + (L.time || '')).trim(), t.file || '', L.url || t.chat || '', t.todo || ''].map(safe));
+  });
+  sh.clear();
+  sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+  sh.setFrozenRows(1);
+}
+</script>
 
 <dialog id="dAI" class="wide"><div class="dlg">
   <h3>工具更新</h3>
@@ -432,6 +558,7 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self48:["2026-10-15","V4.0","新增雲端同步：資料存到 Google 試算表，電腦和手機自動同步；「資料備份」改名「同步・備份」","工具管理與命名規則","","00:19"],
  self47:["2026-10-15","V3.50","標題和瀏覽器分頁加上像素工作台圖示","工具管理與命名規則","","00:12"],
  self46:["2026-10-15","V3.49","工具頁的「還沒做完」合併成一個精簡區塊，不再一項一個紅框","工具管理與命名規則","","00:07"],
  self45:["2026-10-15","V3.48","編輯工具：加上「上次更新日期」和「時間」欄位","工具管理與命名規則","","00:04"],
@@ -511,7 +638,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -568,7 +695,8 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v347','','',[['工具總表','self44']],''],
  ['finn-tool-index-add-v348','','',[['工具總表','self45']],''],
  ['finn-tool-index-add-v349','','',[['工具總表','self46']],''],
- ['finn-tool-index-add-v350','','',[['工具總表','self47']],'']];
+ ['finn-tool-index-add-v350','','',[['工具總表','self47']],''],
+ ['finn-tool-index-add-v400','','',[['工具總表','self48']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -657,7 +785,8 @@ function load(){
   fixParents();
 }
 function fixParents(){S.forEach(t=>{const p=t.parent&&S.find(x=>x.id===t.parent);if(t.parent&&(!p||p.parent))t.parent='';if(p)t.cat=p.cat;});}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({v:VER,tools:S}));}catch(e){alert('瀏覽器無法儲存資料，請記得下載備份。');}}
+function rawSave(){try{localStorage.setItem(KEY,JSON.stringify({v:VER,tools:S}));}catch(e){alert('瀏覽器無法儲存資料，請記得下載備份。');}}
+function save(){rawSave();if(READY&&syOn()){SY.dirty=true;REV++;sySave();clearTimeout(pushT);pushT=setTimeout(push,1200);setSy('wait');}}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const lk=l=>(l.date||'')+' '+(l.time||'');
@@ -1165,15 +1294,92 @@ function importFile(inp){
 function renderBackup(){
   let b=null; try{b=localStorage.getItem(BKEY);}catch(e){}
   const d=b?daysSince(b):null, stale=d===null||d>30;
-  bkDot.hidden=!stale;
+  bkDot.hidden=!stale||syOn();
   bkBtn.title=b?`上次備份：${fmt(b)}`:'還沒有備份過';
-  bkStatus.innerHTML=b?`上次備份：<b>${fmt(b)}</b>（${ago(d)}）${stale?'<br><span class="warn">已經超過 30 天，建議再備份一次。</span>':''}`:'<span class="warn">還沒有備份過。</span>';
+  bkStatus.innerHTML=syOn()?`<span style="color:var(--green-d)">雲端同步已開啟</span>，資料會自動存到 Google 試算表。${b?`<br><small>上次手動備份：${fmt(b)}</small>`:''}`:b?`上次備份：<b>${fmt(b)}</b>（${ago(d)}）${stale?'<br><span class="warn">已經超過 30 天，建議再備份一次。</span>':''}`:'<span class="warn">還沒有備份過。</span>';
 }
-function openBk(){renderBackup();dBk.showModal();}
+function openBk(){renderBackup();syRender();dBk.showModal();}
+/* ---------- 雲端同步 ---------- */
+const SKEY='finn-tool-index-sync';
+let SY={url:'',key:'',linked:false,syncedAt:0,dirty:false,last:0}, READY=false, REV=0, pushT=null, BUSY=false, SYST='';
+try{Object.assign(SY,JSON.parse(localStorage.getItem(SKEY)||'{}'));}catch(e){}
+function sySave(){try{localStorage.setItem(SKEY,JSON.stringify(SY));}catch(e){}}
+function syOn(){return !!(SY.linked&&SY.url&&SY.key);}
+const hm=ms=>{const d=new Date(ms);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const fullDT=ms=>{const d=new Date(ms);return fmt(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))+' '+hm(ms);};
+function setSy(s){SYST=s;const b=document.getElementById('syncSt');if(!syOn()){b.hidden=true;return;}b.hidden=false;
+  b.classList.toggle('off',s==='off');
+  b.innerHTML=s==='sync'?'☁ 同步中…':s==='wait'?'☁ 等待上傳…':s==='off'?'☁ <b>沒連上</b>，修改先存在這台':`☁ 已同步${SY.last?' '+hm(SY.last):''}`;
+  b.title='點這裡看同步設定';
+  if(dBk.open)syRender();}
+function syRender(){
+  const on=syOn();syForm.hidden=on;syLinked.hidden=!on;
+  syUrl.value=SY.url||'';syKey.value=SY.key||'';
+  syState.innerHTML=on?(SYST==='off'?'<span class="warn">目前連不上雲端。</span>修改都會先存在這台，連上之後自動補傳。':`<span class="ok">已開啟</span>・上次同步 ${SY.last?fullDT(SY.last):'—'}`):'還沒設定。設定好之後，每次修改都會自動存到妳的 Google 試算表。';
+  syHint.textContent=SYST==='sync'?'同步中…':'';
+  bkDot.hidden=on||bkDot.hidden;
+}
+function copyGas(){const s=document.getElementById('gasCode').textContent;
+  const done=()=>{gasCopied.textContent='已複製，貼到 Apps Script 裡';setTimeout(()=>gasCopied.textContent='',3000);};
+  if(navigator.clipboard)navigator.clipboard.writeText(s).then(done,()=>fallbackCopy(s,done));else fallbackCopy(s,done);}
+function fallbackCopy(s,done){const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}ta.remove();}
+async function syGet(url,key){const r=await fetch(url+(url.includes('?')?'&':'?')+'key='+encodeURIComponent(key)+'&t='+Date.now());return r.json();}
+async function syPost(base){const r=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SY.key,base,updated:Date.now(),data:{v:VER,tools:S}})});return r.json();}
+function adopt(j){
+  const tools=j.data&&Array.isArray(j.data.tools)?j.data.tools:null; if(!tools)return false;
+  tools.forEach(fix);S=tools;fixParents();rawSave();
+  SY.syncedAt=j.updated;SY.dirty=false;SY.last=Date.now();sySave();
+  if(!(dTool.open||dAI.open||dLog.open)){const y=scrollY;render();scrollTo(0,y);}
+  return true;}
+function keepLocal(){try{localStorage.setItem('finn-tool-index-conflict',JSON.stringify({savedAt:new Date().toISOString(),tools:S}));}catch(e){}}
+async function syLink(dir){
+  const url=syUrl.value.trim(),key=syKey.value.trim();
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){alert('網址不對，請貼 Apps Script「網頁應用程式網址」，開頭是 https://script.google.com/');return;}
+  if(!key){alert('請填密碼');return;}
+  let j;try{j=await syGet(url,key);}catch(e){alert('連不上 Apps Script。請確認部署時「誰可以存取」選的是「所有人」，網址是 /exec 結尾。');return;}
+  if(!j.ok){alert(j.err==='key'?'密碼跟 Apps Script 裡的不一樣。':'Apps Script 回了錯誤，請確認程式碼有完整貼上。');return;}
+  SY.url=url;SY.key=key;
+  if(dir==='up'){
+    if(j.data&&!confirm(`雲端已經有資料（${fullDT(j.updated)} 更新的）。確定用這台的 ${S.length} 個工具覆蓋嗎？`))return;
+    SY.linked=true;SY.syncedAt=j.updated||0;SY.dirty=true;sySave();await push();
+    if(!SY.dirty)alert('上傳完成，雲端同步已開啟。其他裝置打開工具箱後，到這裡按「下載雲端的資料」。');
+  }else{
+    if(!j.data){alert('雲端還沒有資料。請先到資料最完整的那台按「上傳這台的資料」。');return;}
+    if(!confirm(`要用雲端的資料（${j.data.tools.length} 個工具，${fullDT(j.updated)} 更新）取代這台的資料嗎？`))return;
+    keepLocal();SY.linked=true;sySave();adopt(j);setSy('ok');alert('下載完成，雲端同步已開啟。');
+  }
+  syRender();
+}
+function syUnlink(){if(!confirm('停止後，這台的修改不會再上傳，其他裝置的修改也不會再下載。確定嗎？'))return;SY.linked=false;sySave();setSy('');syRender();}
+async function push(){
+  if(!syOn()||!SY.dirty)return;
+  if(BUSY){clearTimeout(pushT);pushT=setTimeout(push,1500);return;}
+  BUSY=true;setSy('sync');const rev=REV;
+  try{const j=await syPost(SY.syncedAt);
+    if(j.ok){SY.syncedAt=j.updated;SY.last=Date.now();if(REV===rev)SY.dirty=false;sySave();setSy(SY.dirty?'wait':'ok');if(SY.dirty){clearTimeout(pushT);pushT=setTimeout(push,1200);}}
+    else if(j.err==='conflict'){keepLocal();adopt(j);setSy('ok');alert('另一台裝置剛剛也改過資料，已經換成雲端最新的版本。\n這台剛才的修改沒有上傳，請再改一次。');}
+    else{setSy('off');}
+  }catch(e){setSy('off');}
+  BUSY=false;
+}
+async function pull(manual){
+  if(!syOn())return;
+  if(BUSY){return;}
+  if(SY.dirty){await push();return;}
+  BUSY=true;setSy('sync');
+  try{const j=await syGet(SY.url,SY.key);
+    if(!j.ok){setSy('off');}
+    else{if(j.data&&j.updated>SY.syncedAt)adopt(j);else{SY.last=Date.now();sySave();}setSy('ok');}
+  }catch(e){setSy('off');}
+  BUSY=false;
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pull();});
+window.addEventListener('online',()=>{SY.dirty?push():pull();});
+setInterval(()=>{if(document.visibilityState==='visible')pull();},60000);
 document.getElementById('q').addEventListener('input',render);
 window.addEventListener('hashchange',render);
 guideIco.src=iconUrl('book');
-load(); save(); render(); renderBackup();
+load(); rawSave(); render(); renderBackup(); READY=true; if(syOn()){setSy(SY.dirty?'wait':'ok');pull();}
 </script>
 </body>
 </html>
