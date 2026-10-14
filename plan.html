@@ -53,9 +53,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .gantt-head-days .we{color:var(--red);opacity:0.6}
 .gantt-row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line-soft);min-height:42px}
 .gantt-row:hover{background:rgba(232,179,64,0.03)}
-.gantt-row.running{background:#FFF6D9;border-bottom-color:#F3E6B8}
-.gantt-row.running:hover{background:#FFF1C9}
-.gantt-row.running .row-canvas{background:repeating-linear-gradient(90deg,transparent,transparent calc(100%/30 - 0.5px),#F3E6B8 calc(100%/30 - 0.5px),#F3E6B8 calc(100%/30))}
+.gantt-row.running{background:#FFFBEE;border-bottom-color:#F6EED2}
+.gantt-row.running:hover{background:#FFF7DF}
+.gantt-row.running .row-canvas{background:repeating-linear-gradient(90deg,transparent,transparent calc(100%/30 - 0.5px),#F4ECD3 calc(100%/30 - 0.5px),#F4ECD3 calc(100%/30))}
 .row-label .st{color:var(--ink-light)}
 .row-label .st.st-run{color:var(--yellow-mid);font-weight:500}
 .row-label{font-size:12px;color:var(--ink);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding-right:4px}
@@ -187,6 +187,11 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .flex-line{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--ink-soft);cursor:pointer}
 .flex-line input{margin:0;cursor:pointer}
 .flex-hint{font-size:10px;color:var(--ink-light);margin-left:auto;text-align:right}
+.anc-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+.anc{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft)}
+.anc .fc{width:auto;padding:4px 7px;font-size:11.5px}
+.anc .fc.set{border-color:var(--yellow);background:var(--yellow-lightest);color:var(--ink);font-weight:500}
+.anc-hint{font-size:10px;color:var(--ink-light);margin-left:auto}
 .note-in{margin-top:6px;padding:5px 8px;font-size:11px;border:0.5px dashed var(--line);border-radius:3px;width:100%;background:#FCFCFA}
 .note-in:focus{outline:none;border-style:solid;border-color:var(--yellow);background:#fff}
 .note-in::placeholder{color:var(--ink-light);opacity:.65}
@@ -254,7 +259,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V32.2";
+var PLAN_BUILD="V32.4";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -608,7 +613,7 @@ function render(){
   [{c:"#D89A3A",l:"初剪"},{c:"#C9A227",l:"V1/ES"},{c:"#B8860B",l:"業配"},{c:"#D89A3A",l:"交初",d:1},{c:"#C9A227",l:"交V1",d:1},{c:"#B8860B",l:"交業",d:1},{c:"#7A6432",l:"Final",d:1}].forEach(function(l){
     html+='<div>'+(l.d?'<div class="dot" style="background:'+l.c+'"></div>':'<div class="swatch" style="background:'+l.c+'"></div>')+l.l+'</div>';
   });
-  html+='<div><div class="swatch" style="background:#FFF6D9;border:0.5px solid #E8D79A;opacity:1"></div>執行中</div>';
+  html+='<div><div class="swatch" style="background:#FFFBEE;border:0.5px solid #EADFB5;opacity:1"></div>執行中</div>';
   html+='<div><div class="swatch" style="background:var(--paper);border:0.5px solid var(--line);opacity:1"></div>未執行</div>';
   html+='</div>';
   html+='</div>';
@@ -786,6 +791,24 @@ function setFlex(pid,v){
   saveFlex();
   render();
 }
+/* 我自己指定的 V1 交件日 / Final。填了就是這次排程的錨點，AI 必須照這個日期排。
+   存在瀏覽器 localStorage，跟排程限制一樣換電腦不會跟著走 */
+var PLAN_ANCHOR_KEY = "plan_anchor_v1";
+var PLAN_ANCHOR = (function(){
+  try{
+    var raw=window.localStorage.getItem(PLAN_ANCHOR_KEY);
+    var o=raw?JSON.parse(raw):{};
+    return (o&&typeof o==="object")?o:{};
+  }catch(err){return {};}
+})();
+function pAnchor(p){return PLAN_ANCHOR[p.id]||{};}
+function setAnchor(pid,k,v){
+  var a=PLAN_ANCHOR[pid]||{};
+  if(v)a[k]=v; else delete a[k];
+  if(a.v1||a.fin)PLAN_ANCHOR[pid]=a; else delete PLAN_ANCHOR[pid];
+  try{window.localStorage.setItem(PLAN_ANCHOR_KEY,JSON.stringify(PLAN_ANCHOR));}catch(err){}
+  render();
+}
 function setPNote(pid,v){
   v=(v||"").trim();
   if(v)PLAN_NOTES[pid]=v; else delete PLAN_NOTES[pid];
@@ -794,8 +817,13 @@ function setPNote(pid,v){
 }
 
 var PLAN_RULES =
-"【最高優先 — 個別案件的「排程限制」】\n" +
-"- 專案資料裡若有標「排程限制」，那是我針對該案親自指定的條件，**優先於本文件的所有其他規則**，包括下面的硬性條件與錨點優先順序\n" +
+"【最高優先 — 我指定的交件日】\n" +
+"- 專案資料裡若有「我指定的 V1/ES 交件日」或「我指定的 Final」，那是我這次親自設定的日期，**必須完全照這個日期排，一天都不能動**\n" +
+"- 它取代該案 Notion 裡既有的 V1/ES 交件日或 Final，原本的值只是參考；也優先於下面「錨點怎麼選」的所有條件\n" +
+"- 只指定 V1 → Final = 指定的 V1 + 1~3 個工作天；只指定 Final → V1 往前推 1~3 個工作天；兩個都指定 → 兩個都照用，其他階段往前推\n" +
+"- 指定的日期壓到連硬性條件都做不到(例如工作天不夠、同時超過 3 支)，照樣用這個日期，標記 🚨 並說清楚差幾天、卡在哪裡，不要自己改日期\n" +
+"\n【次高優先 — 個別案件的「排程限制」】\n" +
+"- 專案資料裡若有標「排程限制」，那是我針對該案親自指定的條件，**優先於下面的所有規則**（只有上一區「我指定的交件日」比它更優先），包括硬性條件與錨點優先順序\n" +
 "- 排程限制一旦提到某個日期，就代表該案 Notion 裡既有的對應日期只是暫定值，可以自由調整到限制範圍內，不要再當成不可更動的錨點\n" +
 "  例：排程限制寫「9 月開始、10/25 前 Final」→ 既有的 V1 交件日與 Final 日都只是暫定，請在「9/01 之後開工、Final 不晚於 10/25」的範圍內重新安排，把工作天拉到舒適為止\n" +
 "- 排程限制沒有提到的部分，才回到下面的一般規則\n" +
@@ -1712,6 +1740,9 @@ function projBlock(p,i,replan){
       ? "- 交件日可調整: 這個案的 V1/ES 交件日與 Final 沒有跟客戶談定，可以依排程需要前後移動\n"
       : "- 交件日固定: 這個案既有的 V1/ES 交件日與 Final 是跟客戶談定的，不可更動\n";
   }
+  var an=pAnchor(p);
+  if(an.v1)t+="- **我指定的 V1/ES 交件日: "+an.v1+"(必須照這天排，不能動)**\n";
+  if(an.fin)t+="- **我指定的 Final: "+an.fin+"(必須照這天排，不能動)**\n";
   var pn=pNote(p);
   if(pn)t+="- **排程限制(我指定的，必須遵守): "+pn.replace(/\n/g," ")+"**\n";
   t+="- id: `"+p.id+"`\n";
@@ -1756,6 +1787,10 @@ function buildPrompt(){
 
   var shorts=sp.open.filter(function(p){return /短影|短片|shorts/i.test(projType(p));});
   t+="\n## 排程規則\n"+PLAN_RULES+"\n";
+  var anchored=sp.open.filter(function(p){var a=pAnchor(p);return a.v1||a.fin;});
+  if(anchored.length){
+    t+="\n這次有 "+anchored.length+" 個案有「我指定的交件日」："+anchored.map(function(p){return p.name;}).join("、")+"。這些日期是最高優先，JSON 裡的 v1Due / finalDue 必須跟指定值一模一樣。\n";
+  }
   var noted=sp.all.filter(function(p){return pNote(p);});
   if(noted.length){
     t+="\n這次有 "+noted.length+" 個案標了「排程限制」，請務必套用最上面那一區的規則：限制優先於一切，";
@@ -1933,6 +1968,12 @@ function renderExport(){
     h+='<div class="lock-meta">'+(p.airDate?p.airDate+' 上片 · ':'')+escapeHtml(has?schedSummary(p):"沒有已排定的工作日期")+'</div>';
     h+='<label class="flex-line"><input type="checkbox"'+(isFlex(p)?' checked':'')+' onchange="setFlex(\''+p.id+'\',this.checked)">';
     h+='<span>交件日可前後調整</span><span class="flex-hint">'+(isFlex(p)?'V1／Final 可依排程需要移動':'V1／Final 視為跟客戶談定，不會被動到')+'</span></label>';
+    var an=pAnchor(p);
+    h+='<div class="anc-row">';
+    h+='<label class="anc"><span>指定 V1 交件</span><input type="date" class="fc'+(an.v1?' set':'')+'" value="'+escAttr(an.v1||"")+'" onchange="setAnchor(\''+p.id+'\',\'v1\',this.value)"></label>';
+    h+='<label class="anc"><span>指定 Final</span><input type="date" class="fc'+(an.fin?' set':'')+'" value="'+escAttr(an.fin||"")+'" onchange="setAnchor(\''+p.id+'\',\'fin\',this.value)"></label>';
+    h+='<span class="anc-hint">'+((an.v1||an.fin)?'AI 會照這個日期排':'選填，留空就照原本的規則')+'</span>';
+    h+='</div>';
     h+='<input class="fc note-in" value="'+escAttr(pNote(p))+'" placeholder="排程限制（選填）例如：9 月才開工，8 月不要排" onchange="setPNote(\''+p.id+'\',this.value)">';
     h+='</div></div>';
   });
@@ -2124,7 +2165,13 @@ function parseImport(){
       }
       /* V1 交件日是對客戶承諾過的，被往後拖就要當場講。
          但該案若有排程限制，移動是我自己要求的，不算違規，只用灰字帶過。 */
-      if(t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
+      /* 有指定交件日：只看有沒有照指定值，不再跟原本的日期比 */
+      var an=t.p?pAnchor(t.p):{};
+      if(an.v1&&ex.fields.v1Due&&ex.fields.v1Due!==an.v1)
+        ex.warn=ex.warn.concat(["V1 交件排成 "+ex.fields.v1Due+"，跟你指定的 "+an.v1+" 不一樣"]);
+      if(an.fin&&ex.fields.finalDue&&ex.fields.finalDue!==an.fin)
+        ex.warn=ex.warn.concat(["Final 排成 "+ex.fields.finalDue+"，跟你指定的 "+an.fin+" 不一樣"]);
+      if(!an.v1&&t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
         var msg="V1 交件日從 "+t.p.v1Due+" 移到 "+ex.fields.v1Due;
         if(isFlex(t.p)){
           ex.softExtra=msg+"（此案標為交件日可調整，非違規）";
