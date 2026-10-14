@@ -71,19 +71,28 @@ function loadData(){
 
 // 儲存單一案子（新增或更新）
 function saveProject(p){
-  if(p.notionId){
-    // 更新
-    return fetch(API+"?action=update",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).catch(function(e){console.error("更新失敗",e);});
-  } else {
-    // 新增
-    return fetch(API+"?action=create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)})
-      .then(function(r){
-        var ct=r.headers.get("content-type")||"";
-        if(!r.ok||!ct.includes("json")){return r.text().then(function(t){throw new Error("HTTP "+r.status+" / "+t.slice(0,300));});}
-        return r.json();
-      })
-      .catch(function(e){console.error("新增失敗",e);alert("\u2757 複製失敗\n\n"+e.message);});
-  }
+  var isUpdate=!!p.notionId;
+  return fetch(API+"?action="+(isUpdate?"update":"create"),{
+    method:isUpdate?"PATCH":"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(p)
+  }).then(function(r){
+    var ct=r.headers.get("content-type")||"";
+    if(!r.ok||ct.indexOf("json")<0){
+      return r.text().then(function(t){throw new Error("HTTP "+r.status+" / "+t.slice(0,300));});
+    }
+    return r.json();
+  }).then(function(d){
+    if(d&&d.error)throw new Error(typeof d.error==="string"?d.error:JSON.stringify(d.error));
+    return d;
+  });
+}
+// 背景同步用（拖拉、勾選、改狀態、改優先）：失敗會跳提示，不會默默沒存到
+function saveQuiet(p){
+  return saveProject(p).catch(function(e){
+    console.error("同步失敗",e);
+    alert("⚠ Notion 同步失敗：「"+(p.name||"")+"」\n\n"+e.message+"\n\n這次的變更還沒存進 Notion，重新整理會不見");
+  });
 }
 
 // 刪除案子
@@ -104,7 +113,7 @@ function deleteProject(notionId){
 // 客戶設定從 Notion 讀取/儲存（不使用 localStorage）
 function loadClients(){
   function stripCalExtras(clients,colors){
-    var filtered=(clients||[]).filter(function(c){return c!=="__cal_extras__";});
+    var filtered=uniqClients(clients);
     var cleanColors={};
     Object.keys(colors||{}).forEach(function(k){if(k!=="__cal_extras__")cleanColors[k]=colors[k];});
     return {clients:filtered,colors:cleanColors};
@@ -119,9 +128,10 @@ function loadClients(){
       if(!Array.isArray(data))return {clients:[],colors:{}};
       var clients=[],colors={};
       data.forEach(function(c){
-        if(c.name==="__cal_extras__")return;
-        clients.push(c.name);
-        if(c.color)colors[c.name]=c.color;
+        var nm=String(c.name==null?"":c.name).trim();
+        if(!nm||nm==="__cal_extras__")return;
+        if(clients.indexOf(nm)<0)clients.push(nm);
+        if(c.color&&!colors[nm])colors[nm]=c.color;
       });
       return {clients:clients,colors:colors};
     })
@@ -152,12 +162,51 @@ function saveCalendarExtras(holidays,finnDays,divinDays,nanaDays){
     fetch(API+"?action=save-calendar-extras",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(function(e){console.warn(e);});
   },500);
 }
+// 客戶名單去重（前後空白不同也算同一個）
+function uniqClients(list){
+  var seen={},out=[];
+  (list||[]).forEach(function(n){
+    var k=String(n==null?"":n).trim();
+    if(!k||k==="__cal_extras__"||seen[k])return;
+    seen[k]=1;out.push(k);
+  });
+  return out;
+}
+// 客戶設定同步：連續操作只送最後一次，而且一次只送一個請求
+// （以前拖拉、改色、改名連續觸發會同時送好幾個，Notion 那邊就會被重複寫入）
+var _cliTimer=null,_cliPending=null,_cliBusy=false,_cliWaiters=[];
 function saveClients(c){
-  return fetch(API+"?action=save-clients",{
+  var list=uniqClients(c&&c.clients);
+  var colors={};
+  list.forEach(function(n){if(c&&c.colors&&c.colors[n])colors[n]=c.colors[n];});
+  _cliPending={clients:list,colors:colors};
+  return new Promise(function(res,rej){
+    _cliWaiters.push({res:res,rej:rej});
+    if(_cliTimer)clearTimeout(_cliTimer);
+    _cliTimer=setTimeout(_cliFlush,600);
+  });
+}
+function _cliFlush(){
+  _cliTimer=null;
+  if(_cliBusy||!_cliPending)return;
+  var payload=_cliPending,waiters=_cliWaiters;
+  _cliPending=null;_cliWaiters=[];_cliBusy=true;
+  fetch(API+"?action=save-clients",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(c)
-  }).catch(function(e){console.warn("客戶設定儲存失敗",e);throw e;});
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error("HTTP "+r.status+" / "+t.slice(0,200));});
+  }).then(function(){
+    waiters.forEach(function(w){w.res();});
+  },function(e){
+    console.warn("客戶設定儲存失敗",e);
+    alert("⚠ 客戶設定同步失敗\n\n"+e.message);
+    waiters.forEach(function(w){w.rej(e);});
+  }).then(function(){
+    _cliBusy=false;
+    if(_cliPending)_cliFlush();
+  });
 }
 
 // DEFS - added bizDue/bizDone/noBiz fields
@@ -679,7 +728,7 @@ function Modal(props){
                   document.body.appendChild(ta);ta.focus();ta.select();
                   document.execCommand("copy");
                   document.body.removeChild(ta);
-                  showT("\u5df2\u8907\u88fd\u6536\u5165\u660e\u7d30 \u2713");
+                  if(props.onToast)props.onToast("\u5df2\u8907\u88fd\u6536\u5165\u660e\u7d30 \u2713");
                 },style:{background:"#d8f0e4",border:"none",color:"#3d7a50",cursor:"pointer",fontSize:10,fontFamily:"inherit",padding:"2px 8px",borderRadius:4}},"\ud83d\udccb \u8907\u88fd")
               ),
               h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:6}},
@@ -774,7 +823,7 @@ function Modal(props){
         !isNew&&h("button",{onClick:function(){onDelete(form.id);},style:{flex:1,padding:9,background:"transparent",border:"1px solid #f0a8a8",borderRadius:4,color:C.err,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},"\u522a\u9664"),
         h("button",{onClick:onClose,style:{flex:1,padding:9,background:"transparent",border:"1px solid "+C.brd,borderRadius:4,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:600,fontSize:13}},"取消"),
         !isNew&&h("button",{onClick:function(){if(onDuplicate){onDuplicate(form);}},style:{flex:1,padding:9,background:"transparent",border:"1px solid "+C.brd,borderRadius:4,color:C.txt2,cursor:"pointer",fontFamily:"inherit",fontWeight:700,fontSize:12}},"📋 複製"),
-        h("button",{onClick:function(){if(form.name.trim())onSave(Object.assign({},form,{id:form.id||uid(),fee:form.fee?Number(form.fee):""}));},style:{flex:2,padding:9,background:C.acc,border:"none",borderRadius:4,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:13}},isNew?"\u2705 \u65b0\u589e":"\ud83d\udcbe 儲存")
+        h("button",{onClick:function(){if(!form.name.trim()){alert("請先填專案名稱");return;}onSave(Object.assign({},form,{id:form.id||uid(),fee:form.fee?Number(form.fee):""}));},style:{flex:2,padding:9,background:C.acc,border:"none",borderRadius:4,color:"#fff",cursor:"pointer",fontFamily:"inherit",fontWeight:800,fontSize:13}},isNew?"\u2705 \u65b0\u589e":"\ud83d\udcbe 儲存")
       )
     )
   );
@@ -2093,7 +2142,8 @@ function ClientMgr(props){
 
   function add(){
     var n=newName.trim();
-    if(n&&clients.indexOf(n)<0){
+    if(n&&clients.some(function(x){return String(x).trim()===n;})){alert("「"+n+"」已經在客戶名單裡了");return;}
+    if(n){
       var nc=clients.concat([n]);
       setClients(nc);setNewName("");
       autoSave(nc,null);
@@ -2115,6 +2165,10 @@ function ClientMgr(props){
   function startEdit(name,e){e.stopPropagation();setEditingClient(name);setEditVal(name);}
   function saveEdit(oldName){
     var n=editVal.trim();
+    if(n&&n!==oldName&&clients.some(function(x){return x!==oldName&&String(x).trim()===n;})){
+      alert("「"+n+"」已經有這個客戶了，名稱沒有改");
+      setEditingClient(null);return;
+    }
     if(n&&n!==oldName){
       var nc=clients.map(function(x){return x===oldName?n:x;});
       setClients(nc);
@@ -2163,7 +2217,7 @@ function ClientMgr(props){
                 ? h("input",{autoFocus:true,value:editVal,
                     onChange:function(e){setEditVal(e.target.value);},
                     onBlur:function(){saveEdit(c);},
-                    onKeyDown:function(e){if(e.key==="Enter")saveEdit(c);if(e.key==="Escape")setEditingClient(null);},
+                    onKeyDown:function(e){if(e.key==="Enter")e.target.blur();if(e.key==="Escape")setEditingClient(null);},
                     onClick:function(e){e.stopPropagation();},
                     style:{flex:1,minWidth:0,fontSize:12,border:"1px solid "+C.acc,outline:"none",background:"#fff",color:C.txt,padding:"2px 5px",borderRadius:2,fontFamily:"inherit"}})
                 : h("div",{onClick:function(e){if(!isConfirming){e.stopPropagation();startEdit(c,e);}},style:{flex:1,minWidth:0,fontSize:12,color:C.txt,cursor:isConfirming?"default":"text",padding:"1px 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},c),
@@ -2349,18 +2403,23 @@ function App(){
   var saveP=useCallback(function(p){
     var pWithId=Object.assign({},p,{id:p.id||uid(),fee:p.fee?Number(p.fee):""});
     saveProject(pWithId).then(function(saved){
-      // 如果是新增，saved 有 notionId
+      if(!pWithId.notionId&&!(saved&&saved.notionId))
+        throw new Error("後端沒有回傳 notionId，Notion 可能沒有建立成功\n"+JSON.stringify(saved).slice(0,200));
       var final=saved&&saved.notionId?Object.assign({},pWithId,{notionId:saved.notionId}):pWithId;
+      function same(x){return x.id===final.id||(final.notionId&&x.notionId===final.notionId);}
       setProjects(function(ps){
-        var ex=ps.find(function(x){return x.id===final.id||x.notionId===final.notionId;});
-        return ex?ps.map(function(x){return(x.id===final.id||x.notionId===final.notionId)?final:x;}):[].concat(ps,[final]);
+        return ps.some(same)?ps.map(function(x){return same(x)?final:x;}):ps.concat([final]);
       });
+      setModal(null);
+      showT("✅ \""+p.name+"\" 已儲存");
+    }).catch(function(e){
+      console.error("儲存失敗",e);
+      alert("❗ 儲存失敗（視窗先不關，填好的資料都還在）\n\n"+e.message);
     });
-    setModal(null);showT("\u2705 \""+p.name+"\" \u5df2儲存");
   },[]);
 
   // 刪除案子 → Notion
-  var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){console.log("[dup] saved=",JSON.stringify(saved));var final=saved&&saved.notionId?Object.assign({},newP,{notionId:saved.notionId}):newP;console.log("[dup] final.notionId=",final.notionId);setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");});},[]); var delP=useCallback(function(id){
+  var dupP=useCallback(function(p){var newP=Object.assign({},p,{id:uid(),notionId:null,name:p.name+"_副本",fee:p.fee?Number(p.fee):""});var toSave=Object.assign({},newP);delete toSave.notionId;saveProject(toSave).then(function(saved){console.log("[dup] saved=",JSON.stringify(saved));var final=saved&&saved.notionId?Object.assign({},newP,{notionId:saved.notionId}):newP;console.log("[dup] final.notionId=",final.notionId);setProjects(function(ps){return[].concat(ps,[final]);});showT("📋 已複製 \""+newP.name+"\"");}).catch(function(e){alert("❗ 複製失敗\n\n"+e.message);});},[]); var delP=useCallback(function(id){
     setProjects(function(ps){
       var p=ps.find(function(x){return x.id===id;});
       if(p&&p.notionId){deleteProject(p.notionId);}else{console.warn("del skip",id,p&&p.notionId);}
@@ -2374,7 +2433,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{status:s}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)saveQuiet(p);},0);
       return updated;
     });
   },[]);
@@ -2394,7 +2453,7 @@ function App(){
         return n;
       });
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)saveQuiet(p);},0);
       return updated;
     });
   },[]);
@@ -2403,7 +2462,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{status:newStatus}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)saveQuiet(p);},0);
       return updated;
     });
   },[]);
@@ -2412,7 +2471,7 @@ function App(){
     setProjects(function(ps){
       var updated=ps.map(function(p){return p.id===id?Object.assign({},p,{order:newOrder}):p;});
       var p=updated.find(function(x){return x.id===id;});
-      setTimeout(function(){if(p&&p.notionId)saveProject(p);},0);
+      setTimeout(function(){if(p&&p.notionId)saveQuiet(p);},0);
       return updated;
     });
   },[]);
@@ -2428,7 +2487,7 @@ function App(){
       setTimeout(function(){
         updates.forEach(function(u){
           var p=updated.find(function(x){return x.id===u.id;});
-          if(p&&p.notionId)saveProject(p);
+          if(p&&p.notionId)saveQuiet(p);
         });
       },0);
       return updated;
@@ -2555,7 +2614,7 @@ function App(){
       )
     ),
     showCopy&&h(CopySched,{projects:projects,cColors:cColors||{},onClose:function(){setShowCopy(false);},onToast:showT}),
-    showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(c,cc){return saveClients({clients:c||activeClients,colors:cc||activeColors});},onClose:function(){setShowCM(false);},onRenameClient:function(oldN,newN){setProjects(function(ps){return ps.map(function(p){return p.client===oldN?Object.assign({},p,{client:newN}):p;});});}}),
+    showCM&&h(ClientMgr,{clients:activeClients,setClients:setClients,cColors:activeColors,setCColors:setCColors,onSave:function(c,cc){return saveClients({clients:c||activeClients,colors:cc||activeColors});},onClose:function(){setShowCM(false);},onRenameClient:function(oldN,newN){setProjects(function(ps){var changed=[];var next=ps.map(function(p){if(p.client!==oldN)return p;var q=Object.assign({},p,{client:newN});changed.push(q);return q;});setTimeout(function(){changed.forEach(function(q){if(q.notionId)saveQuiet(q);});},0);return next;});}}),
     ghost&&h("div",{onClick:function(){setGhost(false);},style:{background:"#2c2820",color:"#f0d978",padding:"6px 14px",fontSize:11,fontWeight:600,textAlign:"center",letterSpacing:"0.05em",cursor:"pointer"}},"\ud83d\udc7b \u9b3c\u5f71\u6a21\u5f0f\u555f\u7528\u4e2d \u00b7 \u5ba2\u6236/\u5c08\u6848\u540d/\u91d1\u984d\u5747\u5df2\u96b1\u85cf \u00b7 \u9ede\u9019\u908a\u95dc\u9589"),
     h("div",{style:{maxWidth:1100,margin:"0 auto",padding:"16px 12px 32px"}},
       view==="kanban"&&h(UrgentBanner,{projects:displayProjects,onEdit:setModal,cColors:cColors||{}}),
@@ -2567,7 +2626,7 @@ function App(){
       view==="gantt"&&h(GanttView,{projects:displayProjects,cColors:displayColors}),
       view==="report"&&h(MonthReport,{projects:displayProjects,cColors:displayColors})
     ),
-    modal&&!ghost&&h(Modal,{project:modal,onSave:saveP,onDelete:delP,onClose:function(){setModal(null);},onDuplicate:function(p){setModal(null);dupP(p);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
+    modal&&!ghost&&h(Modal,{project:modal,onSave:saveP,onToast:showT,onDelete:delP,onClose:function(){setModal(null);},onDuplicate:function(p){setModal(null);dupP(p);},clients:activeClients,cColors:activeColors,projects:projects,holidays:holidays}),
     toast&&h("div",{style:{position:"fixed",bottom:22,left:"50%",transform:"translateX(-50%)",background:C.hdr,color:C.acc2,borderRadius:4,padding:"10px 20px",fontSize:13,fontWeight:700,zIndex:2000,whiteSpace:"nowrap",animation:"slideUp 0.2s ease",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}},toast)
   );
 }
