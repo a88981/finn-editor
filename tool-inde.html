@@ -416,6 +416,7 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
     </div>
     <div id="syLinked" hidden>
       <div class="order-row"><button type="button" class="btn sm" onclick="pull(true)">立刻同步</button><span class="hint" id="syHint"></span></div>
+      <p class="hint" style="margin:6px 0 0">兩個方向都會做：這台有還沒上傳的修改就先上傳，雲端有比較新的資料就下載下來；兩邊都改過會自動合併。平常會自動同步，不用按，這顆只是想馬上確認時用。</p>
       <span class="sy-off" onclick="syUnlink()">停止這台的同步</span>
     </div>
   </div>
@@ -561,6 +562,9 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self55:["2026-10-15","V4.7","同步設定加上「立刻同步」的說明","工具管理與命名規則","","01:38"],
+ self54:["2026-10-15","V4.6","工具更新的提示詞：todo 只寫需要動手處理的事，不再列不用注意的技術說明","工具管理與命名規則","","01:37"],
+ self53:["2026-10-15","V4.5","修正對話連結會被蓋掉：兩邊都改時自動合併，不再用雲端舊資料覆蓋；主工具頁顯示自己的對話連結","工具管理與命名規則","","01:45"],
  self52:["2026-10-15","V4.4","修正「從備份檔還原」按了沒反應；還原完成會跳提示","工具管理與命名規則","","01:09"],
  self51:["2026-10-15","V4.3","修正：瀏覽器會把 Apps Script 網址自動填進搜尋框","工具管理與命名規則","","01:06"],
  self50:["2026-10-15","V4.2","同步設定顯示資料實際存在哪一份試算表（附連結）","工具管理與命名規則","","00:40"],
@@ -645,7 +649,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -707,7 +711,10 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v410','','',[['工具總表','self49']],''],
  ['finn-tool-index-add-v420','','',[['工具總表','self50']],''],
  ['finn-tool-index-add-v430','','',[['工具總表','self51']],''],
- ['finn-tool-index-add-v440','','',[['工具總表','self52']],'']];
+ ['finn-tool-index-add-v440','','',[['工具總表','self52']],''],
+ ['finn-tool-index-add-v450','','',[['工具總表','self53']],''],
+ ['finn-tool-index-add-v460','','',[['工具總表','self54']],''],
+ ['finn-tool-index-add-v470','','',[['工具總表','self55']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -956,8 +963,9 @@ function detail(t){
       if(t.file)facts.push(`<div class="fact"><b>公開網頁</b>${webUrl(t.file)?`<a class="link" href="${esc(webUrl(t.file))}" target="_blank" rel="noopener">${esc(t.file)}</a>`:esc(t.file)}</div>`);
       if(fromKid)facts.push(`<div class="fact"><b>上次改的是</b><a class="link" onclick="go('tool/${g.id}')">${esc(g.name)}</a></div>`);
       if(L&&L.fn)facts.push(`<div class="fact"><b>最新檔名</b>${esc(L.fn)}</div>`);
-      if((!L||!L.url)&&t.chat)facts.push(`<div class="fact"><b>上次的對話</b><a class="link" href="${esc(t.chat)}" target="_blank" rel="noopener">開啟對話</a></div>`);
-      else if(L&&(L.title||L.url))facts.push(`<div class="fact"><b>上次的對話</b>${L.url?`<a class="link" href="${esc(L.url)}" target="_blank" rel="noopener">${esc(L.title||'開啟對話')}</a>`:esc(L.title)}</div>`);
+      const own=latest(t), CL=(own&&own.url)?own:(t.chat?{url:t.chat,title:''}:(L&&L.url?L:null));
+      if(CL)facts.push(`<div class="fact"><b>上次的對話</b><a class="link" href="${esc(CL.url)}" target="_blank" rel="noopener">${esc(CL.title||'開啟對話')}</a></div>`);
+      else if(L&&L.title)facts.push(`<div class="fact"><b>上次的對話</b>${L.url?`<a class="link" href="${esc(L.url)}" target="_blank" rel="noopener">${esc(L.title||'開啟對話')}</a>`:esc(L.title)}</div>`);
       if(facts.length)parts.push('<div class="facts">'+facts.join('')+'</div>');
       {const td=[];if(t.todo)td.push(`<li>${isGroup?`<b>${esc(t.name)}</b>`:''}${esc(t.todo)}</li>`);
        if(isGroup)ks.filter(k=>k.todo).forEach(k=>td.push(`<li><b><a onclick="go('tool/${k.id}')">${esc(k.name)}</a></b>${esc(k.todo)}</li>`));
@@ -966,7 +974,7 @@ function detail(t){
       return parts.length?'<div class="inner">'+parts.join('')+'</div>':'';})()}
     <div class="actions">
       ${webUrl(t.file)?`<a class="btn web" href="${esc(webUrl(t.file))}" target="_blank" rel="noopener">↗ 開啟網頁</a>`:''}
-      ${(L&&L.url)||t.chat?`<a class="btn primary" href="${esc((L&&L.url)||t.chat)}" target="_blank" rel="noopener">開啟上次的對話</a>`:''}
+      ${(()=>{const own=latest(t),u=(own&&own.url)||t.chat||(L&&L.url);return u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener">開啟上次的對話</a>`:'';})()}
       <button class="btn ghost" onclick="openTool('${t.id}')">編輯工具</button>
     </div>
   </div>
@@ -1039,6 +1047,7 @@ function moveTool(dir){
   [ORD[i],ORD[j]]=[ORD[j],ORD[i]]; orderHint(t);
 }
 function openTool(id,parentId){
+  if(syOn()&&!SY.dirty)pull();
   editId=id||null; const t=id?S.find(x=>x.id===id):null;
   document.getElementById('dToolTitle').textContent=t?'編輯工具':'新增工具';
   tName.value=t?t.name:''; tDesc.value=t?(t.desc||''):''; tFile.value=t?t.file:''; tChat.value=t?(((latest(t)||{}).url)||t.chat||''):''; {const L=t&&latest(t);tLDate.value=L?L.date||'':'';tLTime.value=L?L.time||'':'';} tTodo.value=t?t.todo:'';
@@ -1170,7 +1179,7 @@ ${nm?`這個工具是「${nm}」。\n\n`:''}只寫最後交付的那一版，一
 1. kind：這一版跟上一版比，如果是流程、版面或資料格式重做寫 "major"，其他（加功能、調整、修錯）寫 "minor"。
 2. version：檔名或對話裡有明確版本號就照填（例如 V43.1），沒有就寫空字串 ""。
 3. change：這個對話總共改了什麼，一到三句，寫具體的功能或內容，不要寫過程。
-4. todo：到對話結束時還沒做完、或之後要注意的事；沒有就寫 ""。
+4. todo：只寫我（使用者）之後需要動手處理的事，一行一件，用白話寫，例如「Apps Script 還沒部署」「月曆配色還沒定案」。程式怎麼運作、設計上的限制、萬一出錯才要處理的情況、已經做完的事，都不要寫。沒有就寫 ""，大部分時候應該是 ""。
 5. date 和 time 是最後交付的日期與時間（24 小時制、台北時間）；不確定時間就寫 ""。
 6. 只輸出下面這個 JSON，不要加任何說明文字。
 
@@ -1340,9 +1349,35 @@ async function syJson(r){const s=await r.text();try{const j=JSON.parse(s);if(j.s
   const m=/<title>([^<]*)<\/title>/i.exec(s), body=s.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   SYERR=`（HTTP ${r.status}）${/accounts\.google\.com|ServiceLogin|登入/.test(s)?'Google 要求登入：部署時「誰可以存取」要選「所有人」。':''}${(m?m[1]+'：':'')+body.slice(0,160)}`;throw e;}}
 async function syGet(url,key){let r;try{r=await fetch(url+(url.includes('?')?'&':'?')+'key='+encodeURIComponent(key)+'&t='+Date.now());}catch(e){SYERR='連不上網址（網路或網址錯誤）';throw e;}return syJson(r);}
-async function syPost(base){let r;try{r=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SY.key,base,updated:Date.now(),data:{v:VER,tools:S}})});}catch(e){SYERR='上傳時連不上（網路或網址錯誤）';throw e;}return syJson(r);}
+async function syPost(base,snap){let r;try{r=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:'{"key":'+JSON.stringify(SY.key)+',"base":'+JSON.stringify(base)+',"updated":'+Date.now()+',"data":{"v":'+VER+',"tools":'+snap+'}}'});}catch(e){SYERR='上傳時連不上（網路或網址錯誤）';throw e;}return syJson(r);}
+/* 上次同步時的資料（用來合併兩邊的修改） */
+const BASEKEY='finn-tool-index-base';
+function getBase(){try{const s=localStorage.getItem(BASEKEY);return s?JSON.parse(s):null;}catch(e){return null;}}
+function setBase(snap){try{localStorage.setItem(BASEKEY,typeof snap==='string'?snap:JSON.stringify(snap));}catch(e){}}
+const J=o=>JSON.stringify(o===undefined?null:o);
+function pick3(b,l,r,has){ // 一個欄位：這台沒改就用雲端的，這台改了就用這台的
+  if(!(has===undefined?b:has))return l!==undefined?l:r;
+  return J(l)===J(b)?r:l;}
+function mergeList(bs,ls,rs,fn){
+  const B=new Map((bs||[]).map(x=>[x.id,x])),L=new Map((ls||[]).map(x=>[x.id,x])),Rm=new Map((rs||[]).map(x=>[x.id,x]));
+  const ids=[...new Set([...(rs||[]).map(x=>x.id),...(ls||[]).map(x=>x.id)])], out=[];
+  ids.forEach(id=>{const b=B.get(id),l=L.get(id),r=Rm.get(id);
+    if(l&&r){out.push(fn(b,l,r));return;}
+    const one=l||r, other=l?'r':'l';
+    if(!b){out.push(one);return;}               // 新增的：保留
+    if(J(one)!==J(b))out.push(one);              // 一邊刪掉、另一邊有改：保留
+  });
+  return out;}
+function mergeTools(base,local,remote){
+  return mergeList(base,local,remote,(b,l,r)=>{
+    const o={},keys=new Set([...Object.keys(l),...Object.keys(r)]);
+    keys.forEach(k=>{if(k==='logs')return;o[k]=pick3(b?b[k]:undefined,l[k],r[k],!!b);});
+    o.logs=mergeList(b?b.logs:null,l.logs,r.logs,(lb,ll,lr)=>pick3(lb,ll,lr));
+    return o;});
+}
 function adopt(j){
   const tools=j.data&&Array.isArray(j.data.tools)?j.data.tools:null; if(!tools)return false;
+  setBase(tools.map(x=>({...x})));
   tools.forEach(fix);S=tools;fixParents();rawSave();
   SY.syncedAt=j.updated;SY.dirty=false;SY.last=Date.now();sySave();
   if(!(dTool.open||dAI.open||dLog.open)){const y=scrollY;render();scrollTo(0,y);}
@@ -1357,7 +1392,7 @@ async function syLink(dir){
   SY.url=url;SY.key=key;
   if(dir==='up'){
     if(j.data&&!confirm(`雲端已經有資料（${fullDT(j.updated)} 更新的）。確定用這台的 ${S.length} 個工具覆蓋嗎？`))return;
-    SY.linked=true;SY.syncedAt=j.updated||0;SY.dirty=true;sySave();await push();
+    SY.linked=true;SY.syncedAt=j.updated||0;SY.dirty=true;sySave();if(j.data)setBase(JSON.stringify(j.data.tools||[]));await push();
     if(!SY.dirty)alert('上傳完成，雲端同步已開啟。\n'+(SY.sheet?'資料存在試算表「'+SY.sheet.name+'」，':'')+'試算表最下方會多出「工具清單」和「_data」兩個分頁。\n其他裝置打開工具箱後，到這裡按「下載雲端的資料」。');
     else{SY.linked=false;sySave();setSy('');alert('上傳失敗，同步還沒開啟。\n\n錯誤內容：'+(SYERR||'不明')+'\n\n可以把這段訊息傳給 Claude。');}
   }else{
@@ -1368,13 +1403,20 @@ async function syLink(dir){
   syRender();
 }
 function syUnlink(){if(!confirm('停止後，這台的修改不會再上傳，其他裝置的修改也不會再下載。確定嗎？'))return;SY.linked=false;sySave();setSy('');syRender();}
+function mergeIn(j){ // 兩邊都改過：合併，不丟掉任何一邊的修改
+  const remote=(j.data&&j.data.tools)||[];
+  const m=mergeTools(getBase(),S,remote); m.forEach(fix);
+  setBase(remote); S=m; fixParents(); rawSave();
+  SY.syncedAt=j.updated; SY.dirty=true; REV++; sySave();
+  if(!(dTool.open||dAI.open||dLog.open)){const y=scrollY;render();scrollTo(0,y);}
+}
 async function push(){
   if(!syOn()||!SY.dirty)return;
   if(BUSY){clearTimeout(pushT);pushT=setTimeout(push,1500);return;}
-  BUSY=true;setSy('sync');const rev=REV;
-  try{const j=await syPost(SY.syncedAt);
-    if(j.ok){SY.syncedAt=j.updated;SY.last=Date.now();if(REV===rev)SY.dirty=false;sySave();setSy(SY.dirty?'wait':'ok');if(SY.dirty){clearTimeout(pushT);pushT=setTimeout(push,1200);}}
-    else if(j.err==='conflict'){keepLocal();adopt(j);setSy('ok');alert('另一台裝置剛剛也改過資料，已經換成雲端最新的版本。\n這台剛才的修改沒有上傳，請再改一次。');}
+  BUSY=true;setSy('sync');const rev=REV, snap=JSON.stringify(S);
+  try{const j=await syPost(SY.syncedAt,snap);
+    if(j.ok){SY.syncedAt=j.updated;SY.last=Date.now();setBase(snap);if(REV===rev)SY.dirty=false;sySave();setSy(SY.dirty?'wait':'ok');if(SY.dirty){clearTimeout(pushT);pushT=setTimeout(push,1200);}}
+    else if(j.err==='conflict'){mergeIn(j);BUSY=false;clearTimeout(pushT);pushT=setTimeout(push,300);return;}
     else{setSy('off');}
   }catch(e){setSy('off');}
   BUSY=false;
@@ -1386,7 +1428,10 @@ async function pull(manual){
   BUSY=true;setSy('sync');
   try{const j=await syGet(SY.url,SY.key);
     if(!j.ok){setSy('off');}
-    else{if(j.data&&j.updated>SY.syncedAt)adopt(j);else{SY.last=Date.now();sySave();}setSy('ok');}
+    else if(j.data&&j.updated>SY.syncedAt){
+      if(SY.dirty){mergeIn(j);BUSY=false;push();return;}   // 等待回應時這台又改了：合併
+      adopt(j);setSy('ok');}
+    else{SY.last=Date.now();if(!getBase())setBase(JSON.stringify(S));sySave();setSy('ok');}
   }catch(e){setSy('off');}
   BUSY=false;
 }
