@@ -412,6 +412,8 @@ function pageToProject(page) {
     month: txt("工作月份"),
     order: sel("優先順序") || "-",
     length: txt("影片長度"),
+    bizLength: txt("業配長度"),
+    rush: chk("插單"),
     fee: num("收費"),
     taxCut: chk("扣稅10%"),
     invoice: chk("含稅"),
@@ -458,6 +460,8 @@ function projectToProperties(p) {
     "工作月份":  { rich_text: richText(p.month || "") },
     "優先順序":  { select: p.order && p.order !== "-" ? { name: p.order } : null },
     "影片長度":  { rich_text: richText(p.length || "") },
+    "業配長度":  { rich_text: richText(p.bizLength || "") },
+    "插單":      { checkbox: !!p.rush },
     "收費":      { number: Number(p.fee) || null },
     "支出":      { number: Number((p.costItems || []).reduce(function(s, x) { return s + (Number(x.amount) || 0); }, 0)) || null },
     "扣稅10%":   { checkbox: !!p.taxCut },
@@ -566,4 +570,3 @@ function entryToProps(e) {
   if (e.endAt) props["結束"] = { date: { start: new Date(e.endAt).toISOString() } };
   return props;
 }
-
