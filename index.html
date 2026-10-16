@@ -254,15 +254,16 @@ function parseMinutes(str){
   var s=parseInt(parts[1])||0;
   return m+(s>10?1:0);
 }
-// 業配長度扣掉後的「正片」分鐘數：先用秒數相減，再套同一條 10 秒進位規則
+// 片長換算分鐘：秒數超過 10 秒進位 1 分鐘，10 秒以內捨去
+// ⚠ 業配長度（bizLength）只做紀錄，不從片長扣除——業配段也是剪輯工時
 function parseSeconds(str){
   if(!str)return 0;
   var parts=String(str).split(":");
   if(parts.length<2)return (parseInt(str)||0)*60;
   return (parseInt(parts[0])||0)*60+(parseInt(parts[1])||0);
 }
-function netMinutes(len,biz){
-  var sec=Math.max(0,parseSeconds(len)-parseSeconds(biz));
+function lengthMinutes(len){
+  var sec=parseSeconds(len);
   var m=Math.floor(sec/60),s=sec%60;
   return m+(s>10?1:0);
 }
@@ -284,7 +285,7 @@ function calcP(p){
   var rc=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   // 超時費：跟 Modal 的 parseMinutes 一樣
   var overRate=Number(p.overRate)||0;
-  var lenMins=netMinutes(p.length,p.bizLength);
+  var lenMins=lengthMinutes(p.length);
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var rushFee=rushFeeOf(p,overFee);
@@ -582,7 +583,7 @@ function Modal(props){
   var rc=(form.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   // 超時費計算：用全域的 parseMinutes，不要在這裡另外寫一份
   var overRate=Number(form.overRate)||0;
-  var lenMins=netMinutes(form.length,form.bizLength);
+  var lenMins=lengthMinutes(form.length);
   var overMins=overRate>0?Math.max(0,Math.floor(lenMins)-10):0;
   var overFee=overMins*overRate;
   var rushFee=rushFeeOf(form,overFee);
@@ -687,7 +688,7 @@ function Modal(props){
                   var lines=[];
                   var title=(form.client&&form.client!=="-"?"【"+form.client+"】":"")+( form.name||"");
                   lines.push("\ud83c\udfac "+title);
-                  if(form.length)lines.push("\u5f71\u7247\u9577\u5ea6\uff1a"+form.length+(form.bizLength?"\uff08\u6263\u696d\u914d "+form.bizLength+"\uff09":"")+(overMins>0?"(\u591a"+overMins+"\u5206)":""));
+                  if(form.length)lines.push("\u5f71\u7247\u9577\u5ea6\uff1a"+form.length+(form.bizLength?"\uff08\u696d\u914d "+form.bizLength+"\uff09":"")+(overMins>0?"(\u591a"+overMins+"\u5206)":""));
                   if(form.fee)lines.push("\u57fa\u672c\u6536\u8cbb\uff1a"+NT(Number(form.fee)));
                   if(overFee2>0)lines.push("\u8d85\u6642\u8cbb\uff1a"+overMins+"\u5206 \xd7 "+NT(Number(form.overRate)||850)+" = "+NT(overFee2));
                   feeItems.forEach(function(x){var lt=(Number(x.qty)||0)*(Number(x.price)||0);if(lt>0)lines.push((x.label||"\u7d30\u9805")+"\uff1a"+NT(lt));});
@@ -714,7 +715,7 @@ function Modal(props){
                 )
               ),
               overFee>0&&h("div",{style:{fontSize:10,color:C.ok,background:"#d8f0e4",borderRadius:4,padding:"4px 8px",marginBottom:6}},
-                "\u23f1 "+(form.bizLength?"\u6263\u696d\u914d\u5f8c ":"")+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
+                "\u23f1 "+lenMins+"\u5206\u9418\uff0c\u8d85\u6642 "+overMins+"\u5206 \xd7 "+NT(overRate)+" = +"+NT(overFee)
               ),
               rushFee>0&&h("div",{style:{fontSize:10,color:"#8a6d00",background:"#fbefb0",borderRadius:4,padding:"4px 8px",marginBottom:6}},
                 "\u26a1 \u63d2\u55ae\u88fd\u4f5c\u8cbb\uff1a\u88fd\u4f5c\u8cbb\u7528 "+NT(rushProdOf(form,overFee))+" \xd7 30%"+(rushFee===RUSH_MIN?"\uff08\u672a\u6eff\uff0c\u4ee5\u6700\u4f4e "+NT(RUSH_MIN)+" \u8a08\uff09":"")+" = +"+NT(rushFee)
