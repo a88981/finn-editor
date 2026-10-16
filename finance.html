@@ -100,31 +100,50 @@ function monthOf(iso){return iso?iso.slice(0,7):"";}
 // ══════════════════════════════════════════════════════════════════
 // 收入計算（與 edit-tracker 的 calcP 完全一致，改那邊記得同步改這邊）
 // ══════════════════════════════════════════════════════════════════
-// ⚠ 影片長度換算分鐘：秒數超過 10 秒就進位成 1 分鐘，10 秒以內捨去
-// edit-tracker 有同一份，改這裡記得同步改那邊
-function parseMinutes(str){
+// ⚠ 以下計算必須跟剪輯助理（edit-tracker）完全一致，改一邊記得改另一邊
+// 長度先扣掉業配長度，再換算分鐘：秒數超過 10 秒進位 1 分，10 秒以內捨去
+function parseSeconds(str){
   if(!str)return 0;
   var parts=String(str).split(":");
-  if(parts.length<2)return parseInt(str)||0;
-  var m=parseInt(parts[0])||0;
-  var s=parseInt(parts[1])||0;
+  if(parts.length<2)return (parseInt(str)||0)*60;
+  return (parseInt(parts[0])||0)*60+(parseInt(parts[1])||0);
+}
+function netMinutes(len,biz){
+  var sec=Math.max(0,parseSeconds(len)-parseSeconds(biz));
+  var m=Math.floor(sec/60),s=sec%60;
   return m+(s>10?1:0);
 }
 function overMinutesOf(p){
   var rate=Number(p.overRate)||0;
   if(rate<=0)return 0;
-  return Math.max(0,Math.floor(parseMinutes(p.length))-10);
+  return Math.max(0,netMinutes(p.length,p.bizLength)-10);
+}
+// 插單製作費：製作費用 × 30%，最低 3000
+// 製作費用＝基本收費＋成品超時費＋名稱含「毛片超時」「多機位」的細項
+var RUSH_RATE=0.3,RUSH_MIN=3000;
+function rushProdOf(p,overFee){
+  return (Number(p.fee)||0)+(overFee||0)+(p.feeItems||[]).reduce(function(s,x){
+    var l=x.label||"";
+    return (l.indexOf("毛片超時")>=0||l.indexOf("多機位")>=0)?s+(Number(x.qty)||0)*(Number(x.price)||0):s;
+  },0);
+}
+function rushFeeOf(p,overFee){
+  if(!p.rush)return 0;
+  return Math.max(RUSH_MIN,Math.round(rushProdOf(p,overFee)*RUSH_RATE));
 }
 // 一支案子的收費細項，客戶版明細用
 function feeBreakdown(p){
   var out=[],base=Number(p.fee)||0,rate=Number(p.overRate)||0,om=overMinutesOf(p);
+  var overFee=rate>0?om*rate:0;
   if(base>0)out.push({label:"基本剪輯費",amount:base});
-  if(rate>0&&om>0)out.push({label:"超時費　"+om+" 分 × "+rate,amount:om*rate});
+  if(overFee>0)out.push({label:"超時費　"+om+" 分 × "+rate,amount:overFee});
   (p.feeItems||[]).forEach(function(x){
     var q=Number(x.qty)||0,pr=Number(x.price)||0;
     if(q*pr===0)return;
     out.push({label:(x.label||"加購項目")+(q>1?"　×"+q:""),amount:q*pr});
   });
+  var rf=rushFeeOf(p,overFee);
+  if(rf>0)out.push({label:"插單製作費　30%",amount:rf});
   return out;
 }
 // 上片日在 edit-tracker 只存 MM/DD，年份用工作月份推回去
@@ -149,7 +168,9 @@ function calcIncome(p){
   var gross=Number(p.fee)||0;
   gross+=(p.feeItems||[]).reduce(function(s,x){return s+(Number(x.qty)||0)*(Number(x.price)||0);},0);
   var rate=Number(p.overRate)||0;
-  gross+=overMinutesOf(p)*rate;
+  var overFee=rate>0?overMinutesOf(p)*rate:0;
+  gross+=overFee;
+  gross+=rushFeeOf(p,overFee);   // 扣稅用加完插單費之後的總額去算
   return {
     gross:gross,                                              // 未稅收入
     vat:p.invoice?Math.round(gross*VAT_RATE):0,               // 銷項稅額
