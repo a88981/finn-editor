@@ -994,13 +994,13 @@ function App(){
              sub:"#6f6a60"};
       var NUM={letterSpacing:"0.04em"};
       function money(n){return "NT$"+Math.round(n).toLocaleString();}
-      var SGC="24px minmax(0,1fr) 84px 54px 106px";
+      var SGC="22px minmax(0,1fr) 78px 50px 100px";
 
-      return h("div",{id:"stmt-doc",style:{width:760,background:"#fff",color:D.ink,
+      return h("div",{id:"stmt-doc",style:{width:640,background:"#fff",color:D.ink,
           display:"flex",fontFamily:'"Noto Sans TC",sans-serif'}},
         // 左側色帶
         h("div",{style:{width:14,background:D.gold,flexShrink:0}}),
-        h("div",{style:{flex:1,padding:"30px 40px 26px"}},
+        h("div",{style:{flex:1,padding:"30px 34px 26px"}},
 
           // 抬頭
           h("div",null,
@@ -1028,7 +1028,7 @@ function App(){
             picked.map(function(p,idx){
               var bd=feeBreakdown(p).filter(function(b,i){return itemOn(p,i);});
               var gAmt=pickedGross(p);
-              return h("div",{key:p.id,style:{padding:stmtDetail?"11px 0 10px":"8px 0 7px",
+              return h("div",{key:p.id,style:{padding:"11px 0 10px",
                   borderBottom:"1px solid "+D.line}},
                 h("div",{style:{display:"grid",gridTemplateColumns:SGC,gap:12,
                     alignItems:"baseline"}},
@@ -1069,7 +1069,7 @@ function App(){
           // 總計
           h("div",{style:{marginTop:12,background:D.band,borderRadius:4,
               padding:"14px 22px",display:"flex",justifyContent:"flex-end"}},
-            h("div",{style:{minWidth:320}},
+            h("div",{style:{minWidth:290}},
               t.vat>0&&h("div",{style:{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline",padding:"3px 0"}},
                 h("span",{style:{fontSize:12,color:D.sub}},"未稅銷售額"),
@@ -1320,15 +1320,12 @@ function App(){
           padding:"22px 16px"}},
         h("div",{style:{display:"flex",gap:9,marginBottom:14,flexWrap:"wrap",
             justifyContent:"center",alignItems:"center"}},
-          h("div",{style:{display:"flex",background:"rgba(255,255,255,0.9)",
-              borderRadius:5,padding:3,gap:3,marginRight:4}},
-            [[true,"含收費細項"],[false,"只列總額"]].map(function(o){
-              var on=stmtDetail===o[0];
-              return h("button",{key:String(o[0]),onClick:function(){setStmtDetail(o[0]);},
-                style:{padding:"6px 14px",border:"none",borderRadius:4,cursor:"pointer",
-                  fontFamily:"inherit",fontWeight:700,fontSize:12.5,
-                  background:on?C.acc:"transparent",color:on?"#3d2f08":C.txt3}},o[1]);
-            })
+          h("label",{style:{display:"flex",alignItems:"center",gap:6,cursor:"pointer",
+              background:"rgba(255,255,255,0.9)",borderRadius:5,padding:"8px 14px",
+              marginRight:4,fontSize:12.5,fontWeight:700,color:C.txt2}},
+            h("input",{type:"checkbox",checked:!stmtDetail,style:{accentColor:C.acc},
+              onChange:function(e){setStmtDetail(!e.target.checked);}}),
+            "\u53ea\u5217\u7e3d\u984d"
           ),
           h("button",{onClick:function(){
               saveAsImage("stmt-doc","請款明細_"+(cvAll?"全部":openClient)+"_"
