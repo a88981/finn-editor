@@ -672,7 +672,7 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-rush" onclick="toggleExtra('rush')">
         <div class="ad-info">
           <div class="ad-name">滿檔插單</div>
-          <div class="ad-desc">製作費用 × 20%，最低 $3,000（製作費用＝基本剪輯＋成品超時＋毛片超時＋多機位）</div>
+          <div class="ad-desc">製作費用 × 30%，最低 $3,000（製作費用＝基本剪輯＋成品超時＋毛片超時＋多機位）</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
           <span class="ad-price" id="rush-price">＋ NT$0</span>
@@ -838,7 +838,7 @@ const OVERTIME_RATES = { regular: 850, loyal: 800 };
 const URGENT_RATE = 1500;
 const FOOTAGE_FEE = 500;
 const CAM_FEE = 1000;
-const RUSH_RATE = 0.2;
+const RUSH_RATE = 0.3;
 const RUSH_MIN = 3000;
 const RUSH_NOTE = '檔期額滿後，如需額外安排製作，將酌收插單費用，是否承接仍須視實際排程評估';
 
@@ -2080,7 +2080,7 @@ function calculate() {
     ((g.cover && !state.coverPending) ? coverFee : 0) +
     state.customExtras.reduce((s, e) => s + (e.gift ? (e.price || 0) : 0), 0);
 
-  // 滿檔插單：Reels 不適用；MAX（製作費用 × 20%，$3,000）
+  // 滿檔插單：Reels 不適用；MAX（製作費用 × 30%，$3,000）
   // 製作費用＝基本剪輯＋成品超時＋毛片超時＋多機位；不含工商置入、加急、封面等加購、營業稅、插單費本身
   const rushEligible = !(state.plan === 'D' && state.type === 'post');
   document.getElementById('extra-rush').style.display = rushEligible ? '' : 'none';
@@ -2173,9 +2173,9 @@ function calculate() {
   if (rushFee > 0) {
     rows.push({
       label: '滿檔插單費',
-      sub: '製作費用 20%，最低 $3,000',
+      sub: '製作費用 30%，最低 $3,000',
       note: [{ align: 'sub', kind: 'calc', segs: [
-        { t: '製作費用 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × 20%', c: 'plain' },
+        { t: '製作費用 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × 30%', c: 'plain' },
         { t: rushRaw < RUSH_MIN ? '，未達最低以 $3,000 計' : '', c: 'plain' }
       ] }, { align: 'left', kind: 'user', segs: [{ t: RUSH_NOTE, c: 'user' }] }],
       amt: rushFee, sign: '+'
@@ -2302,7 +2302,7 @@ function calculate() {
   // Extra items
   const extraLines = [];
   if (overtime > 0) extraLines.push('成品超時 ' + overMins + ' 分鐘（每 1 分鐘 $' + OVERTIME_RATE.toLocaleString() + '）：+' + fmt(overtime));
-  if (rushFee > 0) extraLines.push('滿檔插單費（製作費用 20%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + RUSH_NOTE);
+  if (rushFee > 0) extraLines.push('滿檔插單費（製作費用 30%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + RUSH_NOTE);
   if (urgentFee > 0) extraLines.push('加急費（工作天 ' + deliveryDays + '天）：+' + fmt(urgentFee));
   const giftLines = [];
   const pushExtra = (label, amt, isGift, note) => {
