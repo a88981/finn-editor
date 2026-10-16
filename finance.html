@@ -435,6 +435,7 @@ function App(){
   }
   var sp=useState(false);var stmtOpen=sp[0],setStmtOpen=sp[1];
   var sd=useState(true);var stmtDetail=sd[0],setStmtDetail=sd[1];
+  var sn=useState(false);var stmtNote=sn[0],setStmtNote=sn[1];
   var pc=useState(true);var showProjCost=pc[0],setShowProjCost=pc[1];
 
   function saveAsImage(elId,filename){
@@ -1047,6 +1048,11 @@ function App(){
                 multi&&p.client&&h("div",{style:{marginLeft:36,marginTop:2,fontSize:11,
                   color:"#9d978b"}},
                   String(p.client).replace(/[^\u4e00-\u9fffA-Za-z0-9 ]/g,"")),
+                stmtNote&&p.note&&h("div",{style:{marginLeft:36,marginTop:5,
+                    display:"flex",gap:9,fontSize:11.5,color:"#8a8275",lineHeight:1.75}},
+                  h("span",{style:{color:"#b8b0a0",whiteSpace:"nowrap",flexShrink:0}},"備註"),
+                  h("span",{style:{flex:1,minWidth:0,whiteSpace:"pre-wrap"}},p.note)
+                ),
                 stmtDetail&&bd.length>1&&h("div",{style:{marginLeft:36,marginTop:7,
                     background:"#fbf9f3",borderLeft:"2px solid "+D.gold,
                     borderRadius:"0 3px 3px 0",padding:"7px 14px 8px"}},
@@ -1320,16 +1326,22 @@ function App(){
           padding:"22px 16px"}},
         h("div",{style:{display:"flex",gap:9,marginBottom:14,flexWrap:"wrap",
             justifyContent:"center",alignItems:"center"}},
-          h("label",{style:{display:"flex",alignItems:"center",gap:6,cursor:"pointer",
-              background:"rgba(255,255,255,0.9)",borderRadius:5,padding:"8px 14px",
-              marginRight:4,fontSize:12.5,fontWeight:700,color:C.txt2}},
-            h("input",{type:"checkbox",checked:!stmtDetail,style:{accentColor:C.acc},
-              onChange:function(e){setStmtDetail(!e.target.checked);}}),
-            "\u53ea\u5217\u7e3d\u984d"
+          h("div",{style:{display:"flex",gap:3,background:"rgba(255,255,255,0.9)",
+              borderRadius:5,padding:"4px 6px",marginRight:4}},
+            [["\u53ea\u5217\u7e3d\u984d",!stmtDetail,function(v){setStmtDetail(!v);}],
+             ["\u986f\u793a\u5099\u8a3b",stmtNote,function(v){setStmtNote(v);}]
+            ].map(function(o){
+              return h("label",{key:o[0],style:{display:"flex",alignItems:"center",
+                  gap:6,cursor:"pointer",padding:"4px 10px",fontSize:12.5,
+                  fontWeight:700,color:o[1]?C.txt:C.txt3}},
+                h("input",{type:"checkbox",checked:o[1],style:{accentColor:C.acc},
+                  onChange:function(e){o[2](e.target.checked);}}),
+                o[0]);
+            })
           ),
           h("button",{onClick:function(){
               saveAsImage("stmt-doc","請款明細_"+(cvAll?"全部":openClient)+"_"
-                +(stmtDetail?"含細項":"總額")+"_"+todayISO()+".png");
+                +(stmtDetail?"含細項":"總額")+(stmtNote?"含備註":"")+"_"+todayISO()+".png");
             },style:{background:C.acc,border:"none",color:"#3d2f08",borderRadius:5,
               padding:"9px 22px",fontSize:13,cursor:"pointer",fontFamily:"inherit",
               fontWeight:700}},"下載圖片"),
