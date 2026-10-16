@@ -110,15 +110,18 @@ function parseSeconds(str){
   if(parts.length<2)return (parseInt(str)||0)*60;
   return (parseInt(parts[0])||0)*60+(parseInt(parts[1])||0);
 }
-function netMinutes(len,biz){
-  var sec=Math.max(0,parseSeconds(len)-parseSeconds(biz));
+// 秒數超過 10 秒進位 1 分，10 秒以內捨去
+function lengthMinutes(len){
+  var sec=parseSeconds(len);
   var m=Math.floor(sec/60),s=sec%60;
   return m+(s>10?1:0);
 }
+// ⚠ 業配長度（bizLength）只做紀錄，不從片長扣除。
+// 置入費 +3,000 是處理費，超時費是剪輯費，兩筆各自獨立。
 function overMinutesOf(p){
   var rate=Number(p.overRate)||0;
   if(rate<=0)return 0;
-  return Math.max(0,netMinutes(p.length,p.bizLength)-10);
+  return Math.max(0,lengthMinutes(p.length)-10);
 }
 // 插單製作費：製作費用 × 30%，最低 3000
 // 製作費用＝基本收費＋成品超時費＋名稱含「毛片超時」「多機位」的細項
@@ -969,8 +972,8 @@ function App(){
     var nowM=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
     var GC=cv
       ? (cvAll?"62px 56px 0.9fr 1.6fr 92px 74px 102px":"62px 56px 1.6fr 92px 74px 102px")
-      : "62px 52px 0.75fr 1.35fr 58px 76px 84px 74px 84px 64px 90px";
-    var MINW=cv?0:1060;
+      : "62px 52px 0.8fr 1.3fr 56px 74px 92px 88px 92px 78px 104px";
+    var MINW=cv?0:1128;
 
     // ── 明細表：輸出圖片用 ──────────────────────────────────────
     function stmtDoc(){
