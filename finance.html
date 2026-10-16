@@ -34,7 +34,7 @@ var STUDIO={name:"小玩工作室",vatNo:"00695271"};   // 正式抬頭與統編
 // 明細表最下面那行。留空字串就整行不顯示
 var STMT_NOTE="本明細依已交付之案件整理，如與貴司紀錄有出入請告知核對";
 // 明細表下方的計價說明。清單裡有短影音時才顯示；留空字串就整段不顯示
-var STMT_REELS_NOTE="短影音成片以 1 分鐘為計價基準，超過 1 分鐘每分鐘加收 NT$1,000（未稅）；不足 1 分鐘以 1 分鐘計。";
+var STMT_REELS_NOTE="短影成片 1 分鐘內為基準，超過每分鐘加收 NT$1,000，不足 1 分鐘以 1 分鐘計";
 var VAT_RATE=0.05;      // 營業稅
 var WH_RATE=0.10;       // 執行業務所得扣繳
 
@@ -1106,7 +1106,7 @@ function App(){
             var hasReels=picked.some(function(p){
               return String(p.type||"").indexOf("\u77ed")>=0;});
             if(!hasReels)return null;
-            return h("div",{style:{marginTop:16,padding:"11px 16px",
+            return h("div",{style:{marginTop:16,padding:"9px 16px",
                 background:D.band,borderRadius:4,display:"flex",
                 alignItems:"baseline",gap:12,flexWrap:"wrap"}},
               h("span",{style:{fontSize:11,fontWeight:700,color:D.ink,
