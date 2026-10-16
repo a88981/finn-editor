@@ -609,11 +609,11 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-footage" onclick="toggleExtra('footage')">
         <div class="ad-info">
           <div class="ad-name">毛片超時</div>
-          <div class="ad-desc" id="footage-desc">每 0.5hr = +$500</div>
+          <div class="ad-desc" id="footage-desc">每 1hr = +$1,000（未滿 1hr 以 1hr 計）</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation()">
           <div id="footage-input-wrap" style="display:none; align-items:center; gap:6px;">
-            <input type="number" id="footage-hours" placeholder="0" min="0" step="0.5"
+            <input type="number" id="footage-hours" placeholder="0" min="0" step="1"
               style="width:60px; font-family:'Space Mono',monospace; font-size:15px; font-weight:700; background:transparent; border:none; border-bottom:1.5px solid var(--line); outline:none; color:var(--ink); padding:2px 4px; text-align:center;"
               oninput="calculateFootage()" onclick="event.stopPropagation()" />
             <span style="font-size:12px;color:var(--mid);">hr</span>
@@ -836,11 +836,31 @@ const PLANS = {
 const DEFAULT_PLANS = JSON.parse(JSON.stringify(PLANS));   // 供「還原預設價」使用
 const OVERTIME_RATES = { regular: 850, loyal: 800 };
 const URGENT_RATE = 1500;
-const FOOTAGE_FEE = 500;
+const FOOTAGE_FEE = 1000;   // 毛片超過 1 小時後每 1 小時；未滿 1 小時以 1 小時計
 const CAM_FEE = 1000;
 const RUSH_RATE = 0.3;
 const RUSH_MIN = 3000;
-const RUSH_NOTE = '檔期額滿後，如需額外安排製作，將酌收插單費用，是否承接仍須視實際排程評估';
+const REELS_BASE_MIN = 1;
+const REELS_RATE = 1000;
+
+// 選到 Reels 時，底價分鐘與超時費率自動換成 Reels 規則；離開 Reels 時換回長片預設
+function syncReelsInputs(isReels) {
+  const bm = document.getElementById('base-minutes');
+  const rt = document.getElementById('overtime-rate-input');
+  const du = document.getElementById('duration');
+  if (isReels && !state.reelsMode) {
+    state.reelsMode = true;
+    bm.value = REELS_BASE_MIN;
+    rt.value = REELS_RATE;
+    if (parseLen(du.value) > 5) du.value = '1:00';
+  } else if (!isReels && state.reelsMode) {
+    state.reelsMode = false;
+    if (String(bm.value) === String(REELS_BASE_MIN)) bm.value = 10;
+    if (String(rt.value) === String(REELS_RATE)) rt.value = 850;
+    if (parseLen(du.value) <= 5) du.value = '10:00';
+  }
+}
+const RUSH_NOTE = '當月檔期已排滿，仍希望插單製作時收取；是否能承接需視排程而定';
 
 let customExtraId = 0;
 
@@ -1256,10 +1276,10 @@ function updateCustomExtra(id, field, val) {
 // ── Format ───────────────────────────────────────────
 function calculateFootage() {
   const hours = parseFloat(document.getElementById('footage-hours').value) || 0;
-  const units = Math.ceil(hours / 0.5);
-  const fee = units * 500;
+  const units = Math.ceil(hours);
+  const fee = units * FOOTAGE_FEE;
   document.getElementById('footage-price').textContent = '＋ NT$' + fee.toLocaleString();
-  document.getElementById('footage-desc').textContent = hours > 0 ? hours + 'hr = ' + units + '單位 × $500' : '每 0.5hr = +$500';
+  document.getElementById('footage-desc').textContent = hours > 0 ? '超出 ' + hours + 'hr' + (units !== hours ? '，計 ' + units + ' 小時' : '') + ' × $1,000' : '每 1hr = +$1,000（未滿 1hr 以 1hr 計）';
   calculate();
 }
 
@@ -1989,13 +2009,16 @@ function calculate() {
     const el = document.getElementById('note-' + id);
     return el ? el.value.trim() : '';
   };
+  // 直式 Reels：底價 1 分鐘，超過後每 1 分鐘 $1,000，0.5 分以 1 分計（無條件進位）
+  const isReels = state.plan === 'D' && state.type === 'post';
+  syncReelsInputs(isReels);
   const durRaw = document.getElementById('duration').value;
   const durMins = parseLen(durRaw);          // 含 0.5 分的原始值
-  const durWhole = Math.floor(durMins);      // 計費用：無條件捨去
+  const durWhole = isReels ? Math.ceil(durMins) : Math.floor(durMins);
   const durLabel = fmtLen(durRaw);
 
-  const baseMins = parseFloat(document.getElementById('base-minutes').value) || 10;
-  const OVERTIME_RATE = parseFloat(document.getElementById('overtime-rate-input').value) || 850;
+  const baseMins = parseFloat(document.getElementById('base-minutes').value) || (isReels ? REELS_BASE_MIN : 10);
+  const OVERTIME_RATE = parseFloat(document.getElementById('overtime-rate-input').value) || (isReels ? REELS_RATE : 850);
 
   // Overtime hint
   const hint = document.getElementById('overtime-hint');
@@ -2003,7 +2026,7 @@ function calculate() {
   if (overMins > 0) {
     hint.innerHTML = durLabel + ' → 計 ' + durWhole + ' 分鐘，超過 ' + baseMins + ' 分鐘 → <span>+' + overMins + ' 分鐘 × $' + OVERTIME_RATE.toLocaleString() + ' = +$' + (overMins*OVERTIME_RATE).toLocaleString() + '</span>';
   } else {
-    hint.innerHTML = '超過 ' + baseMins + ' 分鐘後，每分鐘 ＋ $' + OVERTIME_RATE.toLocaleString() + '（秒數 ≥ 30 進位成一分鐘）';
+    hint.innerHTML = '超過 ' + baseMins + ' 分鐘後，每分鐘 ＋ $' + OVERTIME_RATE.toLocaleString() + (isReels ? '（0.5 分鐘以 1 分鐘計算）' : '（秒數 ≥ 30 進位成一分鐘）');
   }
 
   // Urgent fee
@@ -2055,7 +2078,7 @@ function calculate() {
   const adPlaceFee = state.extraAdPlace ? (parseFloat(document.getElementById('adplace-price-input').value) || 0) : 0;
   const overtime = Math.max(0, durWhole - baseMins) * OVERTIME_RATE;
   const footageHours = state.extraFootage ? (parseFloat(document.getElementById('footage-hours').value) || 0) : 0;
-  const footageUnits = Math.ceil(footageHours / 0.5);
+  const footageUnits = Math.ceil(footageHours);
   const footageFee = footageUnits * FOOTAGE_FEE;
   // update footage price display
   if (state.extraFootage) {
@@ -2102,7 +2125,7 @@ function calculate() {
 
   // 超時／加購：確定發生的計入明細，未發生的只列費率（浮動項目）
   const floatRows = [];
-  if (state.plan !== 'D' && state.type) {
+  if ((state.plan !== 'D' || isReels) && state.type) {
     const overMin = Math.max(0, durWhole - baseMins);
     const K = t => ({ t: t, c: 'key' });
     const P = t => ({ t: t, c: 'plain' });
@@ -2128,13 +2151,13 @@ function calculate() {
     if (state.type === 'full') {
       // 毛片超時
       if (footageFee > 0) {
-        const fUnits = Math.ceil(footageHours / 0.5);
+        const fUnits = Math.ceil(footageHours);
         rows.push({
           label: '毛片超時',
-          sub: '超過 1 小時，每 0.5 小時 $500',
+          sub: '超過 1 小時，每 1 小時 $1,000',
           note: [
             { align: 'sub', kind: 'calc', segs: [P('此次毛片總時長 '), K((1 + footageHours) + ' 小時'),
-              P('，超出 '), K(footageHours + ' 小時'), P(' = ' + fUnits + ' × $500')] },
+              P('，超出 '), K(footageHours + ' 小時'), P(fUnits !== footageHours ? '，計 ' + fUnits + ' 小時 × $1,000' : ' × $1,000')] },
             noteOf('footage') ? { align: 'sub', kind: 'user', segs: [U(noteOf('footage'))] } : null
           ].filter(Boolean),
           amt: footageFee, sign: '+', gift: g.footage
@@ -2142,8 +2165,8 @@ function calculate() {
       } else {
         floatRows.push({
           label: '毛片超時',
-          sub: '超過 1 小時，每 0.5 小時加收',
-          rate: 'NT$500 / 0.5 小時'
+          sub: '超過 1 小時，未滿 1 小時以 1 小時計',
+          rate: 'NT$1,000 / 1 小時'
         });
       }
 
@@ -2255,13 +2278,15 @@ function calculate() {
     giftTotal: giftTotal,
     notes: serviceNotes(state.plan, state.type, baseMins),
     // 沒有實際超時時，報價單仍列出超時費率供客戶參考
-    specLead: (state.plan && state.type && state.plan !== 'D')
-      ? (state.type === 'full'
+    specLead: (state.plan && state.type && (state.plan !== 'D' || isReels))
+      ? (isReels
+          ? '基本費用以成品 ' + baseMins + ' 分鐘內為計價基準，0.5 分鐘以 1 分鐘計算；超出部分依下列費率加計'
+          : state.type === 'full'
           ? '基本費用以成品 ' + baseMins + ' 分鐘內、單機拍攝、毛片 1 小時內為計價基準；超出部分依下列費率加計'
           : '基本費用以成品 ' + baseMins + ' 分鐘內為計價基準；超出部分依下列費率加計')
       : '',
     spec: (function () {
-      if (!state.plan || !state.type || state.plan === 'D') return [];
+      if (!state.plan || !state.type || (state.plan === 'D' && !isReels)) return [];
       const rows = [];
       const overMin = Math.max(0, durWhole - baseMins);
       rows.push({
@@ -2275,7 +2300,7 @@ function calculate() {
         rows.push({
           label: '毛片總量', now: (1 + footageHours) + ' 小時',
           over: footageHours > 0
-            ? '超出 ' + footageHours + ' 小時 · 每 0.5 小時 $500'
+            ? '超出 ' + footageHours + ' 小時 · 每 1 小時 $1,000'
             : '未超出',
           amt: footageFee, gift: g.footage, note: noteOf('footage')
         });
