@@ -241,6 +241,8 @@ header h1 .home:hover{opacity:.85}
 .pager .btn:disabled{opacity:.4;cursor:default;transform:none}
 .btn.web{background:#2c5aa0;color:#fff;text-shadow:1px 1px 0 #1b3a6a;box-shadow:inset 3px 3px 0 #6f97d6,inset -3px -3px 0 #1b3a6a}
 .btn.web:hover{background:#3567b3}
+.btn.gh{background:#3b3b3b;color:#fff;text-shadow:1px 1px 0 #111;box-shadow:inset 3px 3px 0 #6a6a6a,inset -3px -3px 0 #1e1e1e}
+.btn.gh:hover{background:#474747}
 .tag.tool-tag{background:rgba(44,90,160,.85);color:#fff;border:0;cursor:pointer;font-family:var(--px);font-size:12.5px;padding:0 7px}
 .link{color:#2c5aa0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .log-top>span:first-child{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -348,6 +350,7 @@ dialog[open]{max-height:calc(100vh - 24px);overflow:auto}
   </div>
   <div class="hint" style="margin:-6px 0 12px">檔名代號只用小寫英文、數字和「-」。</div>
   <div class="f"><label>公開網頁</label><input id="tFile" placeholder="例：finn-editor.vercel.app（沒有公開網頁就寫存放位置）"></div>
+  <div class="f"><label>GitHub 位置（選填）</label><input id="tGh" name="gh-url" autocomplete="off" placeholder="https://github.com/帳號/repo"></div>
   <div class="f"><label>對話連結（最近一次在哪個對話改的）</label><input id="tChat" placeholder="https://claude.ai/chat/…"></div>
   <div class="two">
     <div class="f"><label>上次更新日期</label><input type="date" id="tLDate"></div>
@@ -586,6 +589,8 @@ const LG={
  ooniau:["2026-06-21","","會員、繳費、獎勵、節日四張表","會員管理網站與生日福利提醒系統","00fed789-02ce-4ad9-b432-20529c3dc4e0","17:29"],
  self:["2026-10-14","V3.4","照試算表重新整理分類、主工具和小工具","工具管理與命名規則","","18:10"],
  self2:["2026-10-14","V3.5","暖暖會員管理新增「會員登記」","工具管理與命名規則","","18:12"],
+ self63:["2026-10-16","V4.15","待補資料也會檢查 GitHub 位置（小工具沿用主工具的就算有）","工具管理與命名規則","","21:14"],
+ self62:["2026-10-16","V4.14","每個工具多一個「GitHub 位置」：工具頁有 GitHub 按鈕，小工具沒填就沿用主工具的","工具管理與命名規則","","20:44"],
  self61:["2026-10-15","V4.13","工具更新：有小工具的主工具也能選「主工具本身」來記錄","工具管理與命名規則","","02:52"],
  self60:["2026-10-15","V4.12","工具總表自己的更新紀錄自動沿用上一次的對話連結，不會再變空白","工具管理與命名規則","","01:51"],
  self59:["2026-10-15","V4.11","拿掉拖曳把手：電腦上按住卡片直接拖，手機長按卡片再拖","工具管理與命名規則","","01:49"],
@@ -679,7 +684,7 @@ const PLAN=[
  ["Ooniau","暖暖會員管理","會員登記","","ooniau-crm.vercel.app/register.html","",""],
  ["Ooniau","暖暖會員管理","管理系統","","","",""],
  ["Ooniau","暖暖會員管理","會員獎勵查詢","","ooniau-crm.vercel.app/member.html","",""],
- ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57,self58,self59,self60,self61",""],
+ ["其他","工具總表","","tool-index","存在電腦上的單檔網頁","self,self2,self3,self4,self5,self6,self7,self8,self9,self10,self11,self12,self13,self14,self15,self16,self17,self18,self19,self20,self21,self22,self23,self24,self25,self26,self27,self28,self29,self30,self31,self32,self33,self34,self35,self36,self37,self38,self39,self40,self41,self42,self43,self44,self45,self46,self47,self48,self49,self50,self51,self52,self53,self54,self55,self56,self57,self58,self59,self60,self61,self62,self63",""],
  ["其他","旅遊","","","","",""],
  ["其他","旅遊","日本行程表（9/18–9/22 東京）","trip-tokyo-0918","手機看的行程頁","japan",""],
  ["其他","情緒波","","emotion-wave","a88981.github.io/emotion-wave","emo","月曆配色還沒定案"],
@@ -750,7 +755,9 @@ const ADDS=[['finn-tool-index-add-member-reg','暖暖會員管理','會員登記
  ['finn-tool-index-add-v4100','','',[['工具總表','self58']],''],
  ['finn-tool-index-add-v4110','','',[['工具總表','self59']],''],
  ['finn-tool-index-add-v4120','','',[['工具總表','self60']],''],
- ['finn-tool-index-add-v4130','','',[['工具總表','self61']],'']];
+ ['finn-tool-index-add-v4130','','',[['工具總表','self61']],''],
+ ['finn-tool-index-add-v4140','','',[['工具總表','self62']],''],
+ ['finn-tool-index-add-v4150','','',[['工具總表','self63']],'']];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const mkLog=k=>{const a=LG[k];return {id:uid(),date:a[0],time:a[5]||'',version:a[1],change:a[2],title:a[3],url:a[4]?U+a[4]:'',fn:''};};
 function buildSeed(){
@@ -775,6 +782,7 @@ function fix(t){
   if(typeof t.desc!=='string')t.desc='';
   if(!t.skip||typeof t.skip!=='object')t.skip={};
   if(typeof t.chat!=='string')t.chat='';
+  if(typeof t.gh!=='string')t.gh='';
 }
 function load(){
   let d=null, done=false;
@@ -838,6 +846,10 @@ function load(){
   if(!sf){const me=S.find(x=>x.name==='工具總表');if(me){let u='';sortLogs(me).slice().reverse().forEach(l=>{if(l.url)u=l.url;else if(u)l.url=u;});
       const top=sortLogs(me)[0];if(top&&!top.url){const any=sortLogs(me).find(l=>l.url)||{};top.url=any.url||me.chat||'';}}
     try{localStorage.setItem('finn-tool-index-selfurl','1');}catch(e){}}
+  let gf=false; try{gf=localStorage.getItem('finn-tool-index-gh-fill')==='1';}catch(e){}
+  if(!gf){S.forEach(x=>{if(typeof x.gh!=='string'||!x.gh){const m=/([a-z0-9-]+)\.github\.io\/([^\/\s（）()]+)/i.exec(x.file||'');if(m)x.gh=`https://github.com/${m[1]}/${m[2]}`;}});try{localStorage.setItem('finn-tool-index-gh-fill','1');}catch(e){}}
+  let gk=false; try{gk=localStorage.getItem('finn-tool-index-skip-gh')==='1';}catch(e){}
+  if(!gk){S.forEach(x=>{if(['答案桌遊紀錄工具','日本行程表（9/18–9/22 東京）'].includes(x.name))x.skip.gh=1;});try{localStorage.setItem('finn-tool-index-skip-gh','1');}catch(e){}}
   let tf=false; try{tf=localStorage.getItem('finn-tool-index-time-fill')==='1';}catch(e){}
   if(!tf){const all=Object.values(LG);S.forEach(x=>x.logs.forEach(l=>{if(l.time)return;const m=all.find(a=>a[0]===l.date&&a[2]===l.change&&a[1]===l.version);if(m&&m[5])l.time=m[5];}));try{localStorage.setItem('finn-tool-index-time-fill','1');}catch(e){}}
   let od=false; try{od=localStorage.getItem('finn-tool-index-order-261014')==='1';}catch(e){}
@@ -861,6 +873,9 @@ const fmt=ds=>ds?ds.replace(/-/g,'/'):'';
 const ago=d=>d===0?'今天':d+' 天前';
 const byOrder=(a,b)=>a.order-b.order;
 const kids=t=>S.filter(x=>x.parent===t.id).sort(byOrder);
+const ghUrl=s=>{s=(s||'').trim();if(!s)return '';if(/^https?:\/\//.test(s))return s;if(/^github\.com\//i.test(s))return 'https://'+s;if(/^[\w.-]+\/[\w.-]+$/.test(s))return 'https://github.com/'+s;return s;};
+const ghOf=t=>{if(t.gh)return {u:t.gh,from:null};const p=parentOf(t);return p&&p.gh?{u:p.gh,from:p}:null;};
+const ghName=u=>u.replace(/^https?:\/\/(www\.)?github\.com\//i,'').replace(/\/$/,'');
 const webUrl=s=>{const m=/(https?:\/\/)?([a-z0-9-]+\.)+(app|com|io|net|tw|dev|page|site|org|me|co)(\/[^\s（）()，、＋+]*)?/i.exec(s||'');return m?(m[1]?m[0]:'https://'+m[0]):'';};
 const isReal=m=>!!(m&&(m.slug||m.logs.length));
 const parentOf=t=>t.parent?S.find(x=>x.id===t.parent):null;
@@ -890,7 +905,7 @@ function render(){
   const q=document.getElementById('q').value.trim().toLowerCase();
   const v=document.getElementById('view'), cat=curCat();
   if(q){
-    const arr=S.filter(t=>[t.name,t.desc,t.file,t.slug,t.todo,t.cat,...t.logs.flatMap(l=>[l.change,l.title,l.version,l.fn])].join(' ').toLowerCase().includes(q)).sort(byRecent);
+    const arr=S.filter(t=>[t.name,t.desc,t.gh,t.file,t.slug,t.todo,t.cat,...t.logs.flatMap(l=>[l.change,l.title,l.version,l.fn])].join(' ').toLowerCase().includes(q)).sort(byRecent);
     v.innerHTML=`<div class="crumb"><h2>搜尋結果</h2><span class="cnt">${arr.length} 個</span></div>`+
       (arr.length?arr.map(t=>card(t,true)).join(''):'<div class="empty">找不到符合的工具</div>');
     return;
@@ -921,6 +936,7 @@ function missList(){
     const box=!t.parent&&kids(t).length&&!isReal(t), L=latest(t), it=[];
     if(!t.desc&&!t.skip.desc)it.push(['desc','說明']);
     if(!box&&!webUrl(t.file)&&!t.skip.url)it.push(['url','公開網頁']);
+    if(!box&&!ghOf(t)&&!t.skip.gh)it.push(['gh','GitHub']);
     if(!box&&!((L&&L.url)||t.chat)&&!t.skip.chat)it.push(['chat','對話連結']);
     return {t,it};
   }).filter(x=>x.it.length);
@@ -933,7 +949,7 @@ function missing(){
     <div class="miss-head"><span><b>${arr.length}</b> 個工具・<b>${n}</b> 項沒填</span><span class="miss-hint">點項目去補／按 × 不用補</span></div>
     <div class="miss-list">${arr.map(({t,it})=>{const pa=parentOf(t);return `<div class="miss-row">
       <a class="miss-name" onclick="go('tool/${t.id}')">${pa?`<small>${esc(pa.name)}・</small>`:''}${esc(t.name)}</a>
-      <span class="miss-items">${it.map(([k,lb])=>`<span class="mc"><a onclick="openTool('${t.id}');setTimeout(()=>${({desc:'tDesc',url:'tFile',chat:'tChat'})[k]}.focus(),50)">${lb}</a><i onclick="skipMiss('${t.id}','${k}')" title="這個工具不需要${lb}，不再提醒">×</i></span>`).join('')}</span>
+      <span class="miss-items">${it.map(([k,lb])=>`<span class="mc"><a onclick="openTool('${t.id}');setTimeout(()=>${({desc:'tDesc',url:'tFile',gh:'tGh',chat:'tChat'})[k]}.focus(),50)">${lb}</a><i onclick="skipMiss('${t.id}','${k}')" title="這個工具不需要${lb}，不再提醒">×</i></span>`).join('')}</span>
     </div>`;}).join('')}</div>
   </div>`;
 }
@@ -1003,6 +1019,7 @@ function detail(t){
     </div>
     ${(()=>{const parts=[], facts=[];
       if(t.file)facts.push(`<div class="fact"><b>公開網頁</b>${webUrl(t.file)?`<a class="link" href="${esc(webUrl(t.file))}" target="_blank" rel="noopener">${esc(t.file)}</a>`:esc(t.file)}</div>`);
+      {const g=ghOf(t);if(g)facts.push(`<div class="fact"><b>GitHub${g.from?`（跟「${esc(g.from.name)}」同一個）`:''}</b><a class="link" href="${esc(g.u)}" target="_blank" rel="noopener">${esc(ghName(g.u))}</a></div>`);}
       if(fromKid)facts.push(`<div class="fact"><b>上次改的是</b><a class="link" onclick="go('tool/${g.id}')">${esc(g.name)}</a></div>`);
       if(L&&L.fn)facts.push(`<div class="fact"><b>最新檔名</b>${esc(L.fn)}</div>`);
       const own=latest(t), CL=(own&&own.url)?own:(t.chat?{url:t.chat,title:''}:(L&&L.url?L:null));
@@ -1016,6 +1033,7 @@ function detail(t){
       return parts.length?'<div class="inner">'+parts.join('')+'</div>':'';})()}
     <div class="actions">
       ${webUrl(t.file)?`<a class="btn web" href="${esc(webUrl(t.file))}" target="_blank" rel="noopener">↗ 開啟網頁</a>`:''}
+      ${(()=>{const g=ghOf(t);return g?`<a class="btn gh" href="${esc(g.u)}" target="_blank" rel="noopener">↗ GitHub</a>`:'';})()}
       ${(()=>{const own=latest(t),u=(own&&own.url)||t.chat||(L&&L.url);return u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener">開啟上次的對話</a>`:'';})()}
       <button class="btn ghost" onclick="openTool('${t.id}')">編輯工具</button>
     </div>
@@ -1138,7 +1156,7 @@ function openTool(id,parentId){
   if(syOn()&&!SY.dirty)pull();
   editId=id||null; const t=id?S.find(x=>x.id===id):null;
   document.getElementById('dToolTitle').textContent=t?'編輯工具':'新增工具';
-  tName.value=t?t.name:''; tDesc.value=t?(t.desc||''):''; tFile.value=t?t.file:''; tChat.value=t?(((latest(t)||{}).url)||t.chat||''):''; {const L=t&&latest(t);tLDate.value=L?L.date||'':'';tLTime.value=L?L.time||'':'';} tTodo.value=t?t.todo:'';
+  tName.value=t?t.name:''; tDesc.value=t?(t.desc||''):''; tFile.value=t?t.file:''; tGh.value=t?(t.gh||''):''; tChat.value=t?(((latest(t)||{}).url)||t.chat||''):''; {const L=t&&latest(t);tLDate.value=L?L.date||'':'';tLTime.value=L?L.time||'':'';} tTodo.value=t?t.todo:'';
   tSlug.value=t?t.slug:''; tExt.value=t?t.ext:'html';
   const ct=toolId()&&S.find(x=>x.id===toolId());
   const hasKids=t&&kids(t).length;
@@ -1158,7 +1176,7 @@ function openTool(id,parentId){
 function saveTool(e){
   e.preventDefault();
   const pl=parsePlace(tPlace.value);
-  const v={name:tName.value.trim(),desc:tDesc.value.trim(),cat:pl.cat,parent:pl.parent,file:tFile.value.trim(),todo:tTodo.value.trim(),
+  const v={name:tName.value.trim(),desc:tDesc.value.trim(),gh:ghUrl(tGh.value),cat:pl.cat,parent:pl.parent,file:tFile.value.trim(),todo:tTodo.value.trim(),
     slug:tSlug.value.trim().toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-|-$/g,''),ext:(tExt.value.trim()||'html').replace(/^\./,'')};
   if(!v.name)return;
   const sibMax=(par,cat)=>Math.max(-1,...S.filter(x=>x.parent===par&&(par||x.cat===cat)).map(x=>x.order));
