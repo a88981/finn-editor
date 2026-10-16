@@ -441,6 +441,25 @@ function App(){
   var sn=useState(false);var stmtNote=sn[0],setStmtNote=sn[1];
   var pc=useState(true);var showProjCost=pc[0],setShowProjCost=pc[1];
 
+  // 把區塊轉成 PNG 直接丟進剪貼簿，不經過檔案
+  function copyAsImage(elId){
+    var el=document.getElementById(elId);
+    if(!el){alert("找不到要輸出的區塊");return;}
+    if(typeof html2canvas!=="function"){alert("圖片元件還沒載入完成，稍等一下再按");return;}
+    if(!(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem)){
+      alert("這個瀏覽器不支援複製圖片，請改用「下載圖片」");return;
+    }
+    showT("產生圖片中…");
+    // ClipboardItem 要在點擊的當下就建立，裡面放 Promise，Safari 才不會擋
+    var png=html2canvas(el,{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false})
+      .then(function(canvas){
+        return new Promise(function(res){canvas.toBlob(res,"image/png");});
+      });
+    navigator.clipboard.write([new ClipboardItem({"image/png":png})])
+      .then(function(){showT("已複製，可以直接貼上");})
+      .catch(function(e){console.error(e);alert("複製失敗，請改用「下載圖片」");});
+  }
+
   function saveAsImage(elId,filename){
     var el=document.getElementById(elId);
     if(!el){alert("找不到要輸出的區塊");return;}
@@ -1342,12 +1361,16 @@ function App(){
                 o[0]);
             })
           ),
+          h("button",{onClick:function(){copyAsImage("stmt-doc");},
+            style:{background:C.acc,border:"none",color:"#3d2f08",borderRadius:5,
+              padding:"9px 22px",fontSize:13,cursor:"pointer",fontFamily:"inherit",
+              fontWeight:700}},"複製圖片"),
           h("button",{onClick:function(){
               saveAsImage("stmt-doc","請款明細_"+(cvAll?"全部":openClient)+"_"
                 +(stmtDetail?"含細項":"總額")+(stmtNote?"含備註":"")+"_"+todayISO()+".png");
-            },style:{background:C.acc,border:"none",color:"#3d2f08",borderRadius:5,
-              padding:"9px 22px",fontSize:13,cursor:"pointer",fontFamily:"inherit",
-              fontWeight:700}},"下載圖片"),
+            },style:{background:"rgba(255,255,255,0.9)",border:"none",color:C.txt2,
+              borderRadius:5,padding:"9px 20px",fontSize:13,cursor:"pointer",
+              fontFamily:"inherit"}},"下載圖片"),
           h("button",{onClick:function(){setStmtOpen(false);},
             style:{background:"rgba(255,255,255,0.9)",border:"none",color:C.txt2,
               borderRadius:5,padding:"9px 20px",fontSize:13,cursor:"pointer",
