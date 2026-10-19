@@ -263,7 +263,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V1.1";
+var PLAN_BUILD="V1.3";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -881,7 +881,8 @@ var WORK_RANGE_CANDIDATES = [["editS","editE"],["workS","workE"],["workStart","w
 var PLAN_PREFS = {start:"", off:[], extra:"", lock:{}, pick:{}, mode:"all", asked:[]};
 var MODE_HINT = {
   auto:"沒排過、或者排程已經過期的案會先打勾。不對就自己改。",
-  all:"長片全部打勾重新排。既有的工作日期一律作廢，改以每個案的上片日、Final 交件日為基準往前推。",
+  all:"預設不勾，要排哪幾個自己勾。打勾的案既有的工作日期一律作廢，改以上片日、Final 交件日為基準往前推。",
+  wait:"尚未執行（等待素材／待確認／初剪待執行）的長片先打勾，執行中的不勾、只佔額度。打勾的案既有的工作日期一律作廢重排。不對就自己改。",
   keep:"只打勾完全沒排過的案。已經有工作日期的一律不動，過期的也不會被重排。"
 };
 
@@ -1000,7 +1001,10 @@ function basePick(p){
   /* 執行中的案已經在跑，預設不重排，只佔額度 */
   if(isRunning(p))return false;
   var m=planMode();
-  if(m==="all")return true;
+  /* 全部重排：不預設勾選，要排哪幾個自己勾 */
+  if(m==="all")return false;
+  /* 尚未執行：等待素材／待確認／初剪待執行的長片全部先勾 */
+  if(m==="wait")return isWaiting(p);
   if(m==="keep")return !hasSchedule(p);
   return !hasSchedule(p)||isStale(p);
 }
@@ -1780,7 +1784,7 @@ function buildPrompt(){
     t+="- 額外狀況："+PLAN_PREFS.extra.trim()+"\n";
   }
   var pm=planMode();
-  if(pm==="all"){
+  if(pm==="all"||pm==="wait"){
     t+="\n## 這次的排法\n";
     t+="**全部重新排。**下面每個案既有的工作日期(初剪、V1、業配的起迄)一律作廢，不要參考、也不要沿用。\n";
     t+="唯一的例外是**已經存在的 V1/ES 交件日**：那是對客戶承諾過的，請保留不動並當成該案的錨點，其餘日期繞著它重排。\n";
@@ -1956,11 +1960,12 @@ function renderExport(){
   var pm=planMode();
   h+='<div class="mode-row">';
   h+='<button class="mode-b'+(pm==="all"?" on":"")+'" onclick="setMode(\'all\')">全部重排</button>';
+  h+='<button class="mode-b'+(pm==="wait"?" on":"")+'" onclick="setMode(\'wait\')">尚未執行</button>';
   h+='<button class="mode-b'+(pm==="auto"?" on":"")+'" onclick="setMode(\'auto\')">自動判斷</button>';
   h+='<button class="mode-b'+(pm==="keep"?" on":"")+'" onclick="setMode(\'keep\')">只排沒排過的</button>';
   h+='</div>';
   var shortN=sp.all.filter(isShort).length;
-  h+='<div class="lock-sum">'+MODE_HINT[pm]+(shortN?' 短影('+shortN+' 個)一律不預設勾選，要排再自己勾。':'')+'</div>';
+  h+='<div class="lock-sum">'+MODE_HINT[pm]+(shortN&&pm!=="all"?' 短影('+shortN+' 個)一律不預設勾選，要排再自己勾。':'')+'</div>';
   sp.all.forEach(function(p){
     var on=willReplan(p), stale=isStale(p), has=hasSchedule(p);
     h+='<div class="lock-row'+(on?' on':'')+'">';
