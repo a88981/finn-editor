@@ -186,6 +186,10 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .mode-b.on{background:var(--yellow-lightest);border-color:var(--yellow);color:var(--ink);font-weight:500}
 .flex-line{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--ink-soft);cursor:pointer}
 .flex-line input{margin:0;cursor:pointer}
+.flex-line.off{cursor:default}
+.flex-line.off>span:first-of-type{color:var(--ink-light);text-decoration:line-through}
+.flex-line.off input{cursor:default;opacity:.45}
+.flex-line.off .flex-hint{color:var(--yellow-mid)}
 .flex-hint{font-size:10px;color:var(--ink-light);margin-left:auto;text-align:right}
 .anc-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
 .anc{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft)}
@@ -259,7 +263,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion";
-var PLAN_BUILD="V32.4";
+var PLAN_BUILD="V1.1";
 var WD_CH=["日","一","二","三","四","五","六"];
 var state={
   projects:[],
@@ -820,6 +824,7 @@ var PLAN_RULES =
 "【最高優先 — 我指定的交件日】\n" +
 "- 專案資料裡若有「我指定的 V1/ES 交件日」或「我指定的 Final」，那是我這次親自設定的日期，**必須完全照這個日期排，一天都不能動**\n" +
 "- 它取代該案 Notion 裡既有的 V1/ES 交件日或 Final，原本的值只是參考；也優先於下面「錨點怎麼選」的所有條件\n" +
+"- 有指定日期的案，「交件日固定 / 交件日可調整」的設定一律不適用。就算標了交件日固定，只指定 V1 時 Final 也照指定的 V1 往後推，不用守原本的 Final；只指定 Final 時 V1 也照往前推\n" +
 "- 只指定 V1 → Final = 指定的 V1 + 1~3 個工作天；只指定 Final → V1 往前推 1~3 個工作天；兩個都指定 → 兩個都照用，其他階段往前推\n" +
 "- 指定的日期壓到連硬性條件都做不到(例如工作天不夠、同時超過 3 支)，照樣用這個日期，標記 🚨 並說清楚差幾天、卡在哪裡，不要自己改日期\n" +
 "\n【次高優先 — 個別案件的「排程限制」】\n" +
@@ -843,7 +848,7 @@ var PLAN_RULES =
 "- V1/ES 交件後要留回饋與修改的時間才能交 Final：1–3 個工作天，空間夠就給 3 天，被壓縮時可以縮到 1 天\n" +
 "- 有業配者，業配安排在 V1/ES 交件之後、Final 之前；業配交件日必須早於 Final\n" +
 "\n【錨點怎麼選 — 由上往下，符合哪一條就用哪一條】\n" +
-"1. 該案標了「交件日固定」、已有 V1/ES 交件日、**且排程限制沒有提到日期** → 以它為錨點且不得更動(那是跟客戶談定的)，Final = V1/ES 交件日 + 1~3 個工作天，其餘階段往前推\n" +
+"1. 該案沒有「我指定的交件日」、標了「交件日固定」、已有 V1/ES 交件日、**且排程限制沒有提到日期** → 以它為錨點且不得更動(那是跟客戶談定的)，Final = V1/ES 交件日 + 1~3 個工作天，其餘階段往前推\n" +
 "   下列任一情況這條都不適用，既有的 V1/ES 交件日與 Final 一律視為暫定，可以前後移動：\n" +
 "   (a) 該案標了「交件日可調整」　(b) 排程限制有提到日期\n" +
 "2. 沒有 V1/ES 交件日、但上片日已確定 → Final = 上片日前一天，由此往前推\n" +
@@ -1735,12 +1740,14 @@ function projBlock(p,i,replan){
   t+="- 進度: "+progressLine(p)+"\n";
   if(p.length)t+="- 片長: "+p.length+"\n";
   if(p.note)t+="- 備註: "+String(p.note).replace(/\n/g," ")+"\n";
-  if(p.v1Due||p.finalDue){
+  var an=pAnchor(p);
+  if(an.v1||an.fin){
+    t+="- 交件日: 這次以下面我指定的日期為準。不論這個案原本的 V1/ES 交件日、Final 是否跟客戶談定，都不適用「交件日固定」的規則，Notion 裡既有的日期只是參考，可以改掉\n";
+  }else if(p.v1Due||p.finalDue){
     t+=isFlex(p)
       ? "- 交件日可調整: 這個案的 V1/ES 交件日與 Final 沒有跟客戶談定，可以依排程需要前後移動\n"
       : "- 交件日固定: 這個案既有的 V1/ES 交件日與 Final 是跟客戶談定的，不可更動\n";
   }
-  var an=pAnchor(p);
   if(an.v1)t+="- **我指定的 V1/ES 交件日: "+an.v1+"(必須照這天排，不能動)**\n";
   if(an.fin)t+="- **我指定的 Final: "+an.fin+"(必須照這天排，不能動)**\n";
   var pn=pNote(p);
@@ -1966,8 +1973,9 @@ function renderExport(){
     else if(stale)h+=' <span class="lock-tag stale">排程已過期</span>';
     h+='</div>';
     h+='<div class="lock-meta">'+(p.airDate?p.airDate+' 上片 · ':'')+escapeHtml(has?schedSummary(p):"沒有已排定的工作日期")+'</div>';
-    h+='<label class="flex-line"><input type="checkbox"'+(isFlex(p)?' checked':'')+' onchange="setFlex(\''+p.id+'\',this.checked)">';
-    h+='<span>交件日可前後調整</span><span class="flex-hint">'+(isFlex(p)?'V1／Final 可依排程需要移動':'V1／Final 視為跟客戶談定，不會被動到')+'</span></label>';
+    var anc0=pAnchor(p), hasAnc=!!(anc0.v1||anc0.fin);
+    h+='<label class="flex-line'+(hasAnc?' off':'')+'"><input type="checkbox"'+(isFlex(p)?' checked':'')+(hasAnc?' disabled':'')+' onchange="setFlex(\''+p.id+'\',this.checked)">';
+    h+='<span>交件日可前後調整</span><span class="flex-hint">'+(hasAnc?'已指定交件日，以指定為主，這格不適用':(isFlex(p)?'V1／Final 可依排程需要移動':'V1／Final 視為跟客戶談定，不會被動到'))+'</span></label>';
     var an=pAnchor(p);
     h+='<div class="anc-row">';
     h+='<label class="anc"><span>指定 V1 交件</span><input type="date" class="fc'+(an.v1?' set':'')+'" value="'+escAttr(an.v1||"")+'" onchange="setAnchor(\''+p.id+'\',\'v1\',this.value)"></label>';
@@ -2171,7 +2179,7 @@ function parseImport(){
         ex.warn=ex.warn.concat(["V1 交件排成 "+ex.fields.v1Due+"，跟你指定的 "+an.v1+" 不一樣"]);
       if(an.fin&&ex.fields.finalDue&&ex.fields.finalDue!==an.fin)
         ex.warn=ex.warn.concat(["Final 排成 "+ex.fields.finalDue+"，跟你指定的 "+an.fin+" 不一樣"]);
-      if(!an.v1&&t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
+      if(!an.v1&&!an.fin&&t.p&&t.p.v1Due&&ex.fields.v1Due&&ex.fields.v1Due>t.p.v1Due){
         var msg="V1 交件日從 "+t.p.v1Due+" 移到 "+ex.fields.v1Due;
         if(isFlex(t.p)){
           ex.softExtra=msg+"（此案標為交件日可調整，非違規）";
