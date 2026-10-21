@@ -58,7 +58,27 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .clock-btn-mini.out{border-color:var(--red);color:var(--red)}
 .clock-btn-mini.out:hover{background:#fcebeb}
 
-/* 扁扁的待交件提醒列 */
+/* 待辦 C:時間軸式 */
+.todo-sec{margin-bottom:14px}
+.todo-sec-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:7px}
+.todo-sec-head .t1{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink)}
+.todo-sec-head .t1 .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light);font-weight:300;margin-left:5px}
+.todo-sec-head .ct{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-light);font-style:italic}
+.todo-sec-head .ct b{font-style:normal;font-family:'Noto Sans TC',sans-serif;font-size:11.5px;color:var(--red);font-weight:500;margin-left:5px}
+.todo-tl{display:grid;grid-template-columns:62px 1fr;gap:9px;padding:2px 0;align-items:center}
+.todo-tl .t{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:var(--ink-light);letter-spacing:0.02em;text-align:right;white-space:nowrap}
+.todo-tl.od .t{color:var(--red);font-weight:500}
+.todo-tl.now .t{color:var(--ink);font-weight:500}
+.todo-tl .b{display:flex;align-items:baseline;gap:9px;background:var(--yellow-lightest);border-left:2px solid var(--yellow);padding:7px 10px;border-radius:0 3px 3px 0;min-width:0}
+.todo-tl.od .b{background:#fcecec;border-left-color:var(--red)}
+.todo-tl.now .b{border-left-color:var(--yellow-mid)}
+.todo-tl .b .n{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.todo-tl .b .sg{flex:0 0 auto;min-width:38px;font-family:Inter,'Noto Sans TC',sans-serif;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;color:var(--yellow-mid);font-weight:500}
+.todo-tl.od .b .sg{color:var(--red)}
+.todo-tl .b .w{margin-left:auto;padding-left:8px;white-space:nowrap;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:11.5px;color:var(--ink-light)}
+.todo-more{background:none;border:none;padding:8px 0 0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12.5px;color:var(--yellow-mid);cursor:pointer;letter-spacing:0.02em}
+.todo-more:hover{text-decoration:underline}
+/* 扁扁的待交件提醒列(舊版單行,已改用上面的 todo-box)*/
 .todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .todo-tiny-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.18em;color:var(--ink-light);text-transform:uppercase;font-weight:500;white-space:nowrap}
 .todo-tiny-item{display:inline-flex;align-items:center;gap:5px;font-size:11px}
@@ -266,6 +286,15 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .btn-sub{padding:7px 16px;font-size:10px;font-weight:500;border-radius:3px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.2em;text-transform:uppercase}
 .btn-sub.primary{background:var(--yellow);color:#fff;border-color:var(--yellow)}
 .btn-sub.danger{background:#fff;color:var(--red);border-color:var(--red)}
+.btn-sub.danger.armed{background:var(--red);color:#fff;border-color:var(--red)}
+.del-warn{font-family:'Noto Sans TC',sans-serif;font-size:11px;line-height:1.7;color:var(--red);background:#fcecec;border:1px solid #f0c9c9;border-radius:3px;padding:8px 10px;margin:10px 0 2px}
+.del-warn b{font-weight:500}
+.del-warn .sub{display:block;color:var(--ink-soft);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;margin-top:3px}
+.undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:900;display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border-radius:4px;padding:10px 14px;box-shadow:0 6px 20px rgba(0,0,0,0.22);font-family:'Noto Sans TC',sans-serif;font-size:11.5px;max-width:92vw}
+.undo-bar .u-txt{line-height:1.5}
+.undo-bar .u-sub{display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10.5px;opacity:0.65;margin-top:2px}
+.undo-bar button{background:none;border:1px solid rgba(255,255,255,0.5);color:#fff;border-radius:3px;padding:4px 10px;font-family:'Noto Sans TC',sans-serif;font-size:11px;cursor:pointer;white-space:nowrap}
+.undo-bar button:hover{background:rgba(255,255,255,0.14)}
 .btn-sub.reopen{background:#fff;color:var(--green);border-color:var(--green)}
 .btn-sub.reopen:hover{background:#f0f7ea}
 
@@ -365,11 +394,13 @@ var state={
   gearMenu:false,
   editStageId:null, // 正在改階段的進行中打卡 id
   editNoteId:null, // 正在改備註的進行中打卡 id
+  delArmed:false, // 編輯視窗的刪除鈕是否已按過一次
   newProjId:'', // 新增打卡選的專案(空 / id / __other__)
   newOtherName:'', // 其他工作的自由命名
   dailyMonth:todayKey().slice(0,7), // 'YYYY-MM' 日誌頁當前查看月份
   dailySelectedDay:null, // 'YYYY-MM-DD' 日誌頁選中的某天
   reportShowAll:false, // Report 是否展開全部月份
+  todoShowAll:false, // 首頁待辦是否展開全部
   shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD', breakAt:?, breakTotal:0}
   shifts:ls_get(SHIFTS_KEY)||[], // 歷史 shift 紀錄 [{workDay, startAt, endAt}]
   active:ls_get(ACTIVE_KEY)||[],
@@ -660,13 +691,57 @@ function stopPunch(id){
   if(USE_API)apiSaveEntry(entry,function(err,notionId){if(err){console.warn('儲存失敗',err);return;}if(notionId){entry.notionId=notionId;state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});ls_set(ENTRIES_KEY,state.entries);}});
 }
 
-function deleteEntry(id){
-  if(!confirm('確定刪除這筆紀錄?'))return;
-  var ent=state.entries.find(function(e){return e.id===id;});
-  state.entries=state.entries.filter(function(e){return e.id!==id;});
-  ls_set(ENTRIES_KEY,state.entries);render();
-  if(USE_API&&ent&&ent.notionId)apiDeleteEntry(ent.notionId,function(err){if(err)console.warn('刪除失敗',err);});
+// ── 刪除防呆 ──────────────────────────────
+var UNDO_MS=10000; // 刪除後可以復原的秒數
+var pendingDel=null; // {entry,index,endsAt,timer,tick}
+// 這筆紀錄是什麼(給刪除確認與復原提示用)
+function entryBrief(e){
+  if(!e)return '';
+  var t=(e.projectLabel||'(無專案)')+' · '+stageLabel(e.stage);
+  t+=' · '+dateKey(e.startAt)+' '+fmtTime(e.startAt)+'–'+fmtTime(e.endAt)+' · '+fmtDur(entryDur(e));
+  if(e.note)t+=' · '+e.note;
+  return t;
 }
+// 真的把紀錄拿掉(本地先拿掉,雲端等復原時間過了才送)
+function deleteEntry(id){
+  var idx=-1;
+  state.entries.forEach(function(e,i){if(e.id===id)idx=i;});
+  if(idx<0)return;
+  finalizeDelete(); // 若上一筆還在等,先讓它定案
+  var ent=state.entries[idx];
+  state.entries=state.entries.filter(function(e){return e.id!==id;});
+  ls_set(ENTRIES_KEY,state.entries);
+  pendingDel={entry:ent,index:idx,endsAt:Date.now()+UNDO_MS};
+  pendingDel.timer=setTimeout(finalizeDelete,UNDO_MS);
+  pendingDel.tick=setInterval(tickUndo,1000);
+  render();
+}
+// 復原:把紀錄塞回原本的位置,雲端那筆根本還沒刪
+function undoDelete(){
+  if(!pendingDel)return;
+  clearTimeout(pendingDel.timer);clearInterval(pendingDel.tick);
+  var idx=Math.min(pendingDel.index,state.entries.length);
+  state.entries.splice(idx,0,pendingDel.entry);
+  ls_set(ENTRIES_KEY,state.entries);
+  pendingDel=null;
+  render();
+}
+// 時間到(或換下一個動作):這才真的送出雲端刪除
+function finalizeDelete(){
+  if(!pendingDel)return;
+  clearTimeout(pendingDel.timer);clearInterval(pendingDel.tick);
+  var ent=pendingDel.entry;
+  pendingDel=null;
+  if(USE_API&&ent&&ent.notionId)apiDeleteEntry(ent.notionId,function(err){if(err)console.warn('刪除失敗',err);});
+  render();
+}
+function tickUndo(){
+  if(!pendingDel)return;
+  var el=document.getElementById('undo-count');
+  if(el)el.textContent=Math.max(0,Math.ceil((pendingDel.endsAt-Date.now())/1000));
+}
+// 關掉分頁前,把還在等的那筆送出去,免得本地沒了雲端還在
+window.addEventListener('beforeunload',function(){if(pendingDel)finalizeDelete();});
 
 function reopenEntry(id){
   var e=state.entries.find(function(x){return x.id===id;});
@@ -700,9 +775,9 @@ function reopenEntry(id){
   }
 }
 
-function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.modalForm={id:e.id,notionId:e.notionId,pauses:e.pauses||[],projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt),overrideDurMin:e.durMin||0};state.modal='edit';render();}
+function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.delArmed=false;state.modalForm={id:e.id,notionId:e.notionId,pauses:e.pauses||[],projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt),overrideDurMin:e.durMin||0};state.modal='edit';render();}
 function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now),workDay:dateKey(start)};state.modal='manual';render();}
-function closeModal(){state.modal=null;render();}
+function closeModal(){state.modal=null;state.delArmed=false;render();}
 
 function saveModal(){
   var f=state.modalForm;
@@ -723,10 +798,20 @@ function saveModal(){
   if(USE_API&&entry)apiSaveEntry(entry,function(err,notionId){if(err){console.warn('儲存失敗',err);return;}if(notionId){entry.notionId=notionId;state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});ls_set(ENTRIES_KEY,state.entries);render();}});
 }
 
-function deleteFromModal(){if(!state.modalForm.id||!confirm('確定刪除?'))return;var ent=state.entries.find(function(e){return e.id===state.modalForm.id;});state.entries=state.entries.filter(function(e){return e.id!==state.modalForm.id;});ls_set(ENTRIES_KEY,state.entries);closeModal();if(USE_API&&ent&&ent.notionId)apiDeleteEntry(ent.notionId,function(err){if(err)console.warn('刪除失敗',err);});}
+// 第一次點「刪除」只會亮起警告,要再點一次才真的刪
+function deleteFromModal(){
+  if(!state.modalForm.id)return;
+  if(!state.delArmed){state.delArmed=true;render();return;}
+  var id=state.modalForm.id;
+  state.delArmed=false;
+  closeModal();
+  deleteEntry(id);
+}
 
 function refreshProjects(){state.loading=true;state.loadError=null;render();apiListProjects(function(err,ps){state.loading=false;if(err)state.loadError=err;else{state.projects=ps;ls_set(PROJECTS_KEY,ps);}render();});}
-function syncFromCloud(){apiListEntries(function(err,entries){
+function syncFromCloud(){
+  finalizeDelete(); // 還在等復原的那筆先定案,免得又從雲端被撈回來
+  apiListEntries(function(err,entries){
   if(err){console.warn('雲端讀取失敗',err);return;}
   // 保留本地 pauseTotal、workDay(雲端如果是 0 或空,用本地的)
   var localById={};
@@ -910,38 +995,56 @@ function render(){
       html+='</div>';
     }
 
-    // 待交件提醒列(扁扁的金黃條)· 只看進行中專案
+    // ── 待辦清單 · 從專案的各階段交期算倒數 ──
     var todos=[];
     var todayD=new Date();todayD.setHours(0,0,0,0);
-    var WAIT=['等待素材','待確認','暫緩'];
-    state.projects.filter(function(p){return !p.closed&&p.status!=='Final完成'&&!p.finalDone&&WAIT.indexOf(p.status)<0;}).forEach(function(p){
+    var WAIT_MATERIAL=['等待素材','待確認']; // 素材還沒到手,只看近 5 天
+    var WAIT_SHOW_DAYS=5;
+    state.projects.filter(function(p){
+      if(p.closed||p.status==='Final完成'||p.finalDone)return false;
+      if(p.status==='暫緩')return false; // 暫緩的不出現
+      return true;
+    }).forEach(function(p){
+      var waiting=WAIT_MATERIAL.indexOf(p.status)>=0;
       var stages=[
-        {key:'cut1',done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
-        {key:'v1',done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
-        {key:'biz',done:p.bizDone,due:p.bizDue,skip:p.noBiz,label:'業配'},
-        {key:'final',done:p.finalDone,due:p.finalDue,skip:false,label:'Final'}
+        {done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
+        {done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
+        {done:p.bizDone,due:p.bizDue,skip:p.noBiz,label:'業配'},
+        {done:p.finalDone,due:p.finalDue,skip:false,label:'Final'}
       ];
       stages.forEach(function(s){
         if(s.skip||s.done||!s.due)return;
         var d=new Date(s.due);d.setHours(0,0,0,0);
+        if(isNaN(d.getTime()))return;
         var days=Math.round((d-todayD)/86400000);
-        if(days<-7)return; // 7天以前的不顯示
-        todos.push({name:p.name,client:p.client,stage:s.label,due:s.due,days:days});
+        if(days<-7)return; // 過期超過 7 天的不顯示
+        if(waiting&&days>WAIT_SHOW_DAYS)return; // 未拿到素材:只顯示倒數 5 天內
+        todos.push({name:p.name,client:p.client,stage:s.label,days:days,waiting:waiting,waitLabel:p.status});
       });
     });
     todos.sort(function(a,b){return a.days-b.days;});
     if(todos.length>0){
-      html+='<div class="todo-tiny">';
-      html+='  <span class="todo-tiny-label">📌 待交</span>';
-      var showCount=Math.min(todos.length,3);
-      for(var i=0;i<showCount;i++){
-        var t=todos[i];
-        var cls=t.days<0?'overdue':(t.days<=1?'urgent':(t.days<=5?'soon':'later'));
-        var lbl=t.days<0?Math.abs(t.days)+'天前':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
-        if(i>0)html+='<span class="dot">·</span>';
-        html+='  <span class="todo-tiny-item '+cls+'"><span class="due">'+lbl+'</span><span class="nam">'+t.name+'</span><span class="stage-mini">'+t.stage+'</span></span>';
+      var TODO_FOLD=4; // 預設只攤開最急的幾筆,版面才不會太大
+      var shown=state.todoShowAll?todos.length:Math.min(todos.length,TODO_FOLD);
+      var overdueN=0;
+      todos.forEach(function(t){if(t.days<0)overdueN++;});
+      html+='<div class="todo-sec">';
+      html+='  <div class="todo-sec-head"><span class="t1">待交<span class="en">To Do</span></span>';
+      html+='    <span class="ct">'+todos.length+' 筆'+(overdueN>0?'<b>逾期 '+overdueN+'</b>':'')+'</span></div>';
+      for(var ti=0;ti<shown;ti++){
+        var t=todos[ti];
+        var cls=t.days<0?'od':(t.days<=1?'now':'');
+        var lbl=t.days<0?'逾期'+Math.abs(t.days)+'天':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
+        html+='  <div class="todo-tl '+cls+'">';
+        html+='    <span class="t">'+lbl+'</span>';
+        html+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
+        html+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>';
+        html+='      '+(t.waiting?'<span class="w">'+escAttr(t.waitLabel||'等素材')+'</span>':'')+'</div>';
+        html+='  </div>';
       }
-      if(todos.length>showCount)html+='<span class="more">+'+(todos.length-showCount)+'</span>';
+      if(todos.length>TODO_FOLD){
+        html+='  <button class="todo-more" onclick="state.todoShowAll='+(state.todoShowAll?'false':'true')+';render();">'+(state.todoShowAll?'收起 ▴':'還有 '+(todos.length-shown)+' 筆 ▾')+'</button>';
+      }
       html+='</div>';
     }
     var disabled=!state.shift||!!(state.shift&&state.shift.breakAt);
@@ -1455,9 +1558,13 @@ function render(){
     }
     html+='    <div class="field"><div class="flabel">實工時(分鐘) · Work Min <span style="color:var(--ink-light);font-family:Cormorant Garamond,serif;font-style:italic;font-size:10px">留空=自動算</span></div><input type="number" class="fc" placeholder="例:286 表示 4h 46m" value="'+(typeof f.overrideDurMin==='number'?f.overrideDurMin:'')+'" oninput="var v=this.value.trim();if(v===\'\')delete state.modalForm.overrideDurMin;else state.modalForm.overrideDurMin=parseInt(v)||0;"></div>';
     if(calcDur!=='')html+='    <div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:11.5px;color:var(--yellow-mid);margin-top:-6px;margin-bottom:10px;text-align:right">→ '+fmtDur(calcDur*60000)+'</div>';
+    if(isEdit&&state.delArmed){
+      var delTarget=state.entries.find(function(x){return x.id===f.id;});
+      html+='    <div class="del-warn">確定要刪除這筆紀錄?再按一次「確定刪除」才會生效。<span class="sub">'+escAttr(entryBrief(delTarget))+'</span></div>';
+    }
     html+='    <div class="modal-btns">';
     if(isEdit)html+='      <button class="btn-sub reopen" onclick="reopenEntry(state.modalForm.id)">↩ 復原</button>';
-    if(isEdit)html+='      <button class="btn-sub danger" onclick="deleteFromModal()">刪除</button>';
+    if(isEdit)html+='      <button class="btn-sub danger'+(state.delArmed?' armed':'')+'" onclick="deleteFromModal()">'+(state.delArmed?'確定刪除':'刪除')+'</button>';
     html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
     html+='      <button class="btn-sub primary" onclick="saveModal()">儲存</button>';
     html+='    </div>';
@@ -1465,6 +1572,11 @@ function render(){
     html+='</div>';
   }
 
+  if(pendingDel){
+    var leftSec=Math.max(0,Math.ceil((pendingDel.endsAt-Date.now())/1000));
+    html+='<div class="undo-bar"><span class="u-txt">已刪除 1 筆紀錄<span class="u-sub">'+escAttr(entryBrief(pendingDel.entry))+'</span></span>';
+    html+='<button onclick="event.stopPropagation();undoDelete()">復原 <span id="undo-count">'+leftSec+'</span>s</button></div>';
+  }
   document.getElementById('app').innerHTML=html;
   if(state.editStageId){
     var sel=document.getElementById('ac-stage-'+state.editStageId);
