@@ -58,26 +58,52 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .clock-btn-mini.out{border-color:var(--red);color:var(--red)}
 .clock-btn-mini.out:hover{background:#fcebeb}
 
-/* 待辦 C:時間軸式 */
-.todo-sec{margin-bottom:14px}
-.todo-sec-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:7px}
-.todo-sec-head .t1{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink)}
-.todo-sec-head .t1 .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light);font-weight:300;margin-left:5px}
-.todo-sec-head .ct{font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--ink-light);font-style:italic}
-.todo-sec-head .ct b{font-style:normal;font-family:'Noto Sans TC',sans-serif;font-size:11.5px;color:var(--red);font-weight:500;margin-left:5px}
-.todo-tl{display:grid;grid-template-columns:62px 1fr;gap:9px;padding:2px 0;align-items:center}
-.todo-tl .t{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:var(--ink-light);letter-spacing:0.02em;text-align:right;white-space:nowrap}
-.todo-tl.od .t{color:var(--red);font-weight:500}
-.todo-tl.now .t{color:var(--ink);font-weight:500}
-.todo-tl .b{display:flex;align-items:baseline;gap:9px;background:var(--yellow-lightest);border-left:2px solid var(--yellow);padding:7px 10px;border-radius:0 3px 3px 0;min-width:0}
-.todo-tl.od .b{background:#fcecec;border-left-color:var(--red)}
-.todo-tl.now .b{border-left-color:var(--yellow-mid)}
-.todo-tl .b .n{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.todo-tl .b .sg{flex:0 0 auto;min-width:38px;font-family:Inter,'Noto Sans TC',sans-serif;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;color:var(--yellow-mid);font-weight:500}
-.todo-tl.od .b .sg{color:var(--red)}
-.todo-tl .b .w{margin-left:auto;padding-left:8px;white-space:nowrap;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:11.5px;color:var(--ink-light)}
-.todo-more{background:none;border:none;padding:8px 0 0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12.5px;color:var(--yellow-mid);cursor:pointer;letter-spacing:0.02em}
-.todo-more:hover{text-decoration:underline}
+/* 待辦 · 右側可收合面板 */
+.todo-panel{position:fixed;top:30px;right:18px;z-index:400;width:min(292px,calc(100vw - 28px));max-height:calc(100vh - 60px);display:flex;flex-direction:column;background:rgba(250,250,247,0.68);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(255,255,255,0.65);outline:1px solid rgba(229,231,237,0.55);border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 18px 48px rgba(180,140,40,0.16)}
+/* 瀏覽器不支援毛玻璃時,改成幾乎不透明,避免字糊掉 */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .todo-panel,.todo-tab{background:rgba(250,250,247,0.97)}
+}
+.todo-panel-head{display:flex;align-items:baseline;gap:8px;padding:12px 14px 9px;border-bottom:1px solid rgba(229,231,237,0.7);flex:0 0 auto}
+.todo-panel-head .t1{font-family:'Noto Serif TC',serif;font-size:13.5px;font-weight:500;color:var(--ink)}
+.todo-panel-head .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--ink-light);font-weight:300}
+.todo-panel-head .ct{margin-left:auto;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--ink-light)}
+.todo-panel-head .ct b{font-style:normal;font-family:'Noto Sans TC',sans-serif;font-size:11px;color:var(--red);font-weight:500;margin-left:5px}
+.todo-panel-head .x{background:none;border:none;cursor:pointer;color:var(--ink-light);font-size:15px;line-height:1;padding:0 0 0 4px;font-family:Inter,sans-serif}
+.todo-panel-head .x:hover{color:var(--yellow-mid)}
+.todo-panel-body{overflow-y:auto;padding:8px 12px 12px}
+.todo-panel-body::-webkit-scrollbar{width:5px}
+.todo-panel-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+
+.tp-it{border-left:2px solid var(--yellow);background:rgba(255,251,236,0.55);border-radius:0 3px 3px 0;padding:7px 10px;margin-bottom:5px}
+.tp-it.od{border-left-color:var(--red);background:rgba(252,236,236,0.62)}
+.tp-it.now{border-left-color:var(--yellow-mid)}
+.tp-it .n{font-family:'Noto Serif TC',serif;font-size:12.5px;line-height:1.45;color:var(--ink);word-break:break-all}
+.tp-it .m{display:flex;align-items:baseline;gap:7px;margin-top:3px}
+.tp-it .sg{font-family:Inter,'Noto Sans TC',sans-serif;font-size:9.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--yellow-mid);font-weight:500}
+.tp-it.od .sg{color:var(--red)}
+.tp-it .d{font-family:'Noto Sans TC',sans-serif;font-size:11px;color:var(--ink-light)}
+.tp-it.od .d{color:var(--red);font-weight:500}
+.tp-it.now .d{color:var(--ink);font-weight:500}
+.tp-it .w{margin-left:auto;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:10.5px;color:var(--ink-light);white-space:nowrap}
+.tp-empty{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--ink-light);text-align:center;padding:18px 0}
+
+/* 收起後的小標籤 */
+.todo-tab{position:fixed;top:30px;right:0;z-index:400;display:flex;align-items:center;gap:7px;background:rgba(250,250,247,0.70);backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);border:1px solid rgba(255,255,255,0.6);border-right:none;border-radius:5px 0 0 5px;padding:9px 13px 9px 15px;cursor:pointer;font-family:'Noto Serif TC',serif;font-size:12.5px;color:var(--ink-soft);letter-spacing:0.06em;box-shadow:0 2px 14px rgba(180,140,40,0.14);white-space:nowrap}
+.todo-tab:hover{background:rgba(255,251,236,0.85);color:var(--yellow-mid)}
+.todo-tab .num{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--yellow-mid);letter-spacing:0}
+.todo-tab .num.od{color:var(--red);font-weight:500}
+.todo-tab .ar{font-family:Inter,sans-serif;font-size:10px;color:var(--ink-light)}
+/* 窄螢幕:標籤改成浮在右下角,不會壓到卡片 */
+@media (max-width:1180px){
+  .todo-tab{top:auto;bottom:18px;right:16px;border-right:1px solid var(--line);border-radius:4px}
+}
+
+/* 視窗不夠寬時,面板改成蓋在上面 */
+.todo-backdrop{display:none}
+@media (max-width:1180px){
+  .todo-backdrop{display:block;position:fixed;inset:0;background:rgba(26,31,46,0.18);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:390}
+}
 /* 扁扁的待交件提醒列(舊版單行,已改用上面的 todo-box)*/
 .todo-tiny{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:6px 10px;margin-bottom:12px;font-size:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .todo-tiny-label{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.18em;color:var(--ink-light);text-transform:uppercase;font-weight:500;white-space:nowrap}
@@ -312,7 +338,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 <script>
 var API="/api/notion",USE_API=true;
-var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2',SHIFT_KEY='timeTrackerShift_v2',SHIFTS_KEY='timeTrackerShifts_v2';
+var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2',SHIFT_KEY='timeTrackerShift_v2',SHIFTS_KEY='timeTrackerShifts_v2',TODOPANEL_KEY='timeTrackerTodoPanel_v1';
 function ls_get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
 function ls_set(k,v){localStorage.setItem(k,JSON.stringify(v));}
 function uid(){return 'e'+Date.now()+Math.random().toString(36).slice(2,7);}
@@ -357,6 +383,75 @@ function entryDur(e){
 function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function stageLabel(s){return s||'其他';}
+// ── 待辦 · 從專案的各階段交期算倒數 ──
+var WAIT_MATERIAL=['等待素材','待確認']; // 素材還沒到手,只看近 5 天
+var WAIT_SHOW_DAYS=5;
+function computeTodos(){
+  var todos=[];
+  var todayD=new Date();todayD.setHours(0,0,0,0);
+  state.projects.filter(function(p){
+    if(p.closed||p.status==='Final完成'||p.finalDone)return false;
+    if(p.status==='暫緩')return false; // 暫緩的不出現
+    return true;
+  }).forEach(function(p){
+    var waiting=WAIT_MATERIAL.indexOf(p.status)>=0;
+    var stages=[
+      {done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
+      {done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
+      {done:p.bizDone,due:p.bizDue,skip:p.noBiz,label:'業配'},
+      {done:p.finalDone,due:p.finalDue,skip:false,label:'Final'}
+    ];
+    stages.forEach(function(st){
+      if(st.skip||st.done||!st.due)return;
+      var d=new Date(st.due);d.setHours(0,0,0,0);
+      if(isNaN(d.getTime()))return;
+      var days=Math.round((d-todayD)/86400000);
+      if(days<-7)return; // 過期超過 7 天的不顯示
+      if(waiting&&days>WAIT_SHOW_DAYS)return; // 未拿到素材:只顯示倒數 5 天內
+      todos.push({name:p.name,client:p.client,stage:st.label,days:days,waiting:waiting,waitLabel:p.status});
+    });
+  });
+  todos.sort(function(a,b){return a.days-b.days;});
+  return todos;
+}
+function toggleTodoPanel(){
+  state.todoPanelOpen=!state.todoPanelOpen;
+  ls_set(TODOPANEL_KEY,state.todoPanelOpen);
+  render();
+}
+function todoPanelHtml(){
+  var todos=computeTodos();
+  if(todos.length===0&&!state.todoPanelOpen)return '';
+  var overdueN=0;
+  todos.forEach(function(t){if(t.days<0)overdueN++;});
+  var h='';
+  if(!state.todoPanelOpen){
+    h+='<div class="todo-tab" onclick="toggleTodoPanel()" title="展開待交清單"><span class="ar">‹</span>待交';
+    h+='<span class="num'+(overdueN>0?' od':'')+'">'+todos.length+'</span></div>';
+    return h;
+  }
+  h+='<div class="todo-backdrop" onclick="toggleTodoPanel()"></div>';
+  h+='<aside class="todo-panel">';
+  h+='  <div class="todo-panel-head"><span class="t1">待交</span><span class="en">To Do</span>';
+  h+='    <span class="ct">'+todos.length+' 筆'+(overdueN>0?'<b>逾期 '+overdueN+'</b>':'')+'</span>';
+  h+='    <button class="x" onclick="toggleTodoPanel()" title="收起">×</button></div>';
+  h+='  <div class="todo-panel-body">';
+  if(todos.length===0){
+    h+='    <div class="tp-empty">目前沒有待交件</div>';
+  } else {
+    todos.forEach(function(t){
+      var cls=t.days<0?'od':(t.days<=1?'now':'');
+      var lbl=t.days<0?'逾期 '+Math.abs(t.days)+' 天':(t.days===0?'今天':(t.days===1?'明天':t.days+' 天後'));
+      h+='    <div class="tp-it '+cls+'">';
+      h+='      <div class="n">'+escAttr(t.name||'(無名)')+'</div>';
+      h+='      <div class="m"><span class="sg">'+escAttr(t.stage)+'</span><span class="d">'+lbl+'</span>';
+      h+=(t.waiting?'<span class="w">'+escAttr(t.waitLabel||'等素材')+'</span>':'')+'</div>';
+      h+='    </div>';
+    });
+  }
+  h+='  </div></aside>';
+  return h;
+}
 function isOtherWork(e){return e&&(e.projectId==='__other__'||e.stage==='其他工作');}
 
 function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
@@ -400,7 +495,7 @@ var state={
   dailyMonth:todayKey().slice(0,7), // 'YYYY-MM' 日誌頁當前查看月份
   dailySelectedDay:null, // 'YYYY-MM-DD' 日誌頁選中的某天
   reportShowAll:false, // Report 是否展開全部月份
-  todoShowAll:false, // 首頁待辦是否展開全部
+  todoPanelOpen:(function(){var v=ls_get(TODOPANEL_KEY);return v===null?(typeof window!=='undefined'&&window.innerWidth?window.innerWidth>=1180:true):!!v;})(), // 右側待辦面板開著嗎(窄螢幕預設收起)
   shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD', breakAt:?, breakTotal:0}
   shifts:ls_get(SHIFTS_KEY)||[], // 歷史 shift 紀錄 [{workDay, startAt, endAt}]
   active:ls_get(ACTIVE_KEY)||[],
@@ -995,58 +1090,6 @@ function render(){
       html+='</div>';
     }
 
-    // ── 待辦清單 · 從專案的各階段交期算倒數 ──
-    var todos=[];
-    var todayD=new Date();todayD.setHours(0,0,0,0);
-    var WAIT_MATERIAL=['等待素材','待確認']; // 素材還沒到手,只看近 5 天
-    var WAIT_SHOW_DAYS=5;
-    state.projects.filter(function(p){
-      if(p.closed||p.status==='Final完成'||p.finalDone)return false;
-      if(p.status==='暫緩')return false; // 暫緩的不出現
-      return true;
-    }).forEach(function(p){
-      var waiting=WAIT_MATERIAL.indexOf(p.status)>=0;
-      var stages=[
-        {done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
-        {done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
-        {done:p.bizDone,due:p.bizDue,skip:p.noBiz,label:'業配'},
-        {done:p.finalDone,due:p.finalDue,skip:false,label:'Final'}
-      ];
-      stages.forEach(function(s){
-        if(s.skip||s.done||!s.due)return;
-        var d=new Date(s.due);d.setHours(0,0,0,0);
-        if(isNaN(d.getTime()))return;
-        var days=Math.round((d-todayD)/86400000);
-        if(days<-7)return; // 過期超過 7 天的不顯示
-        if(waiting&&days>WAIT_SHOW_DAYS)return; // 未拿到素材:只顯示倒數 5 天內
-        todos.push({name:p.name,client:p.client,stage:s.label,days:days,waiting:waiting,waitLabel:p.status});
-      });
-    });
-    todos.sort(function(a,b){return a.days-b.days;});
-    if(todos.length>0){
-      var TODO_FOLD=4; // 預設只攤開最急的幾筆,版面才不會太大
-      var shown=state.todoShowAll?todos.length:Math.min(todos.length,TODO_FOLD);
-      var overdueN=0;
-      todos.forEach(function(t){if(t.days<0)overdueN++;});
-      html+='<div class="todo-sec">';
-      html+='  <div class="todo-sec-head"><span class="t1">待交<span class="en">To Do</span></span>';
-      html+='    <span class="ct">'+todos.length+' 筆'+(overdueN>0?'<b>逾期 '+overdueN+'</b>':'')+'</span></div>';
-      for(var ti=0;ti<shown;ti++){
-        var t=todos[ti];
-        var cls=t.days<0?'od':(t.days<=1?'now':'');
-        var lbl=t.days<0?'逾期'+Math.abs(t.days)+'天':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
-        html+='  <div class="todo-tl '+cls+'">';
-        html+='    <span class="t">'+lbl+'</span>';
-        html+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-        html+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>';
-        html+='      '+(t.waiting?'<span class="w">'+escAttr(t.waitLabel||'等素材')+'</span>':'')+'</div>';
-        html+='  </div>';
-      }
-      if(todos.length>TODO_FOLD){
-        html+='  <button class="todo-more" onclick="state.todoShowAll='+(state.todoShowAll?'false':'true')+';render();">'+(state.todoShowAll?'收起 ▴':'還有 '+(todos.length-shown)+' 筆 ▾')+'</button>';
-      }
-      html+='</div>';
-    }
     var disabled=!state.shift||!!(state.shift&&state.shift.breakAt);
     html+='<div class="punch-card'+(disabled?' disabled':'')+'">';
     if(disabled){
@@ -1571,6 +1614,8 @@ function render(){
     html+='  </div>';
     html+='</div>';
   }
+
+  html+=todoPanelHtml();
 
   if(pendingDel){
     var leftSec=Math.max(0,Math.ceil((pendingDel.endsAt-Date.now())/1000));
