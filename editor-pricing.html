@@ -935,6 +935,12 @@ function fmtSchedDate(val) {
 // 報價說明文字（依服務類型；D 方案沒有這組說明）
 // 基本方案的內容說明（放在明細第一列下方）
 function baseNotes(planKey, type, baseMins) {
+  if (planKey === 'D' && type === 'post') {
+    return [
+      '影片成片 1m ／ 1m 後每 1m + $1,000（未稅）',
+      '0.5m 以 1m 計算',
+    ];
+  }
   if (planKey === 'D' || !type) return [];
   const m = baseMins || 10;
   if (type === 'full') {
@@ -2114,13 +2120,17 @@ function calculate() {
 
   const total = base + overtime + adPlaceCharge + urgentFee + footageCharge + multicamCharge + coverCharge + customTotal + rushFee;
 
+  // 工商：置入費直接併進方案價顯示（例如 B 工商 $13,000），不另列一行；設為贈送時才分開列
+  const adMerged = adPlaceFee > 0 && !g.adplace;
+  const shownBase = base + (adMerged ? adPlaceFee : 0);
+
   // Breakdown rows
   let rows = [];
   rows.push({
     label: typeLabel(state.plan, state.type) + ' ' + baseMins + ' 分鐘' +
-           '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）',
+           (isReels ? '' : '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）'),
     note: baseNotes(state.plan, state.type, baseMins).map(t => ({ align: 'left', segs: [{ t: t, c: 'user' }] })),
-    amt: base, cls: 'highlight'
+    amt: shownBase, cls: 'highlight'
   });
 
   // 超時／加購：確定發生的計入明細，未發生的只列費率（浮動項目）
@@ -2192,7 +2202,7 @@ function calculate() {
       }
     }
   }
-  if (adPlaceFee) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
+  if (adPlaceFee && !adMerged) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
   if (rushFee > 0) {
     rows.push({
       label: '滿檔插單費',
@@ -2320,8 +2330,8 @@ function calculate() {
   // Quote text
   let quote = projName ? '【' + projName + '_報價】\n' : '【剪輯報價】\n';
   quote += typeLabel(state.plan, state.type) +
-           '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）　預估片長 ' + durLabel + '\n\n';
-  quote += '基本報價：' + fmt(base) + '\n';
+           (isReels ? '' : '（' + (state.projType === 'ad' ? '工商' : '非工商') + '）') + '　預估片長 ' + durLabel + '\n\n';
+  quote += '基本報價：' + fmt(shownBase) + '\n';
   if (overtime <= 0) quote += '超時費：' + fmt(OVERTIME_RATE) + ' / 1m（成片超過 ' + baseMins + 'm 後加收）\n';
   quote += '\n';
   // Extra items
@@ -2336,7 +2346,7 @@ function calculate() {
     if (isGift) giftLines.push(label + '：' + fmt(amt) + ' → 本次贈送' + tail);
     else extraLines.push(label + '：+' + fmt(amt) + tail);
   };
-  pushExtra('工商置入', adPlaceFee, g.adplace, noteOf('adplace'));
+  if (!adMerged) pushExtra('工商置入', adPlaceFee, g.adplace, noteOf('adplace'));
   pushExtra('毛片超時 ' + footageHours + 'hr', footageFee, g.footage, noteOf('footage'));
   pushExtra('多機位 ' + state.cameraCount + ' 機', multicamFee, g.multicam, noteOf('multicam'));
   if (!state.coverPending) pushExtra(coverLabel, coverFee, g.cover, noteOf('cover'));
