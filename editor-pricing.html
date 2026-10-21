@@ -792,9 +792,11 @@ input::placeholder { color: var(--text-dim); }
         <div class="t-sub" id="t-sub-row">
           <span class="t-sub-label">未稅</span>
           <span class="t-sub-amount" id="total-amount">—</span>
+          <span class="t-sub-label" style="margin-left:14px">營業稅 5%</span>
+          <span class="t-sub-amount" id="total-tax-amount">—</span>
         </div>
         <div class="t-main">
-          <span class="t-main-label" id="t-main-label">含稅 ＋5%</span>
+          <span class="t-main-label" id="t-main-label">含稅</span>
           <span class="t-amount" id="total-main-amount">—</span>
         </div>
       </div>
@@ -1435,7 +1437,7 @@ function drawQuoteCard(q, mode) {
   const ROW_H = 58;
   const ROW_H_NOTE = 80;
   const HEAD_H = 131;
-  const TOTAL_H = 82;
+  const TOTAL_H = q.showTax ? 112 : 82;
   const FOOT_H = 68;
   const NOTE_LH = 26;
 
@@ -1672,7 +1674,7 @@ function drawQuoteCard(q, mode) {
   // 總計
   c.fillStyle = '#faf9f7';
   c.fillRect(PAD - 18, y, W - (PAD - 18) * 2, TOTAL_H - 18);
-  const mainY = y + 42;
+  const mainY = y + (q.showTax ? 58 : 42);
 
   c.fillStyle = MID;
   c.font = '500 14px ' + SANS;
@@ -1690,33 +1692,35 @@ function drawQuoteCard(q, mode) {
     c.fillText(q.durLabel, PAD + c.measureText(lab).width + 6, mainY + 10);
   }
 
-  // 一行排完：未稅在前，含稅在後
+  // 含稅時：上一行小字列「未稅＋營業稅」，下一行大字含稅總額
   c.textAlign = 'right';
-  let x = W - PAD;
+  const RX = W - PAD;
+  const amtY = q.showTax ? mainY + 14 : mainY;
 
   c.fillStyle = ACCENT;
   c.font = '700 32px ' + MONO;
   const mainAmt = fmt(q.showTax ? q.totalTax : q.total);
-  c.fillText(mainAmt, x, mainY);
-  x -= c.measureText(mainAmt).width + 10;
-
+  c.fillText(mainAmt, RX, amtY);
+  let x = RX - c.measureText(mainAmt).width - 10;
   c.fillStyle = MID;
   c.font = '500 13.5px ' + SANS;
-  const mainLbl = q.showTax ? '含稅 ＋5%' : '未稅';
-  c.fillText(mainLbl, x, mainY);
-  x -= c.measureText(mainLbl).width + 22;
+  c.fillText(q.showTax ? '含稅' : '未稅', x, amtY);
 
   if (q.showTax) {
-    c.fillStyle = ACCENT2;
-    c.font = '400 18px ' + MONO;
-    c.fillText(fmt(q.total), x, mainY);
-    x -= c.measureText(fmt(q.total)).width + 8;
-    c.font = '400 13.5px ' + SANS;
-    c.fillText('未稅', x, mainY);
+    const subY = amtY - 34;
+    const parts = [
+      ['未稅 ', SANS, '400 13px '], [fmt(q.total), MONO, '400 15px '],
+      ['　＋　營業稅 5% ', SANS, '400 13px '], [fmt(q.totalTax - q.total), MONO, '400 15px ']
+    ];
+    x = RX;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      c.font = parts[i][2] + parts[i][1];
+      c.fillStyle = parts[i][1] === MONO ? ACCENT2 : DIM;
+      c.fillText(parts[i][0], x, subY);
+      x -= c.measureText(parts[i][0]).width;
+    }
   }
   c.textAlign = 'left';
-
-
 
   y += TOTAL_H;
 
@@ -2271,8 +2275,9 @@ function calculate() {
   const totalTax = Math.round(total * 1.05);
   const showTax = state.showTax;
   document.getElementById('t-sub-row').style.display = showTax ? 'flex' : 'none';
-  document.getElementById('t-main-label').textContent = showTax ? '含稅 ＋5%' : '未稅';
+  document.getElementById('t-main-label').textContent = showTax ? '含稅' : '未稅';
   document.getElementById('total-amount').textContent = fmt(total);
+  document.getElementById('total-tax-amount').textContent = '＋' + fmt(totalTax - total);
   document.getElementById('total-main-amount').textContent = fmt(showTax ? totalTax : total);
   document.getElementById('total-duration-label').textContent = durLabel;
 
@@ -2356,7 +2361,7 @@ function calculate() {
     quote += '\n【本次贈送】\n' + giftLines.map(l => '・' + l).join('\n') + '\n\n';
   }
   quote += showTax
-    ? '總報價：' + fmt(totalTax) + '（含稅）／ ' + fmt(total) + '（未稅）\n'
+    ? '未稅：' + fmt(total) + '\n營業稅 5%：+' + fmt(totalTax - total) + '\n總報價：' + fmt(totalTax) + '（含稅）\n'
     : '總報價：' + fmt(total) + '\n';
   // Schedule
   const CREATOR = creatorName();
