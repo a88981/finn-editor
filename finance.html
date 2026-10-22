@@ -313,6 +313,9 @@ function InvoiceModal(props){
   var projIds=projs.map(function(p){return p.id;});
   var pTotal=projs.reduce(function(a,p){return a+props.totalOf(p);},0);
   var vTotal=drafts.reduce(function(a,d){return a+(Number(d.net)||0);},0);
+  // 稅是一張一張算完再加，跟實際開出來的發票一致
+  var vatTotal=drafts.reduce(function(a,d){
+    return a+Math.round((Number(d.net)||0)*VAT_RATE);},0);
   var diff=vTotal-pTotal;
 
   function setRow(i,k,v){
@@ -429,6 +432,16 @@ function InvoiceModal(props){
                     fontFamily:"inherit",whiteSpace:"nowrap"}},"補差額")
               ))
           ),
+          (function(){
+            var n=Number(d.net)||0,t=Math.round(n*VAT_RATE);
+            return h("div",{style:{display:"flex",justifyContent:"flex-end",gap:14,
+                marginTop:-3,marginBottom:9,fontSize:11,color:C.txt3}},
+              h("span",null,"稅額 5%　",
+                h("span",{className:"num",style:{color:C.wrn,fontWeight:700}},NT(t))),
+              h("span",null,"發票總金額　",
+                h("span",{className:"num",style:{color:C.txt,fontWeight:700}},NT(n+t)))
+            );
+          })(),
           h("div",{style:{display:"grid",gridTemplateColumns:"124px 1fr",gap:8}},
             h("div",null,h("div",{style:lbl},"買方統編"),
               h("input",{style:Object.assign({},inp2,{fontFamily:"Inter,sans-serif"}),
@@ -472,8 +485,14 @@ function InvoiceModal(props){
           h("span",{style:{color:C.txt2}},"案子總額"),
           h("span",{className:"num"},NT(pTotal))),
         h("div",{style:{display:"flex",justifyContent:"space-between"}},
-          h("span",{style:{color:C.txt2}},"發票加總　"+drafts.length+" 張"),
+          h("span",{style:{color:C.txt2}},"發票加總　"+drafts.length+" 張（未稅）"),
           h("span",{className:"num",style:{fontWeight:700}},NT(vTotal))),
+        h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:3}},
+          h("span",{style:{color:C.txt2}},"營業稅 5%"),
+          h("span",{className:"num",style:{color:C.wrn,fontWeight:700}},NT(vatTotal))),
+        h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:3}},
+          h("span",{style:{color:C.txt2,fontWeight:700}},"發票總金額（含稅）"),
+          h("span",{className:"num",style:{fontWeight:700}},NT(vTotal+vatTotal))),
         h("div",{style:{marginTop:7,paddingTop:7,borderTop:"1px solid "
             +(diff===0?"#c8e0c8":"#e0c0c0"),fontWeight:700,
             color:diff===0?C.ok:C.err,fontSize:12}},
@@ -1929,8 +1948,10 @@ function App(){
     invoices.forEach(function(v){
       (v.projectIds||[]).forEach(function(id){coveredIds[id]=true;});
     });
+    // 只有做完（Final）的案子才會出現在待開立，製作中的不算
     var pendProjects=projects.filter(function(p){
-      return p.invoice&&!coveredIds[p.id];})
+      return p.invoice&&!coveredIds[p.id]
+        &&String(p.status||"").indexOf("Final")>=0;})
       .sort(function(a,b){return String(a.month||"").localeCompare(String(b.month||""));});
 
     function projOf(id){
