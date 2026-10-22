@@ -80,10 +80,11 @@ function isCogs(e){return acctType(e.account)==="成本"||!!e.project;}
 
 // ── 事業別 ────────────────────────────────────────────────────────
 // 共用一個統編出帳，但各自算損益。共同費用不分攤，單獨一列。
-var UNITS=["小玩","暖暖","占卜","共同"];
+var UNITS=["小玩","暖暖","占卜","代開","共同"];
 // 客戶名稱包含左邊的字，該案子就歸右邊的事業；沒對到的一律算小玩
 var CLIENT_UNIT={"暖暖":"暖暖","Ooniau":"暖暖"};
 function unitOfProject(p){
+  if(p.proxy)return "代開";
   var c=String(p.client||"");
   var keys=Object.keys(CLIENT_UNIT);
   for(var i=0;i<keys.length;i++)if(c.indexOf(keys[i])>=0)return CLIENT_UNIT[keys[i]];
@@ -523,7 +524,11 @@ function App(){
   // 損益表結構：收入 − 成本 = 毛利；毛利 − 費用 = 淨利
   // 有掛案子的支出算「成本」，沒掛的算「費用」
   function plOf(m){
-    var inc=sumIncome(projectsOf(m)),me=expensesOf(m);
+    var mp=projectsOf(m),me=expensesOf(m);
+    // 代開：發票是你開的，但錢不是你的，不列入自己的損益
+    var inc=sumIncome(mp.filter(function(p){return !p.proxy;}));
+    var proxyGross=mp.filter(function(p){return !!p.proxy;})
+      .reduce(function(s,p){return s+calcIncome(p).gross;},0);
     var cogsByAcct={},byAcct={};
     me.forEach(function(e){
       var c=calcExpense(e);
@@ -534,7 +539,8 @@ function App(){
     var cogsExtra=Object.keys(cogsByAcct).reduce(function(s,k){return s+cogsByAcct[k];},0);
     var cogs=inc.cost+cogsExtra;
     var opex=Object.keys(byAcct).reduce(function(s,k){return s+byAcct[k];},0);
-    return {inc:inc,revenue:inc.gross,cogs:cogs,cogsExtra:cogsExtra,cogsByAcct:cogsByAcct,
+    return {inc:inc,revenue:inc.gross,proxy:proxyGross,
+            cogs:cogs,cogsExtra:cogsExtra,cogsByAcct:cogsByAcct,
             grossProfit:inc.gross-cogs,byAcct:byAcct,opex:opex,
             net:inc.gross-cogs-opex};
   }
@@ -645,8 +651,9 @@ function App(){
     // 依客戶彙總收入
     var byClient={};
     mp.forEach(function(p){var c=calcIncome(p);var k=p.client||"—";
-      if(!byClient[k])byClient[k]={gross:0,n:0,items:[]};
+      if(!byClient[k])byClient[k]={gross:0,n:0,items:[],proxy:false};
       byClient[k].gross+=c.gross;byClient[k].n++;
+      if(p.proxy)byClient[k].proxy=true;
       byClient[k].items.push({p:p,c:c});});
     var clientRows=Object.keys(byClient).map(function(k){return {name:k,v:byClient[k]};})
       .sort(function(a,b){return b.v.gross-a.v.gross;});
@@ -685,14 +692,24 @@ function App(){
             h("span",{className:"num",style:{fontSize:28,fontWeight:600,lineHeight:1.1,
               color:profit>=0?C.ok:C.err}},NT(profit))
           ),
+          pl.proxy>0&&h("div",{style:{marginTop:10,paddingTop:9,
+              borderTop:"1px dashed "+C.brd2,display:"flex",
+              justifyContent:"space-between",alignItems:"baseline"}},
+            h("span",{style:{fontSize:11.5,color:C.txt3}},"代開發票（非本人收入）"),
+            h("span",{className:"num",style:{fontSize:15,color:C.txt3}},NT(pl.proxy))
+          ),
           h("div",{style:{fontSize:10.5,color:C.txt3,marginTop:8,lineHeight:1.6}},
-            "扣繳的 10% 不算在成本裡，它是預繳的稅，年度結算時可以抵。")
+            pl.proxy>0
+              ? "代開的金額不算你的收入，但發票是你開的，營業稅照繳。扣繳的 10% 是預繳的稅，年度結算可抵。"
+              : "扣繳的 10% 不算在成本裡，它是預繳的稅，年度結算時可以抵。")
         ),
         (function(){
           var cells=[
-            {label:"開立發票（含稅）",value:inc.gross+inc.vat,color:C.wrn,hint:"銷項稅額 "+NT(inc.vat)},
+            {label:"開立發票（含稅）",value:inc.gross+inc.vat,color:C.wrn,
+             hint:(pl.proxy>0?"含代開　":"")+"銷項稅額 "+NT(inc.vat)},
             {label:"被扣繳 10%",value:inc.withhold,color:C.txt2,hint:"年度結算可抵繳"},
-            {label:"實際入帳現金",value:cashIn,color:C.ok,hint:"含稅收入減掉扣繳"},
+            {label:"實際入帳現金",value:cashIn,color:C.ok,
+             hint:pl.proxy>0?"含代開，要再轉出去":"含稅收入減掉扣繳"},
             {label:"營運支出（實付）",value:exp.paid,color:C.err,hint:"進項稅額 "+NT(exp.inputVat)}
           ];
           return h("div",{style:{background:C.card,border:"1px solid "+C.brd,borderRadius:6,
@@ -777,7 +794,10 @@ function App(){
                       padding:"7px 14px",background:"#fdfcf8",borderBottom:"0.5px solid "+C.brd,
                       borderTop:"0.5px solid "+C.brd}},
                     h("span",{style:{fontWeight:700,color:C.txt2,fontSize:12}},r.name,
-                      h("span",{style:{color:C.txt3,fontWeight:400,marginLeft:6,fontSize:10.5}},r.v.n+" 件")),
+                      h("span",{style:{color:C.txt3,fontWeight:400,marginLeft:6,fontSize:10.5}},r.v.n+" 件"),
+                      r.v.proxy&&h("span",{style:{marginLeft:6,fontSize:9.5,color:C.txt3,
+                        background:C.card2,border:"1px solid "+C.brd,borderRadius:3,
+                        padding:"1px 5px",fontWeight:400}},"代開")),
                     h("span",{className:"num",style:{fontSize:14,color:C.ok,fontWeight:600}},NT(r.v.gross))
                   ),
                   r.v.items.map(function(it){
@@ -1327,6 +1347,9 @@ function App(){
                   h("div",{className:"serif",style:{fontSize:13,
                     whiteSpace:cv?"normal":"nowrap",
                     overflow:cv?"visible":"hidden",textOverflow:"ellipsis"}},p.name||"—"),
+                  !cv&&p.proxy&&h("span",{style:{fontSize:9.5,borderRadius:3,padding:"1px 5px",
+                    marginTop:2,marginRight:5,display:"inline-block",color:C.txt3,
+                    background:C.card2,border:"1px solid "+C.brd}},"代開"),
                   !cv&&p.invoice&&h("span",{style:{fontSize:9.5,borderRadius:3,padding:"1px 5px",
                     marginTop:2,display:"inline-block",
                     color:p.invoiced?"#2f6f4a":"#b35f10",
@@ -1544,6 +1567,8 @@ function App(){
       acctNames.forEach(function(n){push("　"+n,function(c){return c.byAcct[n]||0;});});
       push("營業費用合計",function(c){return c.opex;});
       push("本期淨利",function(c){return c.net;});
+      if(cols.some(function(c){return c.proxy>0;}))
+        push("（代開）非本人收入",function(c){return c.proxy;});
       push("（另計）被扣繳10%",function(c){return c.inc.withhold;});
       downloadCSV("損益表_"+STUDIO.name+"_"+year+".csv",rows);
     }
@@ -1586,6 +1611,9 @@ function App(){
               }),
           row("營業費用合計",function(c){return c.opex;},{color:C.err}),
           row("本期淨利",function(c){return c.net;},{strong:true,band:true,color:C.txt}),
+          cols.some(function(c){return c.proxy>0;})
+            ? row("（代開）非本人收入",function(c){return c.proxy;},{indent:true})
+            : null,
           row("（另計）被扣繳 10%",function(c){return c.inc.withhold;},{indent:true})
         )
       ),
@@ -1727,8 +1755,8 @@ function App(){
                   h("div",{style:{minWidth:0}},
                     h("div",{className:"serif",style:{fontSize:13,whiteSpace:"nowrap",overflow:"hidden",
                       textOverflow:"ellipsis"}},p.name||"—"),
-                    p.month&&h("div",{style:{fontSize:10,color:C.txt3,marginTop:1}},
-                      "工作月份 "+p.month.slice(5)+"月")
+                    h("div",{style:{fontSize:10,color:C.txt3,marginTop:1}},
+                      (p.proxy?"代開　":"")+(p.month?"工作月份 "+p.month.slice(5)+"月":""))
                   ),
                   h("input",{value:p.invoiceNo||"",placeholder:"缺號碼",
                     onChange:function(ev){setInvoiceNo(p,ev.target.value.toUpperCase());},
