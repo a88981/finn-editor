@@ -419,6 +419,8 @@ function pageToProject(page) {
     invoice: chk("含稅"),
     invoiced: chk("已開立"),
     invoiceDate: dt("開票日"),
+    invoiceNo: txt("發票號碼"),
+    proxy: chk("代開"),
     feeItems: (function(){try{var r=txt("額外資料");if(r)return JSON.parse(r).feeItems||[];}catch(e){}return[];}()),
     costItems: (function(){try{var r=txt("額外資料");if(r)return JSON.parse(r).costItems||[];}catch(e){}return[];}()),
     overRate: (function(){try{var r=txt("額外資料");if(r){var ex=JSON.parse(r);return ex.overRate!==undefined?ex.overRate:850;}}catch(e){}return 850;}()),
@@ -468,6 +470,8 @@ function projectToProperties(p) {
     "含稅":      { checkbox: !!p.invoice },
     "已開立":    { checkbox: !!p.invoiced },
     "開票日":    { date: date(p.invoiceDate) },
+    "發票號碼":  { rich_text: richText(p.invoiceNo || "") },
+    "代開":      { checkbox: !!p.proxy },
     "已結案":    { checkbox: !!p.closed },
     "備註":      { rich_text: richText(p.note || "") },
     "看板位置":  { number: p.kanbanPos !== null && p.kanbanPos !== undefined ? p.kanbanPos : null },
@@ -512,6 +516,7 @@ function expensePageToEntry(page) {
     hasInvoice: chk("有發票"),
     invoiceNo: txt("發票號碼"),
     project: txt("關聯案子"),
+    unit: sel("事業別") || "共同",
     note: txt("備註"),
   };
 }
@@ -526,6 +531,7 @@ function expenseToProps(e) {
     "有發票":   { checkbox: !!e.hasInvoice },
     "發票號碼": { rich_text: richText(e.invoiceNo || "") },
     "關聯案子": { rich_text: richText(e.project || "") },
+    "事業別":   { select: e.unit ? { name: e.unit } : null },
     "備註":     { rich_text: richText(e.note || "") },
   };
 }
