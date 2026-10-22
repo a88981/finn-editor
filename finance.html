@@ -59,15 +59,13 @@ var ACCOUNTS=[
 
   {name:"軟體訂閱",   type:"費用", group:"軟體與設備"},
   {name:"設備器材",   type:"費用", group:"軟體與設備"},
-  {name:"租金",       type:"費用", group:"場地與水電"},
-  {name:"水電網路",   type:"費用", group:"場地與水電"},
+  {name:"牌卡道具",   type:"費用", group:"占卜用品"},
+  {name:"水電網路",   type:"費用", group:"場地水電"},
   {name:"交通差旅",   type:"費用", group:"交通與交際"},
   {name:"餐費招待",   type:"費用", group:"交通與交際"},
   {name:"廣告行銷",   type:"費用", group:"行銷"},
-  {name:"網站網域",   type:"費用", group:"行銷"},
   {name:"手續費",     type:"費用", group:"行政規費"},
   {name:"稅捐規費",   type:"費用", group:"行政規費"},
-  {name:"保險",       type:"費用", group:"行政規費"},
   {name:"專業服務",   type:"費用", group:"行政規費"},
   {name:"文具耗材",   type:"費用", group:"其他"},
   {name:"郵費",       type:"費用", group:"其他"},
@@ -565,7 +563,12 @@ function ExpenseModal(props){
               var t=items[0]?items[0].type:"費用";
               return h("optgroup",{key:g,label:g+"（"+t+"）"},
                 items.map(function(a){return h("option",{key:a.name,value:a.name},a.name);}));
-            }))
+            }),
+            // 舊紀錄用到已經刪掉的科目，留著不要被洗成別的
+            f.account&&!ACCOUNTS.some(function(a){return a.name===f.account;})
+              ? h("optgroup",{label:"原本的科目（已停用）"},
+                  h("option",{value:f.account},f.account))
+              : null)
         ),
         // 發票區
         h("div",{style:{background:f.hasInvoice?C.wrnBg:C.card2,border:"1px solid "+(f.hasInvoice?"#e8d09a":C.brd),
