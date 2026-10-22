@@ -445,6 +445,7 @@ function App(){
   var bn=useState("");var batchNo=bn[0],setBatchNo=bn[1];
   var ib=useState(false);var invBusy=ib[0],setInvBusy=ib[1];
   var sg=useState({});var salesOpen=sg[0],setSalesOpen=sg[1];   // 展開的發票
+  var sfl=useState(false);var salesFlat=sfl[0],setSalesFlat=sfl[1]; // true=逐筆列出
   var pc=useState(true);var showProjCost=pc[0],setShowProjCost=pc[1];
 
   // 把區塊轉成 PNG 直接丟進剪貼簿，不經過檔案
@@ -1755,7 +1756,19 @@ function App(){
             display:"flex",justifyContent:"space-between",alignItems:"center"}},
           h("span",{style:{fontSize:11,fontWeight:700,color:C.txt2}},
             "銷項　"+salesGroups.length+" 張發票　"+sales.length+" 筆案子"),
-          sales.length>0&&h("button",{onClick:exportSales,style:expBtn},"下載 CSV")
+          h("div",{style:{display:"flex",gap:6,alignItems:"center"}},
+            sales.length>0&&h("div",{style:{display:"flex",gap:2,background:"#fff",
+                border:"1px solid "+C.brd,borderRadius:4,padding:2}},
+              [[false,"依發票分組"],[true,"逐筆列出"]].map(function(o){
+                var on=salesFlat===o[0];
+                return h("button",{key:String(o[0]),onClick:function(){setSalesFlat(o[0]);},
+                  style:{padding:"3px 10px",border:"none",borderRadius:3,cursor:"pointer",
+                    fontFamily:"inherit",fontSize:11,fontWeight:on?700:400,
+                    background:on?C.accBg:"transparent",color:on?"#a07818":C.txt3}},o[1]);
+              })
+            ),
+            sales.length>0&&h("button",{onClick:exportSales,style:expBtn},"下載 CSV")
+          )
         ),
         sales.length===0
           ? h("div",{style:{padding:"26px 14px",textAlign:"center",color:C.txt3,fontSize:12}},
@@ -1770,7 +1783,54 @@ function App(){
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"稅額"),
                 h("div",{style:Object.assign({textAlign:"right"},thStyle)},"含稅合計")
               ),
-              salesGroups.map(function(g){
+              // 單筆案子的一列：開票日、發票號碼都能改，改號碼就等於換到另一張發票
+              (function(){return null;})(),
+              salesFlat
+              ? sales.slice().sort(function(a,b){
+                  var d=(a.invoiceDate||"").localeCompare(b.invoiceDate||"");
+                  if(d)return d;
+                  return String(a.invoiceNo||"").localeCompare(String(b.invoiceNo||""));
+                }).map(function(p){var c=calcIncome(p);
+                  return h("div",{key:p.id,className:"row-hover",
+                      style:{display:"grid",gridTemplateColumns:SGC2,gap:8,padding:"9px 14px",
+                        borderBottom:"0.5px solid "+C.brd,fontSize:12.5,alignItems:"center"}},
+                    h("div",{onClick:function(){toggleInvoiced(p);},title:"取消已開立",
+                        style:{cursor:"pointer",display:"flex",alignItems:"center",
+                          justifyContent:"center"}},
+                      h("input",{type:"checkbox",checked:true,readOnly:true,
+                        style:{accentColor:C.ok,cursor:"pointer",pointerEvents:"none"}})
+                    ),
+                    h("input",{type:"date",value:p.invoiceDate||"",
+                      onChange:function(ev){setInvoiceDate(p,ev.target.value);},
+                      style:{background:"transparent",border:"1px solid transparent",borderRadius:3,
+                        fontFamily:"inherit",fontSize:11,color:C.txt2,padding:"2px 3px",width:"100%"},
+                      onFocus:function(ev){ev.target.style.borderColor=C.brd;},
+                      onBlur:function(ev){ev.target.style.borderColor="transparent";}}),
+                    h("div",{style:{fontSize:11.5,color:C.txt2,whiteSpace:"nowrap",overflow:"hidden",
+                      textOverflow:"ellipsis"}},p.client||"—"),
+                    h("div",{style:{minWidth:0}},
+                      h("div",{className:"serif",style:{fontSize:13,whiteSpace:"nowrap",
+                        overflow:"hidden",textOverflow:"ellipsis"}},p.name||"—"),
+                      h("div",{style:{fontSize:10,color:C.txt3,marginTop:1}},
+                        (p.proxy?"代開　":"")+(p.month?"工作月份 "+p.month.slice(5)+"月":""))
+                    ),
+                    h("input",{defaultValue:p.invoiceNo||"",placeholder:"缺號碼",
+                      key:p.id+":"+(p.invoiceNo||""),
+                      onBlur:function(ev){
+                        ev.target.style.borderColor="transparent";
+                        var v=ev.target.value.toUpperCase().trim();
+                        if(v!==(p.invoiceNo||""))setInvoiceNo(p,v);
+                      },
+                      style:{background:"transparent",border:"1px solid transparent",borderRadius:3,
+                        fontFamily:"Inter,sans-serif",fontSize:11,
+                        color:p.invoiceNo?C.txt2:C.err,padding:"2px 4px",width:"100%"},
+                      onFocus:function(ev){ev.target.style.borderColor=C.brd;}}),
+                    h("div",{className:"num",style:{textAlign:"right",fontSize:14}},NT(c.gross)),
+                    h("div",{className:"num",style:{textAlign:"right",fontSize:12,color:C.txt3}},"—"),
+                    h("div",{className:"num",style:{textAlign:"right",fontSize:12,color:C.txt3}},"—")
+                  );
+                })
+              : salesGroups.map(function(g){
                 var open=!!salesOpen[g.key];
                 return h("div",{key:g.key},
                   // 發票這一列
@@ -1828,7 +1888,13 @@ function App(){
                           style:{accentColor:C.ok,cursor:"pointer",pointerEvents:"none",
                             width:12,height:12}})
                       ),
-                      h("div",null,""),
+                      h("input",{type:"date",value:p.invoiceDate||"",
+                        onClick:function(ev){ev.stopPropagation();},
+                        onChange:function(ev){setInvoiceDate(p,ev.target.value);},
+                        style:{background:"transparent",border:"1px solid transparent",borderRadius:3,
+                          fontFamily:"inherit",fontSize:10.5,color:C.txt3,padding:"1px 2px",width:"100%"},
+                        onFocus:function(ev){ev.target.style.borderColor=C.brd;},
+                        onBlur:function(ev){ev.target.style.borderColor="transparent";}}),
                       h("div",{style:{fontSize:11,color:C.txt3,whiteSpace:"nowrap",overflow:"hidden",
                         textOverflow:"ellipsis"}},p.client||"—"),
                       h("div",{style:{minWidth:0,paddingLeft:10}},
@@ -1837,7 +1903,18 @@ function App(){
                         h("div",{style:{fontSize:10,color:C.txt3,marginTop:1}},
                           (p.proxy?"代開　":"")+(p.month?"工作月份 "+p.month.slice(5)+"月":""))
                       ),
-                      h("div",null,""),
+                      h("input",{defaultValue:p.invoiceNo||"",placeholder:"換號碼可拆出",
+                        key:p.id+":"+(p.invoiceNo||""),
+                        onClick:function(ev){ev.stopPropagation();},
+                        onBlur:function(ev){
+                          ev.target.style.borderColor="transparent";
+                          var v=ev.target.value.toUpperCase().trim();
+                          if(v!==(p.invoiceNo||""))setInvoiceNo(p,v);
+                        },
+                        style:{background:"transparent",border:"1px solid transparent",borderRadius:3,
+                          fontFamily:"Inter,sans-serif",fontSize:10.5,color:C.txt3,
+                          padding:"1px 3px",width:"100%"},
+                        onFocus:function(ev){ev.target.style.borderColor=C.brd;}}),
                       h("div",{className:"num",style:{textAlign:"right",fontSize:12.5,
                         color:C.txt2}},NT(c.gross)),
                       h("div",null,""),
@@ -1869,7 +1946,7 @@ function App(){
               h("span",{style:{fontSize:11,fontWeight:700,color:"#b35f10"}},
                 "待開立　"+pending.length+" 張"),
               h("span",{style:{fontSize:10.5,color:"#b35f10",opacity:0.85}},
-                "一整批開一張發票，勾選後共用同一組開票日與號碼")
+                "勾選後共用同一組開票日與號碼。要補進已經開好的發票，從左邊選那一張")
             ),
             h("div",{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
               h("button",{onClick:function(){
@@ -1878,6 +1955,22 @@ function App(){
                 },style:{background:"#fff",border:"1px solid #e0cb96",borderRadius:4,
                   color:"#b35f10",padding:"5px 12px",fontSize:11.5,cursor:"pointer",
                   fontFamily:"inherit",fontWeight:700}},allOn?"全部取消":"全選"),
+              salesGroups.length>0&&h("select",{
+                value:"",
+                onChange:function(e){
+                  var g=salesGroups.filter(function(x){return x.key===e.target.value;})[0];
+                  if(!g)return;
+                  setBatchDate(g.date||todayISO());
+                  setBatchNo(g.no||"");
+                },
+                style:Object.assign({},inp,{maxWidth:188})},
+                h("option",{value:""},"開新的一張發票"),
+                salesGroups.map(function(g){
+                  return h("option",{key:g.key,value:g.key},
+                    "加入 "+(g.date||"無日期").slice(5)+" 那張"
+                    +(g.no?"（"+g.no+"）":"")+"　"+g.items.length+" 筆");
+                })
+              ),
               h("span",{style:{fontSize:11,color:"#b35f10"}},"開票日"),
               h("input",{type:"date",value:batchDate,style:inp,
                 onChange:function(e){setBatchDate(e.target.value);}}),
