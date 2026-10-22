@@ -4,6 +4,7 @@ const DB_ID = "9b73ebba-2aec-49ac-be96-4483360a1456";
 const CLIENTS_DB_ID = "7f44768f-64cf-404a-abe1-c153e68b1179";
 const TIME_DB_ID = "3790c47d-6782-80ce-bcc8-d55f69b9f893";
 const EXPENSE_DB_ID = "3d10c47d67828042b75fd535ceb87018";
+const INVOICE_DB_ID = "407f363d90f8438a9f8c21e836b77a10";
 
 export default async function handler(req, res) {
   // CORS
@@ -298,6 +299,67 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // ── 發票 actions ───────────────────────────────────────────────
+    // 一張發票可以涵蓋好幾支案子，金額是手填的，所以它自己是一筆紀錄，
+    // 不掛在任何一支案子上。
+    // ═══════════════════════════════════════════════════════════════
+
+    // 讀取所有發票
+    if (req.method === "GET" && action === "invoice-list") {
+      let results = [], cursor = undefined, hasMore = true;
+      while (hasMore) {
+        const payload = { page_size: 100, sorts: [{ property: "開票日", direction: "descending" }] };
+        if (cursor) payload.start_cursor = cursor;
+        const response = await fetch(`${NOTION_API}/databases/${INVOICE_DB_ID}/query`, {
+          method: "POST",
+          headers: notionHeaders,
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (data.object === "error") return res.status(400).json({ error: data.message, code: data.code });
+        results = results.concat(data.results || []);
+        hasMore = data.has_more;
+        cursor = data.next_cursor;
+      }
+      return res.status(200).json(results.map(invoicePageToEntry).filter(Boolean));
+    }
+
+    // 新增／更新一張發票
+    if (req.method === "POST" && action === "invoice-save") {
+      const v = body || {};
+      const props = invoiceToProps(v);
+      let result;
+      if (v.notionId) {
+        const r = await fetch(`${NOTION_API}/pages/${v.notionId}`, {
+          method: "PATCH", headers: notionHeaders,
+          body: JSON.stringify({ properties: props, archived: false }),
+        });
+        result = await r.json();
+      } else {
+        const r = await fetch(`${NOTION_API}/pages`, {
+          method: "POST", headers: notionHeaders,
+          body: JSON.stringify({ parent: { database_id: INVOICE_DB_ID }, properties: props }),
+        });
+        result = await r.json();
+      }
+      if (result.object === "error") return res.status(400).json({ error: result.message, code: result.code });
+      return res.status(200).json({ ok: true, notionId: result.id });
+    }
+
+    // 刪除（封存）一張發票
+    if (req.method === "POST" && action === "invoice-delete") {
+      const { notionId } = body || {};
+      if (!notionId) return res.status(400).json({ error: "Missing notionId" });
+      const r = await fetch(`${NOTION_API}/pages/${notionId}`, {
+        method: "PATCH", headers: notionHeaders,
+        body: JSON.stringify({ archived: true }),
+      });
+      const result = await r.json();
+      if (result.object === "error") return res.status(400).json({ error: result.message });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // ── 時間紀錄 actions ───────────────────────────────────────────
     // ═══════════════════════════════════════════════════════════════
 
@@ -537,6 +599,41 @@ function expenseToProps(e) {
     "關聯案子": { rich_text: richText(e.project || "") },
     "事業別":   { select: e.unit ? { name: e.unit } : null },
     "備註":     { rich_text: richText(e.note || "") },
+  };
+}
+
+// ── 發票 helper ───────────────────────────────────────────────────
+function invoicePageToEntry(page) {
+  if (!page || !page.properties) return null;
+  const p = page.properties;
+  function txt(k) { try { return (p[k] && p[k].rich_text && p[k].rich_text[0]) ? p[k].rich_text[0].plain_text : (p[k] && p[k].title && p[k].title[0]) ? p[k].title[0].plain_text : ""; } catch(e) { return ""; } }
+  function dt(k)  { try { return (p[k] && p[k].date) ? p[k].date.start : ""; } catch(e) { return ""; } }
+  function num(k) { try { return (p[k] && p[k].number !== null && p[k].number !== undefined) ? p[k].number : 0; } catch(e) { return 0; } }
+  const ids = txt("關聯案子");
+  return {
+    id: page.id ? page.id.replace(/-/g, "") : "",
+    notionId: page.id || "",
+    no: txt("發票號碼"),
+    date: dt("開票日"),
+    net: num("未稅金額"),
+    buyerTitle: txt("買方抬頭"),
+    buyerVat: txt("買方統編"),
+    note: txt("內容"),
+    // 案子 id 用逗號串起來存，讀回來再拆開
+    projectIds: ids ? ids.split(",").map(s => s.trim()).filter(Boolean) : [],
+  };
+}
+
+function invoiceToProps(v) {
+  const richText = s => [{ text: { content: String(s || "") } }];
+  return {
+    "發票號碼": { title: richText(v.no) },
+    "開票日":   { date: v.date ? { start: v.date } : null },
+    "未稅金額": { number: Number(v.net) || 0 },
+    "買方抬頭": { rich_text: richText(v.buyerTitle || "") },
+    "買方統編": { rich_text: richText(v.buyerVat || "") },
+    "內容":     { rich_text: richText(v.note || "") },
+    "關聯案子": { rich_text: richText((v.projectIds || []).join(",")) },
   };
 }
 
