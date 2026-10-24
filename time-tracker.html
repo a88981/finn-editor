@@ -60,10 +60,32 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 /* 待辦 · 今日時間軸下面,兩組並排切換 */
 .todo-sec{margin-top:20px}
+.todo-next{margin-bottom:16px}
+.todo-next-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.todo-next-head .t1{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink)}
+.todo-next-head .t1 .en{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light);font-weight:300;margin-left:5px}
+.todo-next-head .hold{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:11.5px;color:var(--ink-light);white-space:nowrap}
+.todo-nx{display:grid;grid-template-columns:20px 62px 1fr;gap:9px;align-items:center;padding:2px 0}
+.todo-nx .no{font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:var(--ink-light);text-align:center;line-height:1}
+.todo-nx.first .no{color:var(--yellow-mid);font-weight:500;font-size:16px}
+.todo-nx.first.od .no{color:var(--red)}
+.todo-nx .t{font-family:'Noto Sans TC',sans-serif;font-size:12px;color:var(--ink-light);letter-spacing:0.02em;text-align:right;white-space:nowrap}
+.todo-nx.od .t{color:var(--red);font-weight:500}
+.todo-nx.now .t{color:var(--ink);font-weight:500}
+.todo-nx .b{display:flex;align-items:baseline;gap:9px;background:var(--yellow-lightest);border-left:2px solid var(--yellow);padding:7px 10px;border-radius:0 3px 3px 0;min-width:0}
+.todo-nx.first .b{border-left-width:3px}
+.todo-nx.od .b{background:#fcecec;border-left-color:var(--red)}
+.todo-nx.now .b{border-left-color:var(--yellow-mid)}
+.todo-nx .b .sg{flex:0 0 auto;min-width:38px;font-family:Inter,'Noto Sans TC',sans-serif;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;color:var(--yellow-mid);font-weight:500}
+.todo-nx.od .b .sg{color:var(--red)}
+.todo-nx .b .n{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.todo-nx-none{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:12px;color:var(--ink-light);padding:4px 0 2px}
 .todo-tabs{display:flex;border-bottom:1px solid var(--line)}
 .todo-tabbtn{position:relative;display:inline-flex;align-items:center;gap:7px;padding:8px 16px 9px;background:transparent;border:none;cursor:pointer;font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink-light);line-height:1.2}
 .todo-tabbtn:first-child{padding-left:2px}
 .todo-tabbtn:hover{color:var(--ink-soft)}
+.todo-tabs.none .todo-tabbtn{color:var(--ink-soft)}
+.todo-tabs.none .todo-tabbtn .ic{filter:grayscale(0.4) opacity(0.8)}
 .todo-tabbtn .ic{font-size:13px;line-height:1;filter:grayscale(1) opacity(0.5)}
 .todo-tabbtn .cn{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--ink-light)}
 .todo-tabbtn .ar{font-family:Inter,sans-serif;font-size:9px;color:var(--ink-light)}
@@ -397,6 +419,18 @@ function computeTodos(){
   todos.sort(function(a,b){return a.days-b.days;});
   return todos;
 }
+// 階段先後:同一天到期時,排在前面的階段先做
+var STAGE_ORDER=['前置','初剪','ES','業配','輸出','Final','其他'];
+function stageRank(st){var i=STAGE_ORDER.indexOf(st);return i<0?99:i;}
+// 挑出建議先做的幾筆:只看交期,素材還沒到的不推薦
+function pickNextUp(todos,n){
+  var doable=todos.filter(function(t){return !t.waiting;});
+  doable.sort(function(a,b){
+    if(a.days!==b.days)return a.days-b.days;
+    return stageRank(a.stage)-stageRank(b.stage);
+  });
+  return doable.slice(0,n);
+}
 // 待辦分組 · 名稱、副標、天數範圍都可以直接改這裡
 var TODO_BANDS=[
   {key:'g1',icon:'🔥',name:'好想放假',sub:'逾期・今天・明天',test:function(d){return d<=1;}},
@@ -419,7 +453,31 @@ function todoSectionHtml(){
   // 上次選的那組今天剛好沒東西 → 退到還有待交的第一組(使用者自己收起的 null 不動)
   if(!cur&&state.todoBand!==null)cur=groups[0];
 
-  var h='<div class="todo-sec"><div class="todo-tabs">';
+  var h='<div class="todo-sec">';
+
+  // ── 先做這個 ──
+  var nextUp=pickNextUp(todos,3);
+  var holding=todos.filter(function(t){return t.waiting;}).length;
+  h+='<div class="todo-next">';
+  h+='  <div class="todo-next-head"><span class="t1">先做這個<span class="en">Next up</span></span>';
+  h+=(holding>0?'<span class="hold">另有 '+holding+' 筆在等素材</span>':'')+'</div>';
+  if(nextUp.length===0){
+    h+='  <div class="todo-nx-none">現在沒有可以動的,手上的都在等素材或確認</div>';
+  } else {
+    nextUp.forEach(function(t,i){
+      var cls=(t.days<0?'od':(t.days<=1?'now':''))+(i===0?' first':'');
+      var lbl=t.days<0?'逾期'+Math.abs(t.days)+'天':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
+      h+='  <div class="todo-nx '+cls+'">';
+      h+='    <span class="no">'+(i+1)+'</span>';
+      h+='    <span class="t">'+lbl+'</span>';
+      h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
+      h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span></div>';
+      h+='  </div>';
+    });
+  }
+  h+='</div>';
+
+  h+='<div class="todo-tabs'+(cur?'':' none')+'">';
   groups.forEach(function(g){
     var on=cur&&cur.band.key===g.band.key;
     h+='<button class="todo-tabbtn '+g.band.key+(on?' on':'')+'" onclick="pickTodoBand(\''+g.band.key+'\')" title="'+g.band.sub+'">';
@@ -490,7 +548,7 @@ var state={
   reportShowAll:false, // Report 是否展開全部月份
   // 展開中的待辦分組;沒存過 = 預設開第一組,存過 null = 使用者自己收起來的
   todoBand:(function(){var raw=null;try{raw=localStorage.getItem(TODOBAND_KEY);}catch(e){}
-    if(raw===null)return 'g1';
+    if(raw===null)return null; // 預設收起,先看「先做這個」
     try{return JSON.parse(raw);}catch(e){return 'g1';}})(),
   shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD', breakAt:?, breakTotal:0}
   shifts:ls_get(SHIFTS_KEY)||[], // 歷史 shift 紀錄 [{workDay, startAt, endAt}]
