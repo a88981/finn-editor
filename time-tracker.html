@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📖 工作日誌 </title>
+<title>📖 工作日誌</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,6 +60,14 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 
 /* 待辦 · 今日時間軸下面,兩組並排切換 */
 .todo-sec{margin-top:20px}
+.sync-bar{display:flex;align-items:center;gap:8px;padding:0 2px;margin:-5px 0 13px;font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:11px;color:var(--ink-light)}
+.sync-bar .dot{width:6px;height:6px;border-radius:50%;background:var(--ink-light);flex:0 0 auto}
+.sync-bar.on .dot{background:var(--green)}
+.sync-bar.busy .dot{background:var(--yellow)}
+.sync-bar.err .dot{background:var(--red)}
+.sync-bar.err{color:var(--red)}
+.sync-bar .lk{margin-left:auto;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;font-style:italic;font-size:11px;color:var(--ink-light);text-decoration:underline;text-decoration-style:dotted}
+.sync-bar .lk:hover{color:var(--yellow-mid)}
 .todo-next{margin-bottom:16px}
 .todo-next-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:8px}
 .todo-next-head .t1{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--ink)}
@@ -345,7 +353,169 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 var API="/api/notion",USE_API=true;
 var ENTRIES_KEY='timeTrackerEntries_v2',ACTIVE_KEY='timeTrackerActive_v2',PROJECTS_KEY='timeTrackerProjects_v2',SHIFT_KEY='timeTrackerShift_v2',SHIFTS_KEY='timeTrackerShifts_v2',TODOBAND_KEY='timeTrackerTodoBand_v1';
 function ls_get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
-function ls_set(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function ls_set(k,v){
+  localStorage.setItem(k,JSON.stringify(v));
+  if(SYNC_KEYS.indexOf(k)>=0)schedulePush(); // 即時狀態一改就排程上傳
+}
+
+// ══ 即時狀態同步 ════════════════════════════════════
+// 只同步「現在正在發生的事」:上班狀態、進行中的打卡、上下班歷史。
+// 已完成的紀錄走原本的 Notion,不走這裡。
+var SYNC_URL_KEY='timeTrackerSyncUrl_v1',SYNC_PW_KEY='timeTrackerSyncPw_v1',
+    SYNC_REV_KEY='timeTrackerSyncRev_v1',SYNC_DEV_KEY='timeTrackerDeviceId_v1';
+var SYNC_KEYS=[SHIFT_KEY,ACTIVE_KEY,SHIFTS_KEY];
+
+function syncUrl(){try{return localStorage.getItem(SYNC_URL_KEY)||'';}catch(e){return '';}}
+function syncPw(){try{return localStorage.getItem(SYNC_PW_KEY)||'';}catch(e){return '';}}
+function syncOn(){return !!(syncUrl()&&syncPw());}
+function syncRev(){var v=parseInt(localStorage.getItem(SYNC_REV_KEY),10);return isNaN(v)?-1:v;}
+function setSyncRev(r){try{localStorage.setItem(SYNC_REV_KEY,String(r));}catch(e){}}
+function deviceId(){
+  var d='';try{d=localStorage.getItem(SYNC_DEV_KEY)||'';}catch(e){}
+  if(!d){var isPhone=false;try{isPhone=(navigator.maxTouchPoints||0)>1;}catch(e){}
+    d=(isPhone?'手機':'電腦')+'-'+Math.random().toString(36).slice(2,6);
+    try{localStorage.setItem(SYNC_DEV_KEY,d);}catch(e){}}
+  return d;
+}
+// 取出要同步的那幾樣
+function liveState(){
+  return {shift:state.shift,active:state.active,shifts:state.shifts};
+}
+function applyLiveState(st){
+  if(!st)return false;
+  var before=JSON.stringify(liveState());
+  state.shift=st.shift||null;
+  state.active=st.active||[];
+  state.shifts=st.shifts||[];
+  var after=JSON.stringify(liveState());
+  // 寫回 localStorage,但不要再觸發上傳
+  syncMuted=true;
+  ls_set(SHIFT_KEY,state.shift);ls_set(ACTIVE_KEY,state.active);ls_set(SHIFTS_KEY,state.shifts);
+  syncMuted=false;
+  return before!==after;
+}
+
+// 用 text/plain 送,瀏覽器才不會先打一次 preflight(Apps Script 擋不掉那個)
+function syncCall(body,cb){
+  if(!syncOn()){cb('尚未設定');return;}
+  body.pw=syncPw();body.device=deviceId();
+  fetch(syncUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(body),cache:'no-store',redirect:'follow'})
+  .then(function(r){return r.json();})
+  .then(function(d){cb(null,d);})
+  .catch(function(e){cb(e.message||'連線失敗');});
+}
+
+var syncMuted=false,syncTimer=null,syncBusy=false,syncState2={status:'off',at:0,tryAt:0,msg:''};
+
+function setSyncStatus(st,msg){
+  syncState2.status=st;syncState2.msg=msg||'';
+  syncState2.tryAt=Date.now();            // 不管成功失敗都記,用來退避
+  if(st==='ok')syncState2.at=Date.now();  // 這個只記成功,顯示用
+}
+
+// 下載:雲端版本比較新就整組換過來
+function pullState(cb){
+  if(!syncOn()){if(cb)cb();return;}
+  syncCall({action:'get'},function(err,d){
+    if(err||!d||!d.ok){setSyncStatus('err',err||(d&&d.error)||'讀取失敗');render();if(cb)cb(err||'fail');return;}
+    if(d.rev>syncRev()&&d.state){
+      var changed=applyLiveState(d.state);
+      setSyncRev(d.rev);
+      setSyncStatus('ok');
+      render();
+      if(cb)cb(null,changed);
+      return;
+    }
+    // 雲端還是空的,而本機有東西 → 把本機當第一版推上去
+    if(d.rev===0&&syncRev()<0&&(state.shift||state.active.length>0)){
+      setSyncRev(0);pushState();
+    } else if(syncRev()<0){ setSyncRev(d.rev); }
+    setSyncStatus('ok');render();
+    if(cb)cb(null,false);
+  });
+}
+
+// 上傳(防抖,連續改動只送最後一次)
+function schedulePush(){
+  if(syncMuted||!syncOn())return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(pushState,500);
+}
+function pushState(force){
+  if(!syncOn())return;
+  if(syncBusy){clearTimeout(syncTimer);syncTimer=setTimeout(pushState,600);return;}
+  syncBusy=true;setSyncStatus('busy');
+  syncCall({action:'set',baseRev:force?-1:syncRev(),state:liveState()},function(err,d){
+    syncBusy=false;
+    if(err){setSyncStatus('err',err);render();return;}
+    if(d&&d.conflict){
+      // 另一台在我拿到資料之後改過了 → 以那邊為準,把它換過來
+      applyLiveState(d.state);setSyncRev(d.rev);
+      setSyncStatus('ok');
+      alert('另一台裝置剛剛改過狀態,已經把那邊的同步過來了。\n\n如果你的操作沒生效,請再按一次。');
+      render();return;
+    }
+    if(!d||!d.ok){setSyncStatus('err',(d&&d.error)||'寫入失敗');render();return;}
+    setSyncRev(d.rev);setSyncStatus('ok');render();
+  });
+}
+
+// 定時拉:上班中或有進行中的打卡就拉勤一點
+function syncTick(){
+  if(!syncOn()||document.hidden)return;
+  pullState();
+}
+function startSyncLoop(){
+  setInterval(function(){
+    if(!syncOn()||document.hidden)return;
+    var busyNow=state.shift||state.active.length>0;
+    var gap=busyNow?10000:40000;
+    if(syncState2.status==='err')gap=60000; // 連不上就別一直打
+    if(Date.now()-(syncState2.tryAt||0)>=gap)pullState();
+  },5000);
+  // 切回這個分頁時立刻拉一次,接手另一台的狀態
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)pullState();});
+  window.addEventListener('focus',function(){pullState();});
+}
+
+function openSyncSetup(){
+  var cur=syncUrl();
+  var u=prompt('手機同步 · 貼上 Apps Script 的網頁應用程式網址\n(結尾是 /exec)\n\n留空並按確定 = 關閉同步',cur);
+  if(u===null)return;
+  u=u.trim();
+  if(!u){try{localStorage.removeItem(SYNC_URL_KEY);localStorage.removeItem(SYNC_PW_KEY);localStorage.removeItem(SYNC_REV_KEY);}catch(e){}
+    setSyncStatus('off');alert('已關閉同步,改回只存在這台裝置。');render();return;}
+  if(u.indexOf('http')!==0){alert('網址看起來不對,應該是 https:// 開頭');return;}
+  var pw=prompt('密碼(Apps Script 裡設定的那組)',syncPw()||'');
+  if(pw===null)return;
+  try{localStorage.setItem(SYNC_URL_KEY,u);localStorage.setItem(SYNC_PW_KEY,pw.trim());}catch(e){}
+  setSyncRev(-1);
+  setSyncStatus('busy');render();
+  syncCall({action:'get'},function(err,d){
+    if(err||!d||!d.ok){setSyncStatus('err',err||(d&&d.error)||'連不上');render();
+      alert('連不上:'+(err||(d&&d.error)||'')+'\n\n檢查一下:\n· 部署時「誰可以存取」有沒有選「任何人」\n· 網址是不是 /exec 結尾\n· 密碼跟程式碼裡的一不一樣');return;}
+    if(d.rev>0&&d.state){
+      if(confirm('雲端已經有一份狀態了。\n\n要用雲端的覆蓋這台嗎?\n\n確定 = 用雲端的(建議在第二台裝置選這個)\n取消 = 用這台的覆蓋雲端')){
+        applyLiveState(d.state);setSyncRev(d.rev);setSyncStatus('ok');render();alert('已經同步過來了。');
+      } else { setSyncRev(d.rev);pushState();alert('已經把這台的狀態上傳。'); }
+    } else {
+      setSyncRev(d.rev);pushState();alert('設定完成,已經把這台的狀態上傳。\n\n手機上開同一個網址,再設定一次同樣的網址和密碼就好。');
+    }
+  });
+}
+
+function syncBarHtml(){
+  if(!syncOn())return '';
+  var st=syncState2.status,cls='',txt='';
+  if(st==='busy'){cls='busy';txt='同步中…';}
+  else if(st==='err'){cls='err';txt='同步失敗 · '+(syncState2.msg||'');}
+  else if(st==='ok'){cls='on';txt='已同步 · '+fmtTime(syncState2.at)+' · '+deviceId();}
+  else {cls='';txt='等待同步';}
+  return '<div class="sync-bar '+cls+'"><span class="dot"></span><span>'+escAttr(txt)+'</span>'+
+         '<button class="lk" onclick="pullState()">立即更新</button></div>';
+}
+
 function uid(){return 'e'+Date.now()+Math.random().toString(36).slice(2,7);}
 function pad(n){return String(n).padStart(2,'0');}
 function fmtTime(ts){var d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes());}
@@ -1082,6 +1252,8 @@ function render(){
     html+='  <div class="gear-divider"></div>';
     html+='  <button class="gear-item" onclick="state.gearMenu=false;openManual();">補工作紀錄<span class="en">Add past work</span></button>';
     html+='  <div class="gear-divider"></div>';
+    html+='  <button class="gear-item" onclick="state.gearMenu=false;openSyncSetup();">手機同步設定<span class="en">Phone sync</span></button>';
+    html+='  <div class="gear-divider"></div>';
     html+='  <button class="gear-item" onclick="state.gearMenu=false;render();exportJSON();">備份資料<span class="en">Backup JSON</span></button>';
     html+='  <button class="gear-item" onclick="state.gearMenu=false;render();exportCSV();">匯出 CSV<span class="en">Export CSV</span></button>';
     html+='  <div class="gear-divider"></div>';
@@ -1123,6 +1295,7 @@ function render(){
       html+='    <button class="clock-btn-mini out" onclick="clockOut()">■ 下班</button>';
       html+='  </div>';
       html+='</div>';
+      html+=syncBarHtml();
     } else {
       // 看有沒有最近 2 小時內的下班 (顯示復原按鈕)
       var recentShift=null;
@@ -1142,6 +1315,7 @@ function render(){
       html+='  </div>';
       html+='  <button class="clock-btn in" onclick="clockIn()">▸ 上班</button>';
       html+='</div>';
+      html+=syncBarHtml();
     }
 
     var disabled=!state.shift||!!(state.shift&&state.shift.breakAt);
@@ -1697,6 +1871,8 @@ document.addEventListener('click',function(){
   }
 });
 if(USE_API){refreshProjects();syncFromCloud();}
+if(syncOn()){pullState();}
+startSyncLoop();
 </script>
 </body>
 </html>
