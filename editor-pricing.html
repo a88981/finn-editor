@@ -669,12 +669,18 @@ input::placeholder { color: var(--text-dim); }
       </div>
 
       <!-- 滿檔插單 -->
-      <div class="ad-toggle" id="extra-rush" onclick="toggleExtra('rush')">
+      <div class="ad-toggle" id="extra-rush" onclick="toggleExtra('rush')" style="flex-wrap:nowrap;gap:12px;">
         <div class="ad-info">
           <div class="ad-name">滿檔插單</div>
-          <div class="ad-desc">製作費用 × 30%，最低 $3,000（製作費用＝基本剪輯＋成品超時＋毛片超時＋多機位）</div>
+          <div class="ad-desc">製作費用 × <span id="rush-rate-desc">30</span>%，最低 $3,000</div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;white-space:nowrap;">
+          <span style="display:flex;align-items:center;gap:4px;" onclick="event.stopPropagation()">
+            <input type="number" id="rush-rate-input" value="30" min="0" max="100" step="5" title="插單費百分比"
+              style="width:52px; font-family:'Space Mono',monospace; font-size:15px; font-weight:700; background:#fff; border:1.5px solid var(--accent); border-radius:4px; outline:none; color:var(--ink); padding:3px 6px; text-align:right;"
+              oninput="calculate()" />
+            <span style="font-size:13px;color:var(--mid);">%</span>
+          </span>
           <span class="ad-price" id="rush-price">＋ NT$0</span>
           <div class="ad-check" id="check-rush"></div>
         </div>
@@ -840,7 +846,7 @@ const OVERTIME_RATES = { regular: 850, loyal: 800 };
 const URGENT_RATE = 1500;
 const FOOTAGE_FEE = 1000;   // 毛片超過 1 小時後每 1 小時；未滿 1 小時以 1 小時計
 const CAM_FEE = 1000;
-const RUSH_RATE = 0.3;
+const RUSH_RATE_DEFAULT = 30;   // 插單費預設百分比，可在畫面上調整
 const RUSH_MIN = 3000;
 const REELS_BASE_MIN = 1;
 const REELS_RATE = 1000;
@@ -2076,6 +2082,7 @@ function calculate() {
   }
 
   if (!state.plan || !state.type) {
+    document.getElementById('extra-rush').style.display = '';
     document.getElementById('total-amount').textContent = '—';
     document.getElementById('total-main-amount').textContent = '—';
     document.getElementById('quote-text').textContent = '請先選擇方案與服務類型';
@@ -2118,7 +2125,10 @@ function calculate() {
   const rushEligible = !(state.plan === 'D' && state.type === 'post');
   document.getElementById('extra-rush').style.display = rushEligible ? '' : 'none';
   const rushBase = base + overtime + footageCharge + multicamCharge;
-  const rushRaw = Math.round(rushBase * RUSH_RATE);
+  const rushPctRaw = parseFloat(document.getElementById('rush-rate-input').value);
+  const rushPct = isNaN(rushPctRaw) ? RUSH_RATE_DEFAULT : Math.max(0, rushPctRaw);
+  document.getElementById('rush-rate-desc').textContent = rushPct;
+  const rushRaw = Math.round(rushBase * rushPct / 100);
   const rushFee = (state.extraRush && rushEligible) ? Math.max(RUSH_MIN, rushRaw) : 0;
   document.getElementById('rush-price').textContent = '＋ NT$' + rushFee.toLocaleString();
 
@@ -2210,9 +2220,9 @@ function calculate() {
   if (rushFee > 0) {
     rows.push({
       label: '滿檔插單費',
-      sub: '製作費用 30%，最低 $3,000',
+      sub: '製作費用 ' + rushPct + '%，最低 $3,000',
       note: [{ align: 'sub', kind: 'calc', segs: [
-        { t: '製作費用 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × 30%', c: 'plain' },
+        { t: '製作費用 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × ' + rushPct + '%', c: 'plain' },
         { t: rushRaw < RUSH_MIN ? '，未達最低以 $3,000 計' : '', c: 'plain' }
       ] }, { align: 'left', kind: 'user', segs: [{ t: RUSH_NOTE, c: 'user' }] }],
       amt: rushFee, sign: '+'
@@ -2342,7 +2352,7 @@ function calculate() {
   // Extra items
   const extraLines = [];
   if (overtime > 0) extraLines.push('成品超時 ' + overMins + ' 分鐘（每 1 分鐘 $' + OVERTIME_RATE.toLocaleString() + '）：+' + fmt(overtime));
-  if (rushFee > 0) extraLines.push('滿檔插單費（製作費用 30%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + RUSH_NOTE);
+  if (rushFee > 0) extraLines.push('滿檔插單費（製作費用 ' + rushPct + '%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + RUSH_NOTE);
   if (urgentFee > 0) extraLines.push('加急費（工作天 ' + deliveryDays + '天）：+' + fmt(urgentFee));
   const giftLines = [];
   const pushExtra = (label, amt, isGift, note) => {
@@ -2446,7 +2456,7 @@ const LS_SAVES = 'xw-pricing-saves';
 
 const SAVE_INPUTS = [
   'project-name', 'duration', 'base-minutes', 'overtime-rate-input',
-  'adplace-price-input', 'footage-hours', 'cover-price-input',
+  'adplace-price-input', 'footage-hours', 'cover-price-input', 'rush-rate-input',
   'sched-creator', 'sched-receive', 'sched-start', 'sched-draft', 'sched-draft-fb',
   'sched-v1', 'sched-v1-fb', 'sched-v2', 'sched-v2-fb', 'sched-final',
   'custom-full-price', 'custom-post-price'
