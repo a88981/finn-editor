@@ -672,7 +672,7 @@ input::placeholder { color: var(--text-dim); }
       <div class="ad-toggle" id="extra-rush" onclick="toggleExtra('rush')" style="flex-wrap:nowrap;gap:12px;">
         <div class="ad-info">
           <div class="ad-name">滿檔插單</div>
-          <div class="ad-desc">製作費用 × <span id="rush-rate-desc">30</span>%，最低 $3,000</div>
+          <div class="ad-desc">（剪輯＋超時＋毛片＋機位）× <span id="rush-rate-desc">30</span>%，最低 $3,000</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;white-space:nowrap;">
           <span style="display:flex;align-items:center;gap:4px;" onclick="event.stopPropagation()">
@@ -1509,6 +1509,7 @@ function drawQuoteCard(q, mode) {
       .map(function (ln) {
         if (typeof ln === 'string') return ln ? { align: 'sub', kind: 'user', segs: [{ t: ln, c: 'user' }] } : null;
         if (Array.isArray(ln)) return { align: 'sub', kind: 'user', segs: ln };
+        if (ln && ln.quoteOnly && isSettle) return null;   // 結案明細不顯示報價階段才需要的說明
         return ln && ln.segs ? ln : null;
       })
       .filter(Boolean);
@@ -2217,14 +2218,20 @@ function calculate() {
     }
   }
   if (adPlaceFee && !adMerged) rows.push({ label: '工商置入', note: noteOf('adplace'), amt: adPlaceFee, sign: '+', gift: g.adplace });
+  // 製作費用的組成，列給客戶看得懂怎麼算
+  const rushParts = [['剪輯', base], ['超時', overtime], ['毛片', footageCharge], ['機位', multicamCharge]]
+    .filter(function (p) { return p[1] > 0; })
+    .map(function (p) { return p[0] + ' $' + p[1].toLocaleString(); });
+  const rushFormula = '製作費用＝' + rushParts.join('＋');
   if (rushFee > 0) {
     rows.push({
       label: '滿檔插單費',
       sub: '製作費用 ' + rushPct + '%，最低 $3,000',
       note: [{ align: 'sub', kind: 'calc', segs: [
-        { t: '製作費用 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: ' × ' + rushPct + '%', c: 'plain' },
+        { t: '製作費用 ', c: 'plain' }, { t: fmt(rushBase), c: 'key' }, { t: (adMerged ? '（不含工商置入）' : '') + ' × ' + rushPct + '%', c: 'plain' },
         { t: rushRaw < RUSH_MIN ? '，未達最低以 $3,000 計' : '', c: 'plain' }
-      ] }, { align: 'left', kind: 'user', segs: [{ t: RUSH_NOTE, c: 'user' }] }],
+      ] }, { align: 'left', kind: 'user', segs: [{ t: rushFormula, c: 'user' }] },
+         { align: 'left', kind: 'user', quoteOnly: true, segs: [{ t: RUSH_NOTE, c: 'user' }] }],
       amt: rushFee, sign: '+'
     });
   }
@@ -2352,7 +2359,7 @@ function calculate() {
   // Extra items
   const extraLines = [];
   if (overtime > 0) extraLines.push('成品超時 ' + overMins + ' 分鐘（每 1 分鐘 $' + OVERTIME_RATE.toLocaleString() + '）：+' + fmt(overtime));
-  if (rushFee > 0) extraLines.push('滿檔插單費（製作費用 ' + rushPct + '%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + RUSH_NOTE);
+  if (rushFee > 0) extraLines.push('滿檔插單費（製作費用 ' + rushPct + '%，最低 $3,000）：+' + fmt(rushFee) + '\n　　' + rushFormula + '\n　　' + RUSH_NOTE);
   if (urgentFee > 0) extraLines.push('加急費（工作天 ' + deliveryDays + '天）：+' + fmt(urgentFee));
   const giftLines = [];
   const pushExtra = (label, amt, isGift, note) => {
