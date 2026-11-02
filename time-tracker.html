@@ -1179,6 +1179,22 @@ function dtLocal(ts){
   var d=new Date(ts);
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
 }
+function onModalProjChange(sel){
+  var v=sel.value,f=state.modalForm;
+  if(v==='__keep__')return;              // 「原紀錄」那一項:維持原本存的,不要動
+  var p=state.projects.find(function(x){return x.id===v;});
+  f.projectId=v;
+  if(v==='__other__'){
+    f.stage='其他工作';
+    if(!f.projectLabel||state.projects.find(function(x){return x.name===f.projectLabel;}))f.projectLabel='';
+  } else if(p){
+    f.projectLabel=p.name;f.client=p.client;
+    if(f.stage==='其他工作')f.stage='初剪';
+  } else {
+    f.projectLabel=sel.options[sel.selectedIndex].text;
+  }
+  render();
+}
 function modalSpan(){
   var f=state.modalForm;
   var a=new Date(f.startDate+'T'+f.startTime+':00').getTime();
@@ -1202,19 +1218,50 @@ function recalcModalDur(){
   var pauseMin=Math.round(modalPauseMs(f)/60000);
   f.overrideDurMin=Math.max(0,rangeMin-pauseMin);
 }
-function setModalPause(i,field,val){
+// commit=false:打字途中,只收值、不夾邊界、不碰輸入框
+// commit=true :離開欄位了,這時才夾回合理範圍並回寫
+function setModalPause(i,field,val,commit){
   var f=state.modalForm,p=(f.pauses||[])[i],sp=modalSpan();
-  if(!p||!val||!sp.ok)return;
-  var ts=new Date(val).getTime();   // 欄位本身就帶日期,不用猜
-  if(isNaN(ts))return;
-  if(ts<sp.startAt)ts=sp.startAt;   // 超出這筆紀錄的範圍就夾回來
-  if(ts>sp.endAt)ts=sp.endAt;
+  if(!p||!sp.ok)return;
+  var ts=val?new Date(val).getTime():NaN;   // 欄位本身就帶日期,不用猜
+  if(isNaN(ts)){
+    // 打到一半還不成形 → 先不管;已經離開欄位了 → 把畫面還原成實際存著的值
+    if(commit)refreshModalCalc(true);
+    return;
+  }
+  if(commit){
+    if(ts<sp.startAt)ts=sp.startAt;   // 超出這筆紀錄的範圍就夾回來
+    if(ts>sp.endAt)ts=sp.endAt;
+  }
   p[field]=ts;
   // 你改的那一格一定生效,另一格跟著讓位,不會白打
-  if(p.from&&p.to&&p.to<p.from){
+  if(commit&&p.from&&p.to&&p.to<p.from){
     if(field==='from')p.to=p.from; else p.from=p.to;
   }
-  recalcModalDur();render();
+  // 不要 render():整頁重畫會把你正在打字的欄位砍掉重建,游標就跑掉了
+  refreshModalCalc(commit);
+}
+// 更新算出來的那幾個數字;writeBack 為真才動輸入框(打字途中動它游標會亂跳)
+function refreshModalCalc(writeBack){
+  if(state.modal!=='edit'&&state.modal!=='manual')return; // 上下班那個視窗沒有暫停,不用算
+  recalcModalDur();
+  var f=state.modalForm;
+  (f.pauses||[]).forEach(function(p,i){
+    var d=document.getElementById('pz-dur-'+i),x=document.getElementById('pz-xd-'+i);
+    if(writeBack){
+      var a=document.getElementById('pz-from-'+i),b=document.getElementById('pz-to-'+i);
+      if(a&&p.from&&document.activeElement!==a&&a.value!==dtLocal(p.from))a.value=dtLocal(p.from);
+      if(b&&p.to&&document.activeElement!==b&&b.value!==dtLocal(p.to))b.value=dtLocal(p.to);
+    }
+    if(d)d.textContent=(p.from&&p.to)?fmtDur(Math.max(0,p.to-p.from)):'—';
+    if(x)x.textContent=(p.from&&p.to&&dateKey(p.from)!==dateKey(p.to))?'跨日':'';
+  });
+  var sum=document.getElementById('pz-sum');
+  if(sum)sum.textContent='暫停共 '+fmtDur(modalPauseMs(f));
+  var di=document.getElementById('modal-dur');
+  if(di)di.value=(typeof f.overrideDurMin==='number')?f.overrideDurMin:'';
+  var dh=document.getElementById('modal-dur-hint');
+  if(dh)dh.textContent=(typeof f.overrideDurMin==='number')?('→ '+fmtDur(f.overrideDurMin*60000)):'';
 }
 function delModalPause(i){
   state.modalForm.pauses.splice(i,1);
@@ -1244,14 +1291,14 @@ function pauseEditorHtml(f){
       var crossed=(p.from&&p.to&&dateKey(p.from)!==dateKey(p.to));
       h+='<div class="pz-seg">';
       h+='  <div class="pz-seg-top"><span class="lb">暫停 '+(i+1)+'</span>';
-      h+=(crossed?'<span class="xd">跨日</span>':'');
-      h+='    <span class="dur">'+dur+'</span>';
+      h+='    <span class="xd" id="pz-xd-'+i+'">'+(crossed?'跨日':'')+'</span>';
+      h+='    <span class="dur" id="pz-dur-'+i+'">'+dur+'</span>';
       h+='    <button class="del" onclick="delModalPause('+i+')" title="刪掉這段">×</button></div>';
-      h+='  <div class="pz-ab"><span class="k">開始</span><input type="datetime-local" class="fc" value="'+(p.from?dtLocal(p.from):'')+'" onchange="setModalPause('+i+',\'from\',this.value)"></div>';
-      h+='  <div class="pz-ab"><span class="k">結束</span><input type="datetime-local" class="fc" value="'+(p.to?dtLocal(p.to):'')+'" onchange="setModalPause('+i+',\'to\',this.value)"></div>';
+      h+='  <div class="pz-ab"><span class="k">開始</span><input type="datetime-local" id="pz-from-'+i+'" class="fc" value="'+(p.from?dtLocal(p.from):'')+'" oninput="setModalPause('+i+',\'from\',this.value,false)" onblur="setModalPause('+i+',\'from\',this.value,true)"></div>';
+      h+='  <div class="pz-ab"><span class="k">結束</span><input type="datetime-local" id="pz-to-'+i+'" class="fc" value="'+(p.to?dtLocal(p.to):'')+'" oninput="setModalPause('+i+',\'to\',this.value,false)" onblur="setModalPause('+i+',\'to\',this.value,true)"></div>';
       h+='</div>';
     });
-    h+='<div class="pz-sum">暫停共 '+fmtDur(modalPauseMs(f))+'</div>';
+    h+='<div class="pz-sum" id="pz-sum">暫停共 '+fmtDur(modalPauseMs(f))+'</div>';
   }
   h+='<button class="pz-add" onclick="addModalPause()">＋ 補一段暫停</button>';
   h+='</div>';
@@ -1904,12 +1951,12 @@ function render(){
     html+='  <div class="modal">';
     html+='    <div class="modal-title">修改上下班 · Edit Shift</div>';
     html+='    <div class="row">';
-    html+='      <div class="field"><div class="flabel">上班日 · Start Date</div><input type="date" class="fc" value="'+ef.startDate+'" onchange="state.modalForm.startDate=this.value;"></div>';
-    html+='      <div class="field"><div class="flabel">上班時間 · Start</div><input type="time" class="fc" value="'+ef.startTime+'" onchange="state.modalForm.startTime=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">上班日 · Start Date</div><input type="date" class="fc" value="'+ef.startDate+'" onchange="state.modalForm.startDate=this.value;refreshModalCalc(true);"></div>';
+    html+='      <div class="field"><div class="flabel">上班時間 · Start</div><input type="time" class="fc" value="'+ef.startTime+'" onchange="state.modalForm.startTime=this.value;refreshModalCalc(true);"></div>';
     html+='    </div>';
     html+='    <div class="row">';
-    html+='      <div class="field"><div class="flabel">下班日 · End Date</div><input type="date" class="fc" value="'+ef.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
-    html+='      <div class="field"><div class="flabel">下班時間 · End</div><input type="time" class="fc" value="'+ef.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">下班日 · End Date</div><input type="date" class="fc" value="'+ef.endDate+'" onchange="state.modalForm.endDate=this.value;refreshModalCalc(true);"></div>';
+    html+='      <div class="field"><div class="flabel">下班時間 · End</div><input type="time" class="fc" value="'+ef.endTime+'" onchange="state.modalForm.endTime=this.value;refreshModalCalc(true);"></div>';
     html+='    </div>';
     html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+ef.workDay+'" onchange="state.modalForm.workDay=this.value;"></div>';
     html+='    <div class="modal-btns">';
@@ -1926,8 +1973,8 @@ function render(){
     html+='    <div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:12px;color:var(--ink-light);margin-bottom:14px">標記某天的上下班時間,讓報表知道你那天有工作</div>';
     html+='    <div class="field"><div class="flabel">日期 · Day</div><input type="date" class="fc" value="'+sf.workDay+'" onchange="state.modalForm.workDay=this.value;"></div>';
     html+='    <div class="row">';
-    html+='      <div class="field"><div class="flabel">上班 · Clock In</div><input type="time" class="fc" value="'+sf.startTime+'" onchange="state.modalForm.startTime=this.value;"></div>';
-    html+='      <div class="field"><div class="flabel">下班 · Clock Out</div><input type="time" class="fc" value="'+sf.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">上班 · Clock In</div><input type="time" class="fc" value="'+sf.startTime+'" onchange="state.modalForm.startTime=this.value;refreshModalCalc(true);"></div>';
+    html+='      <div class="field"><div class="flabel">下班 · Clock Out</div><input type="time" class="fc" value="'+sf.endTime+'" onchange="state.modalForm.endTime=this.value;refreshModalCalc(true);"></div>';
     html+='    </div>';
     html+='    <div class="modal-btns">';
     html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
@@ -1941,7 +1988,7 @@ function render(){
     html+='  <div class="modal">';
     html+='    <div class="modal-title">'+(isEdit?'編輯紀錄 · Edit':'手動補填 · Add Entry')+'</div>';
     html+='    <div class="field"><div class="flabel">Project / 專案</div>';
-    html+='      <select class="fc" onchange="var v=this.value;var p=state.projects.find(function(x){return x.id===v;});state.modalForm.projectId=v;if(v===\'__other__\'){state.modalForm.stage=\'其他工作\';if(!state.modalForm.projectLabel||state.projects.find(function(x){return x.name===state.modalForm.projectLabel;}))state.modalForm.projectLabel=\'\';}else if(p){state.modalForm.projectLabel=p.name;state.modalForm.client=p.client;if(state.modalForm.stage===\'其他工作\')state.modalForm.stage=\'初剪\';}else{state.modalForm.projectLabel=this.options[this.selectedIndex].text;}render();">';
+    html+='      <select class="fc" onchange="onModalProjChange(this)">';
     html+='        <option value="">— 請選 —</option>';
     // 限近兩月有打過卡 + 進行中專案
     var thisYM=todayKey().slice(0,7);
@@ -1958,13 +2005,28 @@ function render(){
       if(WAIT2.indexOf(p.status)>=0)return !!recentNames[p.name];
       return true;
     });
+    // 這筆存的專案對不對得到清單裡的某一個?
+    var selId=null;
+    if(f.projectId==='__other__'){ selId='__other__'; }
+    else {
+      if(visibleProjects.some(function(p){return p.id===f.projectId;}))selId=f.projectId;
+      if(!selId&&f.projectLabel){
+        // id 對不到就用名字找(雲端拉回來的紀錄常常 id 不一樣)
+        var byName=visibleProjects.find(function(p){return p.name===f.projectLabel;});
+        if(byName){selId=byName.id;f.projectId=byName.id;}
+      }
+    }
     visibleProjects.forEach(function(p){
       var isDone=p.status==='Final完成'||p.finalDone;
       var label='【'+p.client+'】'+p.name+(isDone?' · ✓已完成':'');
       var style=isDone?' style="color:#999"':'';
-      html+='      <option value="'+p.id+'" '+(f.projectId===p.id?'selected':'')+style+'>'+label+'</option>';
+      html+='      <option value="'+p.id+'" '+(selId===p.id?'selected':'')+style+'>'+label+'</option>';
     });
-    html+='        <option value="__other__" '+(f.projectId==='__other__'?'selected':'')+'>+ 其他工作</option>';
+    // 還是找不到(專案已封存、或清單還沒載入)→ 補一個,至少看得到原本存的是什麼
+    if(!selId&&f.projectLabel){
+      html+='      <option value="__keep__" selected>'+escAttr((f.client?'【'+f.client+'】':'')+f.projectLabel)+' · 原紀錄</option>';
+    }
+    html+='        <option value="__other__" '+(selId==='__other__'?'selected':'')+'>+ 其他工作</option>';
     html+='      </select></div>';
     html+='    <div class="row">';
     if(f.projectId==='__other__'){
@@ -1979,12 +2041,12 @@ function render(){
     html+='      <div class="field"><div class="flabel">Note / 備註</div><input class="fc" value="'+(f.note||'')+'" oninput="state.modalForm.note=this.value;"></div>';
     html+='    </div>';
     html+='    <div class="row">';
-    html+='      <div class="field"><div class="flabel">開始日 · Start</div><input type="date" class="fc" value="'+f.startDate+'" onchange="state.modalForm.startDate=this.value;"></div>';
-    html+='      <div class="field"><div class="flabel">開始時間</div><input type="time" class="fc" value="'+f.startTime+'" onchange="state.modalForm.startTime=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">開始日 · Start</div><input type="date" class="fc" value="'+f.startDate+'" onchange="state.modalForm.startDate=this.value;refreshModalCalc(true);"></div>';
+    html+='      <div class="field"><div class="flabel">開始時間</div><input type="time" class="fc" value="'+f.startTime+'" onchange="state.modalForm.startTime=this.value;refreshModalCalc(true);"></div>';
     html+='    </div>';
     html+='    <div class="row">';
-    html+='      <div class="field"><div class="flabel">結束日 · End</div><input type="date" class="fc" value="'+f.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
-    html+='      <div class="field"><div class="flabel">結束時間</div><input type="time" class="fc" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
+    html+='      <div class="field"><div class="flabel">結束日 · End</div><input type="date" class="fc" value="'+f.endDate+'" onchange="state.modalForm.endDate=this.value;refreshModalCalc(true);"></div>';
+    html+='      <div class="field"><div class="flabel">結束時間</div><input type="time" class="fc" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;refreshModalCalc(true);"></div>';
     html+='    </div>';
     html+=pauseEditorHtml(f);
     html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+(f.workDay||f.startDate)+'" onchange="state.modalForm.workDay=this.value;"></div>';
@@ -1996,8 +2058,8 @@ function render(){
       if(typeof f.overrideDurMin==='number')calcDur=f.overrideDurMin;
       else calcDur=Math.max(0,rngMin-(f.overridePauseMin||0));
     }
-    html+='    <div class="field"><div class="flabel">實工時(分鐘) · Work Min <span style="color:var(--ink-light);font-family:Cormorant Garamond,serif;font-style:italic;font-size:10px">留空=自動算</span></div><input type="number" class="fc" placeholder="例:286 表示 4h 46m" value="'+(typeof f.overrideDurMin==='number'?f.overrideDurMin:'')+'" oninput="var v=this.value.trim();if(v===\'\')delete state.modalForm.overrideDurMin;else state.modalForm.overrideDurMin=parseInt(v)||0;"></div>';
-    if(calcDur!=='')html+='    <div style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:11.5px;color:var(--yellow-mid);margin-top:-6px;margin-bottom:10px;text-align:right">→ '+fmtDur(calcDur*60000)+'</div>';
+    html+='    <div class="field"><div class="flabel">實工時(分鐘) · Work Min <span style="color:var(--ink-light);font-family:Cormorant Garamond,serif;font-style:italic;font-size:10px">留空=自動算</span></div><input type="number" id="modal-dur" class="fc" placeholder="例:286 表示 4h 46m" value="'+(typeof f.overrideDurMin==='number'?f.overrideDurMin:'')+'" oninput="var v=this.value.trim();if(v===\'\')delete state.modalForm.overrideDurMin;else state.modalForm.overrideDurMin=parseInt(v)||0;"></div>';
+    html+='    <div id="modal-dur-hint" style="font-family:Cormorant Garamond,serif;font-style:italic;font-size:11.5px;color:var(--yellow-mid);margin-top:-6px;margin-bottom:10px;text-align:right">'+(calcDur!==''?('→ '+fmtDur(calcDur*60000)):'')+'</div>';
     if(isEdit&&state.delArmed){
       var delTarget=state.entries.find(function(x){return x.id===f.id;});
       html+='    <div class="del-warn">確定要刪除這筆紀錄?再按一次「確定刪除」才會生效。<span class="sub">'+escAttr(entryBrief(delTarget))+'</span></div>';
