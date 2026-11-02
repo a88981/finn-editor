@@ -57,9 +57,14 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .clock-btn-mini.resume:hover{background:var(--yellow-mid);border-color:var(--yellow-mid)}
 .clock-btn-mini.out{border-color:var(--red);color:var(--red)}
 .clock-btn-mini.out:hover{background:#fcebeb}
+.clock-btn-mini.out.armed{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* 待辦 · 今日時間軸下面,兩組並排切換 */
 .todo-sec{margin-top:20px}
+.pa-wrap{display:flex;flex-direction:column}
+.punch-toggle{display:none}
+.punch-body{display:block}
+
 .sync-bar{display:flex;align-items:center;gap:8px;padding:0 2px;margin:-5px 0 13px;font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:11px;color:var(--ink-light)}
 .sync-bar .dot{width:6px;height:6px;border-radius:50%;background:var(--ink-light);flex:0 0 auto}
 .sync-bar.on .dot{background:var(--green)}
@@ -284,7 +289,17 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .tl-pause .pz{grid-column:2;padding-left:10px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10.5px;color:var(--ink-light);font-variant-numeric:tabular-nums}
 .tl-pause .pz .pl-label{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;margin-right:5px}
 .tl-pause .pz .seg{margin-right:9px;white-space:nowrap;color:#b07a2a}
-.pause-box{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:8px 10px;margin-bottom:12px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11.5px;color:var(--ink-soft);line-height:1.7}
+.pause-box{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:9px 10px;margin-bottom:12px}
+.pz-row{display:grid;grid-template-columns:1fr 14px 1fr 62px 28px;gap:6px;align-items:center;margin-bottom:6px}
+.pz-row .fc{padding:5px 6px;font-size:12.5px}
+.pz-row .ar{text-align:center;color:var(--ink-light);font-size:11px}
+.pz-row .dur{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11.5px;color:#b07a2a;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pz-row .del{border:none;background:transparent;color:var(--ink-light);font-size:15px;cursor:pointer;padding:0;line-height:1}
+.pz-row .del:hover{color:var(--red)}
+.pz-add{background:transparent;border:1px dashed var(--yellow);color:var(--yellow-mid);border-radius:3px;padding:6px 10px;width:100%;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:12px}
+.pz-add:hover{background:#fff}
+.pz-none{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:11.5px;color:var(--ink-light);margin-bottom:7px}
+.pz-sum{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11.5px;color:var(--ink-soft);text-align:right;margin-top:4px}
 .pause-box .seg{font-variant-numeric:tabular-nums;color:#b07a2a;margin-right:9px;white-space:nowrap}
 .pause-box .seg .auto{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.1em;color:var(--ink-light);margin-left:2px}
 
@@ -343,6 +358,55 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
   .title{font-size:20px}
   .row3{grid-template-columns:1fr;gap:8px}
   .summary{grid-template-columns:1fr;gap:10px}
+}
+
+/* ── 手機 ───────────────────────────────── */
+@media (max-width:560px){
+  .viewport{padding:14px 0 50px}
+  .a4{padding:22px 16px 20px}
+
+  /* 進行中排到新增工作前面 — 手機上最常按的是暫停 */
+  .pa-wrap .active-section{order:1;margin-bottom:12px}
+  .pa-wrap .punch-card{order:2}
+
+  /* 新增工作預設收成一顆按鈕 */
+  .punch-toggle{display:block;width:100%;min-height:46px;background:#fff;border:1px solid var(--line);border-radius:4px;
+    font-family:'Noto Serif TC',serif;font-size:14px;color:var(--ink-soft);cursor:pointer;letter-spacing:0.04em}
+  .punch-toggle:active{background:var(--yellow-lightest)}
+  .punch-card{padding:0;border:none;background:transparent}
+  .punch-card.collapsed .punch-body{display:none}
+  .punch-card:not(.collapsed){padding:12px;border:1px solid var(--line);background:#fff}
+  .punch-card:not(.collapsed) .punch-toggle{margin-bottom:12px;border-color:var(--yellow);color:var(--yellow-mid)}
+  .punch-card .punch-head{display:none}
+  .punch-card.disabled{background:transparent}
+  .row,.row3{grid-template-columns:1fr;gap:10px}
+
+  /* 上下班:兩顆並排、整排撐滿、按得到 */
+  .clock-bar{flex-direction:column;align-items:stretch;gap:12px;padding:14px}
+  .clock-btns{flex-direction:row;gap:10px}
+  .clock-btn-mini,.clock-btn{flex:1;min-height:46px;font-size:12px;letter-spacing:0.12em}
+
+  /* 進行中那張卡:資訊在上、按鈕在下排成一列 */
+  .active-card{flex-direction:column;align-items:stretch;gap:12px;padding:14px}
+  .ac-btns{flex-direction:row;gap:10px}
+  .ac-btn-mini{flex:1;min-height:46px;font-size:12px;letter-spacing:0.12em}
+  .ac-time-start{font-size:22px}
+  .ac-proj{font-size:15px;white-space:normal}
+  .ac-meta{font-size:12px;margin-top:5px}
+  .ac-meta .stage.editable{padding:3px 8px;font-size:11px}
+  .ac-note-input{font-size:14px;padding:5px 8px}
+
+  /* 其餘小字在手機上放大一階 */
+  .fc{font-size:15px;padding:10px}
+  .btn-start{min-height:46px;font-size:12px}
+  .todo-ln .b .n,.todo-nx .b .n{font-size:13.5px}
+
+  /* 暫停編輯:窄螢幕放不下單段時長,拿掉讓刪除鈕有位置 */
+  .pz-row{grid-template-columns:1fr 12px 1fr 34px;gap:5px}
+  .pz-row .dur{display:none}
+  .pz-row .fc{font-size:14px;padding:8px 6px}
+  .pz-row .del{font-size:20px;min-height:40px}
+  .pz-add{min-height:42px;font-size:13px}
 }
 </style>
 </head>
@@ -717,6 +781,8 @@ var state={
   dailySelectedDay:null, // 'YYYY-MM-DD' 日誌頁選中的某天
   reportShowAll:false, // Report 是否展開全部月份
   // 展開中的待辦分組;沒存過 = 預設開第一組,存過 null = 使用者自己收起來的
+  addOpen:false, // 手機上「新增工作」是否展開(電腦版一律展開)
+  outArmed:false, // 下班鈕是否已按過一次
   todoBand:(function(){var raw=null;try{raw=localStorage.getItem(TODOBAND_KEY);}catch(e){}
     if(raw===null)return null; // 預設收起,先看「先做這個」
     try{return JSON.parse(raw);}catch(e){return 'g1';}})(),
@@ -886,6 +952,9 @@ function endBreak(){
 
 function clockOut(){
   if(!state.shift){return;}
+  // 第一下只亮警告,再按一次才真的下班
+  if(!state.outArmed){state.outArmed=true;render();return;}
+  state.outArmed=false;
   if(state.active.length>0){
     if(!confirm('還有 '+state.active.length+' 個進行中的打卡,要全部結束並下班嗎?'))return;
     state.active.slice().forEach(function(item){stopPunch(item.id);});
@@ -1095,8 +1164,97 @@ function reopenEntry(id){
 }
 
 function openEdit(id){var e=state.entries.find(function(x){return x.id===id;});if(!e)return;state.delArmed=false;state.modalForm={id:e.id,notionId:e.notionId,pauses:e.pauses||[],projectId:e.projectId,projectLabel:e.projectLabel,client:e.client||'',stage:e.stage,note:e.note||'',startDate:dateKey(e.startAt),startTime:fmtTime(e.startAt),endDate:dateKey(e.endAt),endTime:fmtTime(e.endAt),workDay:e.workDay||dateKey(e.startAt),overrideDurMin:e.durMin||0};state.modal='edit';render();}
-function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now),workDay:dateKey(start)};state.modal='manual';render();}
+function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);state.modalForm={pauses:[],projectId:'',projectLabel:'',client:'',stage:'初剪',note:'',startDate:dateKey(start),startTime:fmtTime(start),endDate:dateKey(now),endTime:fmtTime(now),workDay:dateKey(start)};state.modal='manual';render();}
 function closeModal(){state.modal=null;state.delArmed=false;render();}
+
+// ── 編輯視窗裡的暫停時段 ────────────────────
+function modalSpan(){
+  var f=state.modalForm;
+  var a=new Date(f.startDate+'T'+f.startTime+':00').getTime();
+  var b=new Date(f.endDate+'T'+f.endTime+':00').getTime();
+  return {startAt:a,endAt:b,ok:!isNaN(a)&&!isNaN(b)&&b>a};
+}
+function modalPauseMs(f){
+  var t=0;
+  (f.pauses||[]).forEach(function(p){
+    if(!p.from)return;
+    var b=p.to||p.from;
+    t+=Math.max(0,b-p.from);
+  });
+  return t;
+}
+// 改完暫停就把實工時重算一遍
+function recalcModalDur(){
+  var f=state.modalForm,sp=modalSpan();
+  if(!sp.ok)return;
+  var rangeMin=Math.max(0,Math.round((sp.endAt-sp.startAt)/60000));
+  var pauseMin=Math.round(modalPauseMs(f)/60000);
+  f.overrideDurMin=Math.max(0,rangeMin-pauseMin);
+}
+// HH:MM 換算成這筆紀錄範圍內的時間點
+function hmToSpanTs(hm,sp){
+  var parts=String(hm||'').split(':');
+  var d=new Date(sp.startAt);
+  d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
+  var ts=d.getTime();
+  // 只有真的跨午夜的紀錄,同一個時刻才可能是指隔天
+  if(ts<sp.startAt){
+    var next=ts+86400000;
+    if(next<=sp.endAt)ts=next;
+  }
+  if(ts<sp.startAt)ts=sp.startAt;   // 比紀錄還早 → 夾到開始
+  if(ts>sp.endAt)ts=sp.endAt;       // 比紀錄還晚 → 夾到結束
+  return ts;
+}
+function setModalPause(i,field,hm){
+  var f=state.modalForm,p=(f.pauses||[])[i],sp=modalSpan();
+  if(!p||!hm||!sp.ok)return;
+  p[field]=hmToSpanTs(hm,sp);
+  // 你改的那一格一定生效,另一格跟著讓位,不會白打
+  if(p.from&&p.to&&p.to<p.from){
+    if(field==='from')p.to=p.from; else p.from=p.to;
+  }
+  recalcModalDur();render();
+}
+function delModalPause(i){
+  state.modalForm.pauses.splice(i,1);
+  recalcModalDur();render();
+}
+function addModalPause(){
+  var f=state.modalForm,sp=modalSpan();
+  if(!sp.ok){alert('先把開始和結束時間填好');return;}
+  if(!f.pauses)f.pauses=[];
+  var last=f.pauses.length?f.pauses[f.pauses.length-1].to:null;
+  var from=Math.min(Math.max(last||sp.startAt,sp.startAt),sp.endAt);
+  var to=Math.min(from+3600000,sp.endAt);
+  f.pauses.push({from:from,to:to,auto:false});
+  recalcModalDur();render();
+}
+function pauseEditorHtml(f){
+  var sp=modalSpan();
+  var h='<div class="flabel" style="margin-top:2px">暫停紀錄 · Pause Log <span style="color:var(--ink-light);font-family:Cormorant Garamond,serif;font-style:italic;font-size:10px;text-transform:none;letter-spacing:0">改時間會自動重算工時</span></div>';
+  h+='<div class="pause-box">';
+  var list=f.pauses||[];
+  if(list.length===0){
+    h+='<div class="pz-none">沒有暫停紀錄</div>';
+  } else {
+    list.forEach(function(p,i){
+      var a=p.from?fmtTime(p.from):'',b=p.to?fmtTime(p.to):'';
+      var dur=(p.from&&p.to)?fmtDur(p.to-p.from):'—';
+      h+='<div class="pz-row">';
+      h+='  <input type="time" class="fc" value="'+a+'" onchange="setModalPause('+i+',\'from\',this.value)">';
+      h+='  <span class="ar">→</span>';
+      h+='  <input type="time" class="fc" value="'+b+'" onchange="setModalPause('+i+',\'to\',this.value)">';
+      h+='  <span class="dur">'+dur+'</span>';
+      h+='  <button class="del" onclick="delModalPause('+i+')" title="刪掉這段">×</button>';
+      h+='</div>';
+    });
+    h+='<div class="pz-sum">暫停共 '+fmtDur(modalPauseMs(f))+'</div>';
+  }
+  h+='<button class="pz-add" onclick="addModalPause()">＋ 補一段暫停</button>';
+  h+='</div>';
+  return h;
+}
 
 function saveModal(){
   var f=state.modalForm;
@@ -1107,11 +1265,14 @@ function saveModal(){
   var workDay=f.workDay||dateKey(startAt);
   var entry;
   var rangeMin=Math.round((endAt-startAt)/60000);
-  var finalDur=(typeof f.overrideDurMin==='number')?f.overrideDurMin:rangeMin;
-  // pauseTotal = 範圍時長 - 實工時(若小於 0 設 0)
-  var newPauseTotal=Math.max(0,(rangeMin-finalDur)*60000);
-  if(f.id){state.entries=state.entries.map(function(e){if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:finalDur,pauseTotal:newPauseTotal,workDay:workDay});return entry;}return e;});}
-  else{entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:finalDur,pauseTotal:newPauseTotal,workDay:workDay};state.entries.unshift(entry);}
+  var pauseMs=modalPauseMs(f);
+  // 有暫停段落就以段落為準;沒有的話才從「實工時」倒推
+  var finalDur=(typeof f.overrideDurMin==='number')?f.overrideDurMin
+              :Math.max(0,rangeMin-Math.round(pauseMs/60000));
+  var newPauseTotal=(f.pauses&&f.pauses.length)?pauseMs:Math.max(0,(rangeMin-finalDur)*60000);
+  var newPauses=(f.pauses||[]).slice();
+  if(f.id){state.entries=state.entries.map(function(e){if(e.id===f.id){entry=Object.assign({},e,{projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:finalDur,pauseTotal:newPauseTotal,pauses:newPauses,workDay:workDay});return entry;}return e;});}
+  else{entry={id:uid(),projectId:f.projectId,projectLabel:f.projectLabel,client:f.client,stage:f.stage,note:f.note,startAt:startAt,endAt:endAt,durMin:finalDur,pauseTotal:newPauseTotal,pauses:newPauses,workDay:workDay};state.entries.unshift(entry);}
   state.entries.sort(function(a,b){return b.startAt-a.startAt;});
   ls_set(ENTRIES_KEY,state.entries);closeModal();
   if(USE_API&&entry)apiSaveEntry(entry,function(err,notionId){if(err){console.warn('儲存失敗',err);return;}if(notionId){entry.notionId=notionId;state.entries=state.entries.map(function(e){return e.id===entry.id?entry:e;});ls_set(ENTRIES_KEY,state.entries);render();}});
@@ -1292,7 +1453,7 @@ function render(){
       } else {
         html+='    <button class="clock-btn-mini break" onclick="startBreak()">‖ 休息</button>';
       }
-      html+='    <button class="clock-btn-mini out" onclick="clockOut()">■ 下班</button>';
+      html+='    <button class="clock-btn-mini out'+(state.outArmed?' armed':'')+'" onclick="event.stopPropagation();clockOut()">'+(state.outArmed?'確定下班?':'■ 下班')+'</button>';
       html+='  </div>';
       html+='</div>';
       html+=syncBarHtml();
@@ -1319,7 +1480,11 @@ function render(){
     }
 
     var disabled=!state.shift||!!(state.shift&&state.shift.breakAt);
-    html+='<div class="punch-card'+(disabled?' disabled':'')+'">';
+    html+='<div class="pa-wrap">';
+    html+='<div class="punch-card'+(disabled?' disabled':'')+(state.addOpen?'':' collapsed')+'">';
+    // 手機上收起來時只留這顆,點了才展開表單
+    html+='  <button class="punch-toggle" onclick="state.addOpen=!state.addOpen;render();">'+(state.addOpen?'× 收起':'＋ 新增工作')+'</button>';
+    html+='  <div class="punch-body">';
     if(disabled){
       html+='  <div class="punch-warning">⚠ '+(state.shift&&state.shift.breakAt?'休息中,點「▸ 回來」才能繼續':'請先按上班才能新增工作')+'</div>';
     }
@@ -1351,6 +1516,7 @@ function render(){
     html+='    <div><div class="flabel">Note / 備註</div><input id="note-input" class="fc" '+(disabled?'disabled':'')+' placeholder="修頭尾"></div>';
     html+='    <div><div class="flabel">Start / 開始</div><input id="start-input" type="time" class="fc" '+(disabled?'disabled':'')+' value="'+nowHM()+'"></div>';
     html+='    <button class="btn-start" '+(disabled?'disabled':'')+' onclick="startPunch()">▸ Start</button>';
+    html+='  </div>';
     html+='  </div>';
     html+='</div>';
 
@@ -1405,6 +1571,7 @@ function render(){
       });
       html+='</div>';
     }
+    html+='</div>'; // pa-wrap
 
     var today=todayKey();
     // 「今天」= 上班中當前 workDay,或 today date(沒上班時用日曆日)
@@ -1817,10 +1984,7 @@ function render(){
     html+='      <div class="field"><div class="flabel">結束日 · End</div><input type="date" class="fc" value="'+f.endDate+'" onchange="state.modalForm.endDate=this.value;"></div>';
     html+='      <div class="field"><div class="flabel">結束時間</div><input type="time" class="fc" value="'+f.endTime+'" onchange="state.modalForm.endTime=this.value;"></div>';
     html+='    </div>';
-    if(f.pauses&&f.pauses.length){
-      html+='    <div class="flabel" style="margin-top:2px">暫停紀錄 · Pause Log</div>';
-      html+='    <div class="pause-box">'+pauseSegsHtml(f)+'</div>';
-    }
+    html+=pauseEditorHtml(f);
     html+='    <div class="field"><div class="flabel">工作日 · Work Day(歸入哪一天)</div><input type="date" class="fc" value="'+(f.workDay||f.startDate)+'" onchange="state.modalForm.workDay=this.value;"></div>';
     var calcDur='';
     if(f.startDate&&f.startTime&&f.endDate&&f.endTime){
@@ -1864,9 +2028,9 @@ function render(){
 
 render();
 document.addEventListener('click',function(){
-  if(state.gearMenu||state.editStageId||state.editNoteId){
+  if(state.gearMenu||state.editStageId||state.editNoteId||state.outArmed){
     commitActiveNote();
-    state.gearMenu=false;state.editStageId=null;
+    state.gearMenu=false;state.editStageId=null;state.outArmed=false;
     render();
   }
 });
