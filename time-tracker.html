@@ -290,12 +290,17 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .tl-pause .pz .pl-label{font-family:Inter,sans-serif;font-style:normal;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;margin-right:5px}
 .tl-pause .pz .seg{margin-right:9px;white-space:nowrap;color:#b07a2a}
 .pause-box{background:var(--yellow-lightest);border:1px solid var(--yellow-pale);border-radius:3px;padding:9px 10px;margin-bottom:12px}
-.pz-row{display:grid;grid-template-columns:1fr 14px 1fr 62px 28px;gap:6px;align-items:center;margin-bottom:6px}
-.pz-row .fc{padding:5px 6px;font-size:12.5px}
-.pz-row .ar{text-align:center;color:var(--ink-light);font-size:11px}
-.pz-row .dur{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11.5px;color:#b07a2a;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.pz-row .del{border:none;background:transparent;color:var(--ink-light);font-size:15px;cursor:pointer;padding:0;line-height:1}
-.pz-row .del:hover{color:var(--red)}
+.pz-seg{border:1px solid var(--yellow-pale);background:#fff;border-radius:3px;padding:8px 9px;margin-bottom:7px}
+.pz-seg-top{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+.pz-seg-top .lb{font-family:Inter,sans-serif;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-light)}
+.pz-seg-top .xd{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:10.5px;color:var(--yellow-mid)}
+.pz-seg-top .dur{margin-left:auto;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:#b07a2a;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pz-seg-top .del{border:none;background:transparent;color:var(--ink-light);font-size:16px;cursor:pointer;padding:0 0 0 6px;line-height:1}
+.pz-seg-top .del:hover{color:var(--red)}
+.pz-ab{display:grid;grid-template-columns:32px 1fr;gap:7px;align-items:center;margin-bottom:5px}
+.pz-ab:last-child{margin-bottom:0}
+.pz-ab .k{font-family:'Noto Sans TC',sans-serif;font-size:11px;color:var(--ink-light)}
+.pz-ab .fc{padding:6px;font-size:12.5px}
 .pz-add{background:transparent;border:1px dashed var(--yellow);color:var(--yellow-mid);border-radius:3px;padding:6px 10px;width:100%;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:12px}
 .pz-add:hover{background:#fff}
 .pz-none{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:11.5px;color:var(--ink-light);margin-bottom:7px}
@@ -401,11 +406,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
   .btn-start{min-height:46px;font-size:12px}
   .todo-ln .b .n,.todo-nx .b .n{font-size:13.5px}
 
-  /* 暫停編輯:窄螢幕放不下單段時長,拿掉讓刪除鈕有位置 */
-  .pz-row{grid-template-columns:1fr 12px 1fr 34px;gap:5px}
-  .pz-row .dur{display:none}
-  .pz-row .fc{font-size:14px;padding:8px 6px}
-  .pz-row .del{font-size:20px;min-height:40px}
+  /* 暫停編輯 */
+  .pz-ab .fc{font-size:14px;padding:9px 6px}
+  .pz-seg-top .del{font-size:22px;padding:0 2px 0 10px}
   .pz-add{min-height:42px;font-size:13px}
 }
 </style>
@@ -907,9 +910,13 @@ function clockIn(){
   var parts=newHM.split(':');
   var d=new Date();
   d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
-  // 若選的時間在未來,當作今天現在
-  if(d.getTime()>Date.now())d=new Date();
-  state.shift={startAt:d.getTime(),workDay:todayKey()};
+  // 填的時間還沒到 → 多半是昨天開始做的(做到凌晨才想起來按上班)
+  if(d.getTime()>Date.now()+60000){
+    d=new Date(d.getTime()-86400000);
+    var wk='日一二三四五六'[d.getDay()];
+    if(!confirm('現在是 '+nowHM()+',你填的 '+newHM+' 還沒到。\n\n要記成昨天 '+(d.getMonth()+1)+'/'+d.getDate()+'('+wk+') '+newHM+' 開始嗎?'))return;
+  }
+  state.shift={startAt:d.getTime(),workDay:dateKey(d.getTime())};
   ls_set(SHIFT_KEY,state.shift);
   render();
 }
@@ -1168,6 +1175,10 @@ function openManual(){var now=new Date(),start=new Date(now.getTime()-3600000);s
 function closeModal(){state.modal=null;state.delArmed=false;render();}
 
 // ── 編輯視窗裡的暫停時段 ────────────────────
+function dtLocal(ts){
+  var d=new Date(ts);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
 function modalSpan(){
   var f=state.modalForm;
   var a=new Date(f.startDate+'T'+f.startTime+':00').getTime();
@@ -1191,25 +1202,14 @@ function recalcModalDur(){
   var pauseMin=Math.round(modalPauseMs(f)/60000);
   f.overrideDurMin=Math.max(0,rangeMin-pauseMin);
 }
-// HH:MM 換算成這筆紀錄範圍內的時間點
-function hmToSpanTs(hm,sp){
-  var parts=String(hm||'').split(':');
-  var d=new Date(sp.startAt);
-  d.setHours(parseInt(parts[0])||0,parseInt(parts[1])||0,0,0);
-  var ts=d.getTime();
-  // 只有真的跨午夜的紀錄,同一個時刻才可能是指隔天
-  if(ts<sp.startAt){
-    var next=ts+86400000;
-    if(next<=sp.endAt)ts=next;
-  }
-  if(ts<sp.startAt)ts=sp.startAt;   // 比紀錄還早 → 夾到開始
-  if(ts>sp.endAt)ts=sp.endAt;       // 比紀錄還晚 → 夾到結束
-  return ts;
-}
-function setModalPause(i,field,hm){
+function setModalPause(i,field,val){
   var f=state.modalForm,p=(f.pauses||[])[i],sp=modalSpan();
-  if(!p||!hm||!sp.ok)return;
-  p[field]=hmToSpanTs(hm,sp);
+  if(!p||!val||!sp.ok)return;
+  var ts=new Date(val).getTime();   // 欄位本身就帶日期,不用猜
+  if(isNaN(ts))return;
+  if(ts<sp.startAt)ts=sp.startAt;   // 超出這筆紀錄的範圍就夾回來
+  if(ts>sp.endAt)ts=sp.endAt;
+  p[field]=ts;
   // 你改的那一格一定生效,另一格跟著讓位,不會白打
   if(p.from&&p.to&&p.to<p.from){
     if(field==='from')p.to=p.from; else p.from=p.to;
@@ -1239,14 +1239,16 @@ function pauseEditorHtml(f){
     h+='<div class="pz-none">沒有暫停紀錄</div>';
   } else {
     list.forEach(function(p,i){
-      var a=p.from?fmtTime(p.from):'',b=p.to?fmtTime(p.to):'';
-      var dur=(p.from&&p.to)?fmtDur(p.to-p.from):'—';
-      h+='<div class="pz-row">';
-      h+='  <input type="time" class="fc" value="'+a+'" onchange="setModalPause('+i+',\'from\',this.value)">';
-      h+='  <span class="ar">→</span>';
-      h+='  <input type="time" class="fc" value="'+b+'" onchange="setModalPause('+i+',\'to\',this.value)">';
-      h+='  <span class="dur">'+dur+'</span>';
-      h+='  <button class="del" onclick="delModalPause('+i+')" title="刪掉這段">×</button>';
+      var dur=(p.from&&p.to)?fmtDur(Math.max(0,p.to-p.from)):'—';
+      // 跨日的時候標出來,免得看漏
+      var crossed=(p.from&&p.to&&dateKey(p.from)!==dateKey(p.to));
+      h+='<div class="pz-seg">';
+      h+='  <div class="pz-seg-top"><span class="lb">暫停 '+(i+1)+'</span>';
+      h+=(crossed?'<span class="xd">跨日</span>':'');
+      h+='    <span class="dur">'+dur+'</span>';
+      h+='    <button class="del" onclick="delModalPause('+i+')" title="刪掉這段">×</button></div>';
+      h+='  <div class="pz-ab"><span class="k">開始</span><input type="datetime-local" class="fc" value="'+(p.from?dtLocal(p.from):'')+'" onchange="setModalPause('+i+',\'from\',this.value)"></div>';
+      h+='  <div class="pz-ab"><span class="k">結束</span><input type="datetime-local" class="fc" value="'+(p.to?dtLocal(p.to):'')+'" onchange="setModalPause('+i+',\'to\',this.value)"></div>';
       h+='</div>';
     });
     h+='<div class="pz-sum">暫停共 '+fmtDur(modalPauseMs(f))+'</div>';
