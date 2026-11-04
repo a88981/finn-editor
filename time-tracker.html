@@ -97,6 +97,8 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .todo-nx.blk .b .sg{color:var(--ink-light)}
 .todo-nx.blk .b .n{color:var(--ink-soft)}
 .todo-nx.blk .t{color:var(--ink-light);font-weight:400}
+.todo-nx .b .cl,.todo-ln .b .cl{flex:0 0 auto;font-family:Inter,'Noto Sans TC',sans-serif;font-size:10px;color:var(--ink-light);letter-spacing:0.04em;margin-left:6px;white-space:nowrap}
+.todo-nx.blk .b .cl{color:#a9aab4}
 .todo-nx .bk{margin-left:auto;padding-left:8px;white-space:nowrap;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:11px;color:var(--ink-light)}
 .todo-nx.blk.od .t{color:#a86b6b}
 .todo-nx-none{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:12px;color:var(--ink-light);padding:4px 0 2px}
@@ -413,6 +415,14 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
   .btn-start{min-height:46px;font-size:12px}
   .todo-ln .b .n,.todo-nx .b .n{font-size:13.5px}
 
+  /* 待交列:左邊縮一點，把寬度讓給案名 */
+  .todo-nx{grid-template-columns:16px 52px 1fr;gap:7px}
+  .todo-ln{grid-template-columns:52px 1fr;gap:7px}
+  .todo-nx .b,.todo-ln .b{gap:7px;padding:7px 8px}
+  .todo-nx .b .sg,.todo-ln .b .sg{min-width:32px;font-size:9.5px;letter-spacing:0.02em}
+  .todo-nx .b .cl,.todo-ln .b .cl{font-size:9.5px;margin-left:5px}
+  .todo-nx .bk,.todo-ln .b .w{font-size:10px;padding-left:6px}
+
   /* 暫停編輯 */
   .pz-ab .fc{font-size:14px;padding:9px 6px}
   .pz-seg-top .del{font-size:22px;padding:0 2px 0 10px}
@@ -726,7 +736,7 @@ function todoSectionHtml(){
     h+='    <span class="no">'+(i+1)+'</span>';
     h+='    <span class="t">'+lbl+'</span>';
     h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span></div>';
+    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+'</div>';
     h+='  </div>';
   });
   // 動不了的排最後,灰掉並標出卡在哪
@@ -737,7 +747,7 @@ function todoSectionHtml(){
     h+='    <span class="no">·</span>';
     h+='    <span class="t">'+lbl+'</span>';
     h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>';
+    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+'';
     h+='      <span class="bk">'+escAttr(t.block)+'</span></div>';
     h+='  </div>';
   });
@@ -760,7 +770,7 @@ function todoSectionHtml(){
       h+='  <div class="todo-ln '+cls+'">';
       h+='    <span class="t">'+lbl+'</span>';
       h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-      h+='      <span class="n">'+escAttr(t.name||'(\u7121\u540D)')+'</span>';
+      h+='      <span class="n">'+escAttr(t.name||'(\u7121\u540D)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+'';
       h+='      '+(t.block?'<span class="w">'+escAttr(t.block)+'</span>':'')+'</div>';
       h+='  </div>';
     });
