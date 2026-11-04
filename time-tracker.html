@@ -97,6 +97,9 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .todo-nx.blk .b .sg{color:var(--ink-light)}
 .todo-nx.blk .b .n{color:var(--ink-soft)}
 .todo-nx.blk .t{color:var(--ink-light);font-weight:400}
+.todo-nx .b .pr,.todo-ln .b .pr{flex:0 0 auto;margin-left:7px;font-family:Inter,'Noto Sans TC',sans-serif;font-size:9px;letter-spacing:0.06em;color:var(--yellow-mid);background:var(--yellow-pale);border-radius:2px;padding:1px 5px;white-space:nowrap}
+.todo-nx .b .pr.urgent,.todo-ln .b .pr.urgent{color:#fff;background:var(--red)}
+.todo-nx.blk .b .pr{color:var(--ink-light);background:#e9e9e4}
 .todo-nx .b .cl,.todo-ln .b .cl{flex:0 0 auto;font-family:Inter,'Noto Sans TC',sans-serif;font-size:10px;color:var(--ink-light);letter-spacing:0.04em;margin-left:6px;white-space:nowrap}
 .todo-nx.blk .b .cl{color:#a9aab4}
 .todo-nx .bk{margin-left:auto;padding-left:8px;white-space:nowrap;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:11px;color:var(--ink-light)}
@@ -421,6 +424,7 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
   .todo-nx .b,.todo-ln .b{gap:7px;padding:7px 8px}
   .todo-nx .b .sg,.todo-ln .b .sg{min-width:32px;font-size:9.5px;letter-spacing:0.02em}
   .todo-nx .b .cl,.todo-ln .b .cl{font-size:9.5px;margin-left:5px}
+  .todo-nx .b .pr,.todo-ln .b .pr{font-size:8.5px;margin-left:5px;padding:1px 4px}
   .todo-nx .bk,.todo-ln .b .w{font-size:10px;padding-left:6px}
 
   /* 暫停編輯 */
@@ -490,7 +494,7 @@ function syncCall(body,cb){
   .catch(function(e){cb(e.message||'連線失敗');});
 }
 
-var syncMuted=false,syncTimer=null,syncBusy=false,syncState2={status:'off',at:0,tryAt:0,msg:''};
+var syncMuted=false,syncTimer=null,syncBusy=false,syncState2={status:'off',at:0,tryAt:0,msg:'',by:''};
 
 function setSyncStatus(st,msg){
   syncState2.status=st;syncState2.msg=msg||'';
@@ -503,6 +507,7 @@ function pullState(cb){
   if(!syncOn()){if(cb)cb();return;}
   syncCall({action:'get'},function(err,d){
     if(err||!d||!d.ok){setSyncStatus('err',err||(d&&d.error)||'讀取失敗');render();if(cb)cb(err||'fail');return;}
+    syncState2.by=d.device||'';
     if(d.rev>syncRev()&&d.state){
       var changed=applyLiveState(d.state);
       setSyncRev(d.rev);
@@ -541,6 +546,7 @@ function pushState(force){
       render();return;
     }
     if(!d||!d.ok){setSyncStatus('err',(d&&d.error)||'寫入失敗');render();return;}
+    syncState2.by=deviceId();
     setSyncRev(d.rev);setSyncStatus('ok');render();
   });
 }
@@ -565,7 +571,7 @@ function startSyncLoop(){
 
 function openSyncSetup(){
   var cur=syncUrl();
-  var u=prompt('手機同步 · 貼上 Apps Script 的網頁應用程式網址\n(結尾是 /exec)\n\n留空並按確定 = 關閉同步',cur);
+  var u=prompt('手機同步 · 設定(每台裝置只要設定一次)\n\n設定好之後就自動同步了,平常不用再開這裡。\n另一台改了什麼,這台會自己跟上。\n\n貼上 Apps Script 的網頁應用程式網址(結尾是 /exec):\n\n留空並按確定 = 關閉這台的同步',cur);
   if(u===null)return;
   u=u.trim();
   if(!u){try{localStorage.removeItem(SYNC_URL_KEY);localStorage.removeItem(SYNC_PW_KEY);localStorage.removeItem(SYNC_REV_KEY);}catch(e){}
@@ -581,10 +587,11 @@ function openSyncSetup(){
       alert('連不上:'+(err||(d&&d.error)||'')+'\n\n檢查一下:\n· 部署時「誰可以存取」有沒有選「任何人」\n· 網址是不是 /exec 結尾\n· 密碼跟程式碼裡的一不一樣');return;}
     if(d.rev>0&&d.state){
       if(confirm('雲端已經有一份狀態了。\n\n要用雲端的覆蓋這台嗎?\n\n確定 = 用雲端的(建議在第二台裝置選這個)\n取消 = 用這台的覆蓋雲端')){
-        applyLiveState(d.state);setSyncRev(d.rev);setSyncStatus('ok');render();alert('已經同步過來了。');
+        applyLiveState(d.state);setSyncRev(d.rev);setSyncStatus('ok');render();
+        alert('已經接上另一台的進度。\n\n之後不用再開這裡,兩邊會自動跟上。');
       } else { setSyncRev(d.rev);pushState();alert('已經把這台的狀態上傳。'); }
     } else {
-      setSyncRev(d.rev);pushState();alert('設定完成,已經把這台的狀態上傳。\n\n手機上開同一個網址,再設定一次同樣的網址和密碼就好。');
+      setSyncRev(d.rev);pushState();alert('設定完成,已經把這台目前的狀態上傳。\n\n接下來在手機上開同一個網址,一樣設定這組網址和密碼,\n手機會問你要用哪邊的,選「雲端的」就會接上這台的進度。\n\n之後兩邊都不用再按,誰改了對方自己會跟上。');
     }
   });
 }
@@ -594,7 +601,11 @@ function syncBarHtml(){
   var st=syncState2.status,cls='',txt='';
   if(st==='busy'){cls='busy';txt='同步中…';}
   else if(st==='err'){cls='err';txt='同步失敗 · '+(syncState2.msg||'');}
-  else if(st==='ok'){cls='on';txt='已同步 · '+fmtTime(syncState2.at)+' · '+deviceId();}
+  else if(st==='ok'){
+    var by=syncState2.by||'';
+    var who=(!by||by===deviceId())?'這台':by;   // 顯示最後動過狀態的是哪一台
+    cls='on';txt='自動同步中 · '+fmtTime(syncState2.at)+' 查過 · 最後由「'+who+'」更新';
+  }
   else {cls='';txt='等待同步';}
   return '<div class="sync-bar '+cls+'"><span class="dot"></span><span>'+escAttr(txt)+'</span>'+
          '<button class="lk" onclick="pullState()">立即更新</button></div>';
@@ -644,6 +655,24 @@ function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p
 function stageLabel(s){return s||'其他';}
 var TODO_HORIZON=7;   // 待交這塊只看幾天內的(分頁的 2–7 天也是靠這個)
 var WAIT_SHOW_DAYS=TODO_HORIZON;
+// ── 追蹤器的「優先順序」:急案 / 1..7 / - ──
+// API 欄位名不確定,常見的幾種都試;都沒有就當作沒標
+function prioOf(p){
+  var raw=p.priority;
+  if(raw===undefined||raw===null||raw==='')raw=p.prio;
+  if(raw===undefined||raw===null||raw==='')raw=p['優先順序'];
+  if(raw===undefined||raw===null||raw==='')return {rank:50,label:''};
+  raw=String(raw).trim();
+  if(raw==='急案')return {rank:0,label:'急案'};
+  var n=parseInt(raw,10);
+  if(!isNaN(n)&&n>=1)return {rank:n,label:'優先'+n};
+  return {rank:50,label:''};        // 「-」或其他
+}
+// 短影(Reels)比較快做完,沒標優先順序時讓它先
+function isShortForm(p){
+  if((p.type||'')==='短影')return true;
+  return /reels|shorts|短影/i.test(p.name||'');
+}
 // 下一個輪到你的階段 = 還沒交、沒跳過、而且最早到期的那一梯
 function nextStageOf(p){
   var list=[
@@ -681,12 +710,17 @@ function computeTodos(){
     if(days<-7)return;                       // 過期超過 7 天的不顯示
     var block=blockOf(p,st);
     if(block&&days>WAIT_SHOW_DAYS)return;    // 動不了又還久的,不用佔位子
+    var pr=prioOf(p);
     out.push({name:p.name,client:p.client,stage:st.label,stageKey:st.key,
-              days:days,block:block,waiting:!!block,waitLabel:block,status:p.status||''});
+              days:days,block:block,waiting:!!block,waitLabel:block,status:p.status||'',
+              prio:pr.rank,prioLabel:pr.label,short:isShortForm(p)});
   });
   out.sort(function(a,b){
-    if(!!a.block!==!!b.block)return a.block?1:-1;  // 動得了的排前面
-    return a.days-b.days;                          // 其餘純比交期
+    if(!!a.block!==!!b.block)return a.block?1:-1;      // 動得了的排前面
+    if(a.block&&b.block)return a.days-b.days;         // 動不了的就照交期
+    if(a.prio!==b.prio)return a.prio-b.prio;          // 追蹤器標的優先順序(急案最前)
+    if(a.short!==b.short)return a.short?-1:1;         // 都沒標 → 短影先做(比較快收掉)
+    return a.days-b.days;                             // 最後才比交期
   });
   return out;
 }
@@ -736,7 +770,7 @@ function todoSectionHtml(){
     h+='    <span class="no">'+(i+1)+'</span>';
     h+='    <span class="t">'+lbl+'</span>';
     h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+'</div>';
+    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+(t.prioLabel?'<span class="pr'+(t.prio===0?' urgent':'')+'">'+escAttr(t.prioLabel)+'</span>':'')+'</div>';
     h+='  </div>';
   });
   // 動不了的排最後,灰掉並標出卡在哪
@@ -747,7 +781,7 @@ function todoSectionHtml(){
     h+='    <span class="no">·</span>';
     h+='    <span class="t">'+lbl+'</span>';
     h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+'';
+    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+(t.prioLabel?'<span class="pr'+(t.prio===0?' urgent':'')+'">'+escAttr(t.prioLabel)+'</span>':'')+'';
     h+='      <span class="bk">'+escAttr(t.block)+'</span></div>';
     h+='  </div>';
   });
@@ -770,7 +804,7 @@ function todoSectionHtml(){
       h+='  <div class="todo-ln '+cls+'">';
       h+='    <span class="t">'+lbl+'</span>';
       h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-      h+='      <span class="n">'+escAttr(t.name||'(\u7121\u540D)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+'';
+      h+='      <span class="n">'+escAttr(t.name||'(\u7121\u540D)')+'</span>'+(t.client?'<span class="cl">\u00b7'+escAttr(t.client)+'</span>':'')+(t.prioLabel?'<span class="pr'+(t.prio===0?' urgent':'')+'">'+escAttr(t.prioLabel)+'</span>':'')+'';
       h+='      '+(t.block?'<span class="w">'+escAttr(t.block)+'</span>':'')+'</div>';
       h+='  </div>';
     });
@@ -793,6 +827,8 @@ function apiListProjects(cb){fetch(API,{cache:'no-store'}).then(function(r){retu
       v1Due:p.v1Due||'',v1Done:!!p.v1Done,
       bizDue:p.bizDue||'',bizDone:!!p.bizDone,noBiz:!!p.noBiz,
       finalDue:p.finalDue||'',finalDone:!!p.finalDone,
+      // 優先順序：API 欄位名不確定，幾種寫法都接
+      priority:p.priority||p.prio||p['優先順序']||'',
       fee:Number(p.fee)||0,
       finalLen:p.finalLen||p.length||'',
       status:p.status||'',
