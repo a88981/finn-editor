@@ -632,7 +632,8 @@ function entryDur(e){
 function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function stageLabel(s){return s||'其他';}
-var WAIT_SHOW_DAYS=5; // 動不了的案子，超過這個天數就不用先占位子
+var TODO_HORIZON=7;   // 待交這塊只看幾天內的(分頁的 2–7 天也是靠這個)
+var WAIT_SHOW_DAYS=TODO_HORIZON;
 // 下一個輪到你的階段 = 還沒交、沒跳過、而且最早到期的那一梯
 function nextStageOf(p){
   var list=[
@@ -679,11 +680,11 @@ function computeTodos(){
   });
   return out;
 }
-function pickNextUp(todos,n){
-  return todos.filter(function(t){return !t.block;}).slice(0,n);
+function pickNextUp(todos){
+  return todos.filter(function(t){return !t.block&&t.days<=TODO_HORIZON;});
 }
-function pickBlocked(todos,n){
-  return todos.filter(function(t){return !!t.block;}).slice(0,n);
+function pickBlocked(todos){
+  return todos.filter(function(t){return !!t.block&&t.days<=TODO_HORIZON;});
 }
 // 待辦分組 · 名稱、副標、天數範圍都可以直接改這裡
 var TODO_BANDS=[
@@ -710,11 +711,11 @@ function todoSectionHtml(){
   var h='<div class="todo-sec">';
 
   // ── 先做這個 ──
-  var nextUp=pickNextUp(todos,3);
-  var blocked=pickBlocked(todos,3);
+  var nextUp=pickNextUp(todos);
+  var blocked=pickBlocked(todos);
   h+='<div class="todo-next">';
   h+='  <div class="todo-next-head"><span class="t1">先做這個<span class="en">Next up</span></span>';
-  h+='    <span class="hold">一案一列 · 只看下一梯</span></div>';
+  h+='    <span class="hold">一案一列 · '+TODO_HORIZON+' 天內</span></div>';
   if(nextUp.length===0){
     h+='  <div class="todo-nx-none">現在沒有可以動的,手上的都卡在等回饋或等素材</div>';
   }
