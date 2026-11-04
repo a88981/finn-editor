@@ -92,6 +92,13 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .todo-nx .b .sg{flex:0 0 auto;min-width:38px;font-family:Inter,'Noto Sans TC',sans-serif;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;color:var(--yellow-mid);font-weight:500}
 .todo-nx.od .b .sg{color:var(--red)}
 .todo-nx .b .n{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.todo-nx.blk .no{color:var(--ink-light);font-size:12px}
+.todo-nx.blk .b{background:#f4f4f0;border-left-color:var(--line)}
+.todo-nx.blk .b .sg{color:var(--ink-light)}
+.todo-nx.blk .b .n{color:var(--ink-soft)}
+.todo-nx.blk .t{color:var(--ink-light);font-weight:400}
+.todo-nx .bk{margin-left:auto;padding-left:8px;white-space:nowrap;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-style:italic;font-size:11px;color:var(--ink-light)}
+.todo-nx.blk.od .t{color:#a86b6b}
 .todo-nx-none{font-family:'Cormorant Garamond','Noto Sans TC',serif;font-style:italic;font-size:12px;color:var(--ink-light);padding:4px 0 2px}
 .todo-tabs{display:flex;border-bottom:1px solid var(--line)}
 .todo-tabbtn{position:relative;display:inline-flex;align-items:center;gap:7px;padding:8px 16px 9px;background:transparent;border:none;cursor:pointer;font-family:'Noto Serif TC',serif;font-size:13px;color:var(--ink-light);line-height:1.2}
@@ -625,48 +632,58 @@ function entryDur(e){
 function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function stageLabel(s){return s||'其他';}
-// ── 待辦 · 從專案的各階段交期算倒數 ──
-var WAIT_MATERIAL=['等待素材','待確認']; // 素材還沒到手,只看近 5 天
-var WAIT_SHOW_DAYS=5;
-function computeTodos(){
-  var todos=[];
-  var todayD=new Date();todayD.setHours(0,0,0,0);
-  state.projects.filter(function(p){
-    if(p.closed||p.status==='Final完成'||p.finalDone)return false;
-    if(p.status==='暫緩')return false; // 暫緩的不出現
-    return true;
-  }).forEach(function(p){
-    var waiting=WAIT_MATERIAL.indexOf(p.status)>=0;
-    var stages=[
-      {done:p.cut1Done,due:p.cut1Due,skip:p.noCut1,label:'初剪'},
-      {done:p.v1Done,due:p.v1Due,skip:false,label:'ES'},
-      {done:p.bizDone,due:p.bizDue,skip:p.noBiz,label:'業配'},
-      {done:p.finalDone,due:p.finalDue,skip:false,label:'Final'}
-    ];
-    stages.forEach(function(st){
-      if(st.skip||st.done||!st.due)return;
-      var d=new Date(st.due);d.setHours(0,0,0,0);
-      if(isNaN(d.getTime()))return;
-      var days=Math.round((d-todayD)/86400000);
-      if(days<-7)return; // 過期超過 7 天的不顯示
-      if(waiting&&days>WAIT_SHOW_DAYS)return; // 未拿到素材:只顯示倒數 5 天內
-      todos.push({name:p.name,client:p.client,stage:st.label,days:days,waiting:waiting,waitLabel:p.status});
-    });
+var WAIT_SHOW_DAYS=5; // 動不了的案子，超過這個天數就不用先占位子
+// 下一個輪到你的階段 = 還沒交、沒跳過、而且最早到期的那一梯
+function nextStageOf(p){
+  var list=[
+    {key:'cut1', label:'初剪', done:p.cut1Done, due:p.cut1Due, skip:p.noCut1},
+    {key:'v1',   label:'ES',   done:p.v1Done,   due:p.v1Due,   skip:false},
+    {key:'biz',  label:'業配', done:p.bizDone,  due:p.bizDue,  skip:p.noBiz},
+    {key:'final',label:'Final',done:p.finalDone,due:p.finalDue,skip:false}
+  ].filter(function(st){
+    if(st.skip||st.done||!st.due)return false;
+    return !isNaN(new Date(st.due).getTime());
   });
-  todos.sort(function(a,b){return a.days-b.days;});
-  return todos;
+  if(list.length===0)return null;
+  list.sort(function(a,b){return new Date(a.due)-new Date(b.due);});
+  return list[0];
 }
-// 階段先後:同一天到期時,排在前面的階段先做
-var STAGE_ORDER=['前置','初剪','ES','業配','輸出','Final','其他'];
-function stageRank(st){var i=STAGE_ORDER.indexOf(st);return i<0?99:i;}
-// 挑出建議先做的幾筆:只看交期,素材還沒到的不推薦
-function pickNextUp(todos,n){
-  var doable=todos.filter(function(t){return !t.waiting;});
-  doable.sort(function(a,b){
-    if(a.days!==b.days)return a.days-b.days;
-    return stageRank(a.stage)-stageRank(b.stage);
+// 這個階段你現在動得了嗎?動不了的話是卡在什麼
+function blockOf(p,st){
+  var status=p.status||'';
+  if(st.key==='final')return '等回饋';      // Final = 已經剪完,在等客戶回
+  if(status.indexOf('審核')>=0)return '等回饋';
+  if(status==='等待素材')return '等素材';
+  if(status==='待確認')return '待確認';
+  return null;
+}
+function computeTodos(){
+  var out=[];
+  var todayD=new Date();todayD.setHours(0,0,0,0);
+  state.projects.forEach(function(p){
+    if(p.closed||p.status==='Final完成'||p.finalDone)return;
+    if(p.status==='暫緩')return;             // 暫緩的不出現
+    var st=nextStageOf(p);
+    if(!st)return;
+    var d=new Date(st.due);d.setHours(0,0,0,0);
+    var days=Math.round((d-todayD)/86400000);
+    if(days<-7)return;                       // 過期超過 7 天的不顯示
+    var block=blockOf(p,st);
+    if(block&&days>WAIT_SHOW_DAYS)return;    // 動不了又還久的,不用佔位子
+    out.push({name:p.name,client:p.client,stage:st.label,stageKey:st.key,
+              days:days,block:block,waiting:!!block,waitLabel:block,status:p.status||''});
   });
-  return doable.slice(0,n);
+  out.sort(function(a,b){
+    if(!!a.block!==!!b.block)return a.block?1:-1;  // 動得了的排前面
+    return a.days-b.days;                          // 其餘純比交期
+  });
+  return out;
+}
+function pickNextUp(todos,n){
+  return todos.filter(function(t){return !t.block;}).slice(0,n);
+}
+function pickBlocked(todos,n){
+  return todos.filter(function(t){return !!t.block;}).slice(0,n);
 }
 // 待辦分組 · 名稱、副標、天數範圍都可以直接改這裡
 var TODO_BANDS=[
@@ -694,24 +711,35 @@ function todoSectionHtml(){
 
   // ── 先做這個 ──
   var nextUp=pickNextUp(todos,3);
-  var holding=todos.filter(function(t){return t.waiting;}).length;
+  var blocked=pickBlocked(todos,3);
   h+='<div class="todo-next">';
   h+='  <div class="todo-next-head"><span class="t1">先做這個<span class="en">Next up</span></span>';
-  h+=(holding>0?'<span class="hold">另有 '+holding+' 筆在等素材</span>':'')+'</div>';
+  h+='    <span class="hold">一案一列 · 只看下一梯</span></div>';
   if(nextUp.length===0){
-    h+='  <div class="todo-nx-none">現在沒有可以動的,手上的都在等素材或確認</div>';
-  } else {
-    nextUp.forEach(function(t,i){
-      var cls=(t.days<0?'od':(t.days<=1?'now':''))+(i===0?' first':'');
-      var lbl=t.days<0?'逾期'+Math.abs(t.days)+'天':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
-      h+='  <div class="todo-nx '+cls+'">';
-      h+='    <span class="no">'+(i+1)+'</span>';
-      h+='    <span class="t">'+lbl+'</span>';
-      h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
-      h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span></div>';
-      h+='  </div>';
-    });
+    h+='  <div class="todo-nx-none">現在沒有可以動的,手上的都卡在等回饋或等素材</div>';
   }
+  nextUp.forEach(function(t,i){
+    var cls=(t.days<0?'od':(t.days<=1?'now':''))+(i===0?' first':'');
+    var lbl=t.days<0?'逾期'+Math.abs(t.days)+'天':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
+    h+='  <div class="todo-nx '+cls+'">';
+    h+='    <span class="no">'+(i+1)+'</span>';
+    h+='    <span class="t">'+lbl+'</span>';
+    h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
+    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span></div>';
+    h+='  </div>';
+  });
+  // 動不了的排最後,灰掉並標出卡在哪
+  blocked.forEach(function(t){
+    var cls='blk'+(t.days<0?' od':'');
+    var lbl=t.days<0?'逾期'+Math.abs(t.days)+'天':(t.days===0?'今天':(t.days===1?'明天':t.days+'天'));
+    h+='  <div class="todo-nx '+cls+'">';
+    h+='    <span class="no">·</span>';
+    h+='    <span class="t">'+lbl+'</span>';
+    h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
+    h+='      <span class="n">'+escAttr(t.name||'(無名)')+'</span>';
+    h+='      <span class="bk">'+escAttr(t.block)+'</span></div>';
+    h+='  </div>';
+  });
   h+='</div>';
 
   h+='<div class="todo-tabs'+(cur?'':' none')+'">';
@@ -732,7 +760,7 @@ function todoSectionHtml(){
       h+='    <span class="t">'+lbl+'</span>';
       h+='    <div class="b"><span class="sg">'+escAttr(t.stage)+'</span>';
       h+='      <span class="n">'+escAttr(t.name||'(\u7121\u540D)')+'</span>';
-      h+='      '+(t.waiting?'<span class="w">'+escAttr(t.waitLabel||'\u7B49\u7D20\u6750')+'</span>':'')+'</div>';
+      h+='      '+(t.block?'<span class="w">'+escAttr(t.block)+'</span>':'')+'</div>';
       h+='  </div>';
     });
     h+='</div>';
