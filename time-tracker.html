@@ -494,6 +494,15 @@ function syncCall(body,cb){
   .catch(function(e){cb(e.message||'連線失敗');});
 }
 
+var refetchT1=null,refetchT2=null;
+// 另一台把打卡結束掉了,那筆完成紀錄只在 Notion,這套同步不帶它,所以要另外去撈。
+// 撈兩次:對方剛寫完撈一次,Notion 慢的話六秒後再補一次。
+function entriesRefetchSoon(){
+  if(!USE_API)return;
+  clearTimeout(refetchT1);clearTimeout(refetchT2);
+  refetchT1=setTimeout(syncFromCloud,1200);
+  refetchT2=setTimeout(syncFromCloud,6000);
+}
 var syncMuted=false,syncTimer=null,syncBusy=false,syncState2={status:'off',at:0,tryAt:0,msg:'',by:''};
 
 function setSyncStatus(st,msg){
@@ -509,9 +518,13 @@ function pullState(cb){
     if(err||!d||!d.ok){setSyncStatus('err',err||(d&&d.error)||'讀取失敗');render();if(cb)cb(err||'fail');return;}
     syncState2.by=d.device||'';
     if(d.rev>syncRev()&&d.state){
+      var activeBefore=state.active.map(function(x){return x.id;}).join(',');
       var changed=applyLiveState(d.state);
+      var activeAfter=state.active.map(function(x){return x.id;}).join(',');
       setSyncRev(d.rev);
       setSyncStatus('ok');
+      // 進行中的清單變了 = 對方開始或結束了某筆,完成紀錄要另外去 Notion 撈
+      if(activeBefore!==activeAfter)entriesRefetchSoon();
       render();
       if(cb)cb(null,changed);
       return;
@@ -1428,8 +1441,19 @@ function syncFromCloud(){
       if(!e.workDay&&local.workDay)e.workDay=local.workDay;
     }
   });
-  state.entries=entries;
-  ls_set(ENTRIES_KEY,entries);
+  // 本地有、雲端還沒有,而且從來沒存上去過(沒有 notionId)→ 是還在路上的,先留著,
+  // 否則剛按完結束就被雲端的舊清單洗掉。有 notionId 卻不在雲端 = 真的被刪了,就放掉。
+  var cloudIds={};
+  entries.forEach(function(e){if(e.id)cloudIds[e.id]=true;});
+  var keepFrom=Date.now()-7*86400000;      // 只留近七天的,免得永遠累積
+  var JUST_NOW=120000;                     // 剛結束兩分鐘內的,雲端列表可能還沒跟上
+  var pending=state.entries.filter(function(e){
+    if(cloudIds[e.id]||e.startAt<keepFrom)return false;
+    if(!e.notionId)return true;                                  // 從來沒存成功
+    return (Date.now()-(e.endAt||e.startAt))<JUST_NOW;           // 剛存完,列表還沒看到
+  });
+  state.entries=pending.concat(entries);
+  ls_set(ENTRIES_KEY,state.entries);
   render();
 });}
 
