@@ -305,7 +305,9 @@ function Stat(props){
 // 選的是「案子」，一組案子可以拆成好幾張發票，金額自己填。
 // 加起來跟案子總額不一樣就擋一次，問清楚再存。
 function InvoiceModal(props){
-  var projs=props.projs||[];                      // 這批要開的案子
+  var allProjs=props.projs||[];                   // 帶進來的案子
+  var dr0=useState({});var drop=dr0[0],setDrop=dr0[1];  // 在視窗裡取消掉的
+  var projs=allProjs.filter(function(p){return !drop[p.id];});
   var ds=useState((props.drafts||[]).map(function(d){return Object.assign({},d);}));
   var drafts=ds[0],setDrafts=ds[1];
   var rm=useState([]);var removed=rm[0],setRemoved=rm[1];
@@ -313,6 +315,21 @@ function InvoiceModal(props){
 
   var projIds=projs.map(function(p){return p.id;});
   var pTotal=projs.reduce(function(a,p){return a+props.totalOf(p);},0);
+  // 取消案子後，還沒動過的單張發票金額跟著變
+  function toggleProj(id){
+    setDrop(function(o){
+      var n=Object.assign({},o);
+      if(n[id])delete n[id];else n[id]=true;
+      var keep=allProjs.filter(function(p){return !n[p.id];});
+      var t=keep.reduce(function(a,p){return a+props.totalOf(p);},0);
+      setDrafts(function(ls){
+        if(ls.length!==1)return ls;              // 拆過單就不要亂動她填的數字
+        if((Number(ls[0].net)||0)!==pTotal)return ls;
+        return [Object.assign({},ls[0],{net:t})];
+      });
+      return n;
+    });
+  }
   var vTotal=drafts.reduce(function(a,d){return a+(Number(d.net)||0);},0);
   // 稅是一張一張算完再加，跟實際開出來的發票一致
   var vatTotal=drafts.reduce(function(a,d){
@@ -345,6 +362,7 @@ function InvoiceModal(props){
     setRow(i,"net",Math.max(0,pTotal-used));
   }
   function save(){
+    if(!projs.length){alert("至少要留一支案子。");return;}
     var bad=drafts.filter(function(d){return !d.date;});
     if(bad.length){alert("每張發票都要有開票日，它決定這張票落在哪一期。");return;}
     if(diff!==0){
@@ -391,15 +409,22 @@ function InvoiceModal(props){
         h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",
             marginBottom:7}},
           h("span",{style:{fontSize:10.5,color:C.txt3,fontWeight:700}},
-            "這批案子　"+projs.length+" 支"),
+            "這批案子　"+projs.length+" 支"
+            +(allProjs.length>projs.length
+                ?"（取消了 "+(allProjs.length-projs.length)+" 支）":"")),
           h("span",{className:"num",style:{fontSize:14,fontWeight:700}},"未稅 "+NT(pTotal))
         ),
-        projs.map(function(p){
-          return h("div",{key:p.id,style:{display:"flex",gap:8,alignItems:"baseline",
-              padding:"3px 0",fontSize:12}},
+        allProjs.map(function(p){
+          var on=!drop[p.id];
+          return h("div",{key:p.id,onClick:function(){toggleProj(p.id);},
+              style:{display:"flex",gap:8,alignItems:"center",cursor:"pointer",
+              padding:"4px 0",fontSize:12,opacity:on?1:0.4}},
+            h("input",{type:"checkbox",checked:on,readOnly:true,
+              style:{accentColor:C.acc,pointerEvents:"none"}}),
             h("span",{style:{color:C.txt3,fontSize:11,minWidth:48}},p.client||"—"),
             h("span",{className:"serif",style:{flex:1,minWidth:0,overflow:"hidden",
-              textOverflow:"ellipsis",whiteSpace:"nowrap"}},
+              textOverflow:"ellipsis",whiteSpace:"nowrap",
+              textDecoration:on?"none":"line-through"}},
               (p.proxy?"代開　":"")+(p.name||"—")),
             h("span",{className:"num",style:{color:C.txt2}},NT(props.totalOf(p)))
           );
@@ -706,7 +731,6 @@ function App(){
   var sp=useState(false);var stmtOpen=sp[0],setStmtOpen=sp[1];
   var sd=useState(true);var stmtDetail=sd[0],setStmtDetail=sd[1];
   var sn=useState(false);var stmtNote=sn[0],setStmtNote=sn[1];
-  var ps2=useState({});var pendSel=ps2[0],setPendSel=ps2[1];        // 待開立勾選
   var ib=useState(false);var invBusy=ib[0],setInvBusy=ib[1];
   var sg=useState({});var salesOpen=sg[0],setSalesOpen=sg[1];   // 展開的發票
   var pc=useState(true);var showProjCost=pc[0],setShowProjCost=pc[1];
@@ -841,6 +865,18 @@ function App(){
       setModal(null);showT("已刪除");
     }).catch(function(){alert("刪除失敗");});
   }
+  // 哪些案子已經被某張發票涵蓋了（未結算和給會計兩邊都要用）
+  var coveredIds={};
+  invoices.forEach(function(v){
+    (v.projectIds||[]).forEach(function(id){coveredIds[id]=true;});
+  });
+  function isInvoiced(p){return !!coveredIds[p.id];}
+  // 還沒開票的案子：有勾開發票、做完了、也還沒被任何發票涵蓋
+  function needsInvoice(p){
+    return !!p.invoice&&!coveredIds[p.id]
+      &&String(p.status||"").indexOf("Final")>=0;
+  }
+
   // 買方抬頭／統編會自己記起來：從開過的發票學，常用的排前面
   function buyerBook(){
     var map={},out=[];
@@ -874,6 +910,19 @@ function App(){
 
   // ── 發票紀錄的增刪改 ───────────────────────────────────────────
   var iv3=useState(null);var invDlg=iv3[0],setInvDlg=iv3[1];
+
+  // 從未結算直接開發票：帶著這批案子打開開立視窗
+  function openInvoiceFor(list){
+    if(!list.length)return;
+    var cls=clientsOf(list);
+    var amt=list.reduce(function(a,p){return a+calcIncome(p).gross;},0);
+    var hit=buyerBook().filter(function(b){
+      return b.clients.some(function(c){return cls.indexOf(c)>=0;});})[0];
+    setInvDlg({projs:list,editing:false,clients:cls,drafts:[{id:uid(),
+      date:todayISO(),no:"",buyerVat:hit?hit.vatNo:"",
+      buyerTitle:hit?hit.title:"",net:amt,note:"",
+      projectIds:list.map(function(p){return p.id;})}]});
+  }
   var ud=useState(null);var undo=ud[0],setUndo=ud[1];
 
   function offerUndo(label,fn){
@@ -1376,6 +1425,7 @@ function App(){
 
   // ══ 未結算 ════════════════════════════════════════════════════════
   function OpenView(){
+    var cv=openClientView;
     var base=projects.filter(function(p){
       if(p.closed)return false;
       if(openScope==="final")return String(p.status||"").indexOf("Final")>=0;
@@ -1390,6 +1440,8 @@ function App(){
     var list=base.filter(function(p){
         if(openClient!=="all"&&(p.client||"—")!==openClient)return false;
         if(openMonth!=="all"&&p.month!==openMonth)return false;
+        // 開過發票就等於請過款了，客戶版明細不用再列
+        if(cv&&isInvoiced(p))return false;
         return true;
       })
       .sort(function(a,b){
@@ -1401,7 +1453,6 @@ function App(){
     var totPick=sumPicked(list.filter(function(p){return !unsel[p.id];}));
     var tot=cv?{gross:totPick.gross,vat:totPick.vat,
                 withhold:totFull.withhold,cost:totFull.cost}:totFull;
-    var cv=openClientView;
     var cvAll=cv&&openClient==="all";
     var nowM=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
     var GC=cv
@@ -1616,6 +1667,25 @@ function App(){
           style:{background:"transparent",border:"none",color:C.txt3,fontSize:11.5,
             cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}},"清除篩選"),
         h("div",{style:{flex:1}}),
+        // 開發票就在這裡，跟出明細同一排
+        (function(){
+          var pend=list.filter(needsInvoice);
+          var amt=pend.reduce(function(a,p){return a+calcIncome(p).gross;},0);
+          return h("button",{disabled:!pend.length||invBusy,
+            onClick:function(){openInvoiceFor(pend);},
+            title:pend.length
+              ?"把這些案子開成發票，可以在視窗裡取消不要的、或拆成好幾張"
+              :"目前篩選到的案子都開過發票了",
+            style:{background:pend.length&&!invBusy?C.acc:C.card,
+              border:"1px solid "+(pend.length&&!invBusy?C.acc:C.brd),
+              color:pend.length&&!invBusy?"#3d2f08":C.txt3,
+              borderRadius:4,padding:"6px 15px",fontSize:12,fontWeight:700,
+              fontFamily:"inherit",
+              cursor:pend.length&&!invBusy?"pointer":"default"}},
+            pend.length
+              ? "開立發票（"+pend.length+" 件　"+NT(amt)+"）"
+              : "沒有待開發票的案子");
+        })(),
         h("label",{style:{display:"flex",alignItems:"center",gap:6,cursor:"pointer",
             fontSize:12,fontWeight:700,borderRadius:4,padding:"5px 12px",
             color:cv?"#2f6f4a":C.txt3,background:cv?"#eef5ec":C.card,
@@ -1709,9 +1779,9 @@ function App(){
                     background:C.card2,border:"1px solid "+C.brd}},"代開"),
                   !cv&&p.invoice&&h("span",{style:{fontSize:9.5,borderRadius:3,padding:"1px 5px",
                     marginTop:2,display:"inline-block",
-                    color:p.invoiced?"#2f6f4a":"#b35f10",
-                    background:p.invoiced?"#eef5ec":C.wrnBg}},
-                    p.invoiced?"已開發票":"待開發票"),
+                    color:isInvoiced(p)?"#2f6f4a":"#b35f10",
+                    background:isInvoiced(p)?"#eef5ec":C.wrnBg}},
+                    isInvoiced(p)?"已開發票":"待開發票"),
                   cv&&(function(){
                     var bd=feeBreakdown(p);
                     if(bd.length<2)return null;
@@ -1996,15 +2066,8 @@ function App(){
     var sT=periodInv.reduce(function(a,v){
       return {net:a.net+invNet(v),vat:a.vat+v.vat};},{net:0,vat:0});
 
-    // 已經被任何一張發票涵蓋的案子
-    var coveredIds={};
-    invoices.forEach(function(v){
-      (v.projectIds||[]).forEach(function(id){coveredIds[id]=true;});
-    });
-    // 只有做完（Final）的案子才會出現在待開立，製作中的不算
-    var pendProjects=projects.filter(function(p){
-      return p.invoice&&!coveredIds[p.id]
-        &&String(p.status||"").indexOf("Final")>=0;})
+    // 待開立的案子（實際操作在「未結算」那一頁）
+    var pendProjects=projects.filter(needsInvoice)
       .sort(function(a,b){return String(a.month||"").localeCompare(String(b.month||""));});
 
     function projOf(id){
@@ -2100,9 +2163,6 @@ function App(){
     var SGC2="26px 86px 104px 1fr 0.8fr 90px 76px 94px 64px";
     var expBtn={background:C.card,border:"1px solid "+C.brd2,color:C.txt2,borderRadius:4,
       padding:"3px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit"};
-    var selIds=Object.keys(pendSel).filter(function(k){return pendSel[k];});
-    var selProjs=pendProjects.filter(function(p){return pendSel[p.id];});
-    var selAmt=selProjs.reduce(function(a,p){return a+projTotal(p);},0);
     var pendAmt=pendProjects.reduce(function(a,p){return a+projTotal(p);},0);
 
     return h("div",{style:{animation:"fadeIn 0.25s ease",minWidth:860}},
@@ -2150,72 +2210,25 @@ function App(){
             h("span",{style:{color:C.txt3}},"本期已開 "+periodInv.length+" 張發票"),
             pendProjects.length>0
               ? h("span",{style:{color:C.wrn,fontWeight:700}},
-                  "另有 "+pendProjects.length+" 支案子待開立，未稅共 "+NT(pendAmt))
-              : h("span",{style:{color:C.ok,fontWeight:700}},"沒有待開立的案子")
+                  "另有 "+pendProjects.length+" 支案子還沒開票")
+              : h("span",{style:{color:C.ok,fontWeight:700}},"案子都開過票了")
           )
       ),
 
-      // ── 待開立：勾案子 → 開立發票 ─────────────────────────────
-      pendProjects.length>0&&h("div",{style:{background:C.card,border:"1px solid #e8d09a",
-          borderRadius:6,overflow:"hidden",marginBottom:14}},
-        h("div",{style:{padding:"10px 14px",background:C.wrnBg,
-            borderBottom:"1px solid #e8d09a"}},
-          h("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:9,
-              flexWrap:"wrap"}},
-            h("span",{style:{fontSize:11,fontWeight:700,color:"#b35f10"}},
-              "待開立　"+pendProjects.length+" 支案子"),
-            h("span",{style:{fontSize:10.5,color:"#b35f10",opacity:0.85}},
-              "勾要開的案子，按開立發票。要拆成兩張（剪輯費、封面圖）在視窗裡按拆單")
-          ),
-          h("div",{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
-            h("button",{onClick:function(){
-                var allOn=selIds.length===pendProjects.length;
-                var n={};if(!allOn)pendProjects.forEach(function(p){n[p.id]=true;});
-                setPendSel(n);
-              },style:{background:"#fff",border:"1px solid #e0cb96",borderRadius:4,
-                color:"#b35f10",padding:"5px 12px",fontSize:11.5,cursor:"pointer",
-                fontFamily:"inherit",fontWeight:700}},
-              selIds.length===pendProjects.length?"全部取消":"全選"),
-            h("button",{disabled:!selProjs.length||invBusy,
-              onClick:function(){
-                if(!selProjs.length)return;
-                var ids=selProjs.map(function(p){return p.id;});
-                var cls=clientsOf(selProjs);
-                // 這個客戶上次開給誰，就先帶出來
-                var hit=buyerBook().filter(function(b){
-                  return b.clients.some(function(c){return cls.indexOf(c)>=0;});})[0];
-                setInvDlg({projs:selProjs,editing:false,clients:cls,drafts:[{id:uid(),
-                  date:todayISO(),no:"",buyerVat:hit?hit.vatNo:"",
-                  buyerTitle:hit?hit.title:"",net:selAmt,note:"",projectIds:ids}]});
-              },
-              style:{background:selProjs.length&&!invBusy?C.acc:"#e4dcc8",border:"none",
-                color:selProjs.length&&!invBusy?"#3d2f08":"#a89a78",borderRadius:4,
-                padding:"6px 16px",fontSize:12,fontWeight:700,fontFamily:"inherit",
-                cursor:selProjs.length&&!invBusy?"pointer":"default"}},
-              selProjs.length?"開立發票　"+selProjs.length+" 支　"+NT(selAmt):"先勾選案子")
-          )
-        ),
-        pendProjects.map(function(p){
-          var on=!!pendSel[p.id];
-          return h("div",{key:p.id,className:"row-hover",
-              onClick:function(){setPendSel(function(o){
-                var n=Object.assign({},o);
-                if(n[p.id])delete n[p.id];else n[p.id]=true;return n;});},
-              style:{display:"flex",alignItems:"center",gap:9,cursor:"pointer",
-                padding:"8px 14px",fontSize:12.5,borderBottom:"0.5px solid "+C.brd,
-                background:on?"#fffaf0":"transparent"}},
-            h("input",{type:"checkbox",checked:on,readOnly:true,
-              style:{accentColor:C.acc,cursor:"pointer",pointerEvents:"none"}}),
-            h("span",{style:{fontSize:11,color:C.txt3,minWidth:54}},p.client||"—"),
-            h("span",{className:"serif",style:{flex:1,minWidth:0,fontWeight:on?700:400,
-              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},
-              (p.proxy?"代開　":"")+(p.name||"—")),
-            h("span",{style:{fontSize:10,color:C.txt3}},
-              p.month?p.month.slice(5)+" 月":""),
-            h("span",{className:"num",style:{fontSize:13,minWidth:84,textAlign:"right",
-              color:on?C.txt:C.txt2,fontWeight:on?600:400}},NT(projTotal(p)))
-          );
-        })
+      // 待開立只提醒，實際操作在「我的帳 → 未結算」
+      pendProjects.length>0&&h("div",{style:{background:C.wrnBg,
+          border:"1px solid #e8d09a",borderRadius:6,padding:"11px 14px",
+          marginBottom:14,display:"flex",alignItems:"center",gap:10,
+          flexWrap:"wrap",fontSize:12}},
+        h("span",{style:{color:"#b35f10",fontWeight:700}},
+          "還有 "+pendProjects.length+" 支案子沒開發票，未稅共 "+NT(pendAmt)),
+        h("span",{style:{color:"#b35f10",opacity:0.8,fontSize:11.5}},
+          "到「我的帳 → 未結算」勾好案子就能開"),
+        h("div",{style:{flex:1}}),
+        h("button",{onClick:function(){setMode("mine");setTab("open");},
+          style:{background:"#fff",border:"1px solid #e0cb96",borderRadius:4,
+            color:"#b35f10",padding:"5px 13px",fontSize:11.5,fontWeight:700,
+            cursor:"pointer",fontFamily:"inherit"}},"去未結算開發票")
       ),
 
       // ── 銷項：一列一張發票 ──────────────────────────────────
@@ -2489,7 +2502,7 @@ function App(){
     invDlg&&h(InvoiceModal,{projs:invDlg.projs,drafts:invDlg.drafts,editing:invDlg.editing,
       buyers:buyerBook(),clients:invDlg.clients||[],
       totalOf:function(p){return calcIncome(p).gross;},
-      onClose:function(){setInvDlg(null);setPendSel({});},
+      onClose:function(){setInvDlg(null);},
       onSave:saveInvoiceSet}),
     undo&&h("div",{style:{position:"fixed",bottom:26,left:"50%",transform:"translateX(-50%)",
         background:C.txt,color:"#fff",borderRadius:5,padding:"9px 14px 9px 20px",
