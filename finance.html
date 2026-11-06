@@ -705,7 +705,6 @@ function App(){
   var oc=useState("all");var openClient=oc[0],setOpenClient=oc[1];
   var om=useState("all");var openMonth=om[0],setOpenMonth=om[1];
   var oa=useState(true);var openAsc=oa[0],setOpenAsc=oa[1];
-  var ov=useState(false);var openClientView=ov[0],setOpenClientView=ov[1];
   var of=useState("final");var openScope=of[0],setOpenScope=of[1];
   var us=useState({});var unsel=us[0],setUnsel=us[1];       // 明細表要排除的案子
   var ui=useState({});var unselItem=ui[0],setUnselItem=ui[1]; // 明細表要排除的收費細項
@@ -1425,7 +1424,7 @@ function App(){
 
   // ══ 未結算 ════════════════════════════════════════════════════════
   function OpenView(){
-    var cv=openClientView;
+    var cv=false;   // 頁面固定顯示自己看的版本，客戶那張在「預覽明細表」裡
     var base=projects.filter(function(p){
       if(p.closed)return false;
       if(openScope==="final")return String(p.status||"").indexOf("Final")>=0;
@@ -1440,8 +1439,6 @@ function App(){
     var list=base.filter(function(p){
         if(openClient!=="all"&&(p.client||"—")!==openClient)return false;
         if(openMonth!=="all"&&p.month!==openMonth)return false;
-        // 開過發票就等於請過款了，客戶版明細不用再列
-        if(cv&&isInvoiced(p))return false;
         return true;
       })
       .sort(function(a,b){
@@ -1449,20 +1446,23 @@ function App(){
         if(am!==bm)return openAsc?am.localeCompare(bm):bm.localeCompare(am);
         return (a.name||"").localeCompare(b.name||"");
       });
+    // 開過發票就等於請過款了，明細表不用再列
+    var stmtList=list.filter(function(p){return !isInvoiced(p);});
     var totFull=sumIncome(list);
-    var totPick=sumPicked(list.filter(function(p){return !unsel[p.id];}));
+    var totPick=sumPicked(stmtList.filter(function(p){return !unsel[p.id];}));
     var tot=cv?{gross:totPick.gross,vat:totPick.vat,
                 withhold:totFull.withhold,cost:totFull.cost}:totFull;
     var cvAll=cv&&openClient==="all";
     var nowM=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
     var GC=cv
-      ? (cvAll?"62px 56px 0.9fr 1.6fr 92px 74px 102px":"62px 56px 1.6fr 92px 74px 102px")
-      : "62px 52px 0.8fr 1.3fr 56px 74px 92px 88px 92px 78px 104px";
-    var MINW=cv?0:1128;
+      ? (cvAll?"62px 56px minmax(0,0.9fr) minmax(0,1.6fr) 92px 74px 102px"
+             : "62px 56px minmax(0,1.6fr) 92px 74px 102px")
+      : "56px 50px minmax(0,0.8fr) minmax(0,1.35fr) 54px 70px 90px 80px 90px 72px 100px";
+    var MINW=cv?0:1030;
 
     // ── 明細表：輸出圖片用 ──────────────────────────────────────
     function stmtDoc(){
-      var picked=list.filter(function(p){return !unsel[p.id];});
+      var picked=stmtList.filter(function(p){return !unsel[p.id];});
       var t=sumPicked(picked);
       // 抬頭的客戶名直接看實際勾選的案子，不是看上面的篩選
       var names=[];
@@ -1686,22 +1686,15 @@ function App(){
               ? "開立發票（"+pend.length+" 件　"+NT(amt)+"）"
               : "沒有待開發票的案子");
         })(),
-        h("label",{style:{display:"flex",alignItems:"center",gap:6,cursor:"pointer",
-            fontSize:12,fontWeight:700,borderRadius:4,padding:"5px 12px",
-            color:cv?"#2f6f4a":C.txt3,background:cv?"#eef5ec":C.card,
-            border:"1px solid "+(cv?"#9fc6ab":C.brd)}},
-          h("input",{type:"checkbox",checked:cv,style:{accentColor:"#3d7a50"},
-            onChange:function(e){setOpenClientView(e.target.checked);}}),
-          "客戶版（不顯示成本）"
-        ),
-        cv&&(function(){
-          var n=list.filter(function(x){return !unsel[x.id];}).length;
-          return h("button",{disabled:list.length===0,onClick:function(){
-              if(list.length===0)return;setStmtOpen(true);
-            },style:{background:n?C.acc:C.brd,border:"1px solid "+(n?C.acc:C.brd),
-              color:"#fff",borderRadius:4,padding:"6px 15px",fontSize:12,
+        (function(){
+          var n=stmtList.length;
+          return h("button",{disabled:!n,onClick:function(){if(n)setStmtOpen(true);},
+            title:n?"做一張請款明細圖片給客戶，裡面可以再挑案子和收費細項"
+                   :"篩選到的案子都開過發票了，不用再請款",
+            style:{background:C.card,border:"1px solid "+(n?"#9fc6ab":C.brd),
+              color:n?"#2f6f4a":C.txt3,borderRadius:4,padding:"6px 15px",fontSize:12,
               cursor:n?"pointer":"default",fontFamily:"inherit",fontWeight:700}},
-            n===0?"沒有勾選的案子":"預覽明細表（"+n+" 件）");
+            n?"請款明細（"+n+" 件）":"沒有要請款的案子");
         })()
       ),
       !cv&&h("div",{style:{display:"flex",gap:9,marginBottom:12,flexWrap:"wrap"}},
@@ -1830,7 +1823,7 @@ function App(){
             )
             )
           ),
-      cv&&stmtOpen&&h("div",{style:{position:"fixed",inset:0,
+      stmtOpen&&h("div",{style:{position:"fixed",inset:0,
           background:"rgba(44,40,37,0.55)",zIndex:120,display:"flex",
           flexDirection:"column",alignItems:"center",justifyContent:"flex-start",
           padding:"22px 16px"}},
@@ -1854,7 +1847,8 @@ function App(){
               padding:"9px 22px",fontSize:13,cursor:"pointer",fontFamily:"inherit",
               fontWeight:700}},"複製圖片"),
           h("button",{onClick:function(){
-              saveAsImage("stmt-doc","請款明細_"+(cvAll?"全部":openClient)+"_"
+              saveAsImage("stmt-doc","請款明細_"
+                +(openClient==="all"?"全部":openClient)+"_"
                 +(stmtDetail?"含細項":"總額")+(stmtNote?"含備註":"")+"_"+todayISO()+".png");
             },style:{background:"rgba(255,255,255,0.9)",border:"none",color:C.txt2,
               borderRadius:5,padding:"9px 20px",fontSize:13,cursor:"pointer",
@@ -1875,14 +1869,14 @@ function App(){
                 borderBottom:"1px solid "+C.brd}},
               h("span",{style:{fontSize:11,fontWeight:700,color:C.txt2}},"要放進明細表的項目"),
               h("button",{onClick:function(){
-                  var allOn=list.every(function(x){return !unsel[x.id];});
-                  var n={};if(allOn)list.forEach(function(x){n[x.id]=true;});
+                  var allOn=stmtList.every(function(x){return !unsel[x.id];});
+                  var n={};if(allOn)stmtList.forEach(function(x){n[x.id]=true;});
                   setUnsel(n);setUnselItem({});
                 },style:{background:"none",border:"none",color:C.txt3,fontSize:11,
                   cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}},
-                list.every(function(x){return !unsel[x.id];})?"全部取消":"全選")
+                stmtList.every(function(x){return !unsel[x.id];})?"全部取消":"全選")
             ),
-            list.map(function(p){
+            stmtList.map(function(p){
               var on=!unsel[p.id];
               var bd=feeBreakdown(p);
               return h("div",{key:p.id,style:{padding:"9px 14px",
@@ -1929,13 +1923,12 @@ function App(){
         )
       ),
       h("div",{style:{fontSize:10.5,color:C.txt3,marginTop:12,lineHeight:1.7}},
-        cv
-          ? (openScope==="final"
-              ? "客戶版只是隱藏成本欄位，方便你核對。按「預覽明細表」會產生一張含收費細項的請款明細，確認沒問題再下載。勾選要放進去的案子即可。"
-              : "⚠ 現在是「全部未結案」，清單裡有還沒做完的案子。要給客戶看請先切回「只看 Final 完成」。")
-          : (openScope==="final"
-              ? "只列進度是 Final 完成、但還沒勾已結案的案子，也就是做完了錢還沒到的。要看進行中的請切換成「全部未結案」。結案請回 edit-tracker 勾「已結案」。"
-              : "包含還在製作中的案子，金額只是預估，不要拿這個版本給客戶看。"))
+        openScope==="final"
+          ? "只列進度是 Final 完成、但還沒勾已結案的案子，也就是做完了錢還沒到的。"
+            +"「請款明細」做給客戶看的圖片，裡面可以再挑案子和收費細項；開過發票的不會列進去。"
+            +"結案請回 edit-tracker 勾「已結案」。"
+          : "⚠ 現在是「全部未結案」，清單裡有還沒做完的案子，金額只是預估。"
+            +"要做請款明細給客戶請先切回「只看 Final 完成」。")
     );
   }
 
