@@ -116,7 +116,7 @@
   .mini-btn:hover{color:var(--accent)}
   .addcat{width:100%;margin-top:8px;border:1px dashed var(--line);background:transparent;border-radius:10px;padding:9px;color:var(--muted);cursor:pointer;font:inherit}
   .addcat:hover{border-color:var(--accent);color:var(--accent)}
-  /* 開工提醒 */
+  /* 工作提醒 */
   .brief .h b{color:var(--ink);font-weight:600}
   .bsec{margin-top:10px}
   .bsec .lbl{font-size:12px;color:var(--muted);margin-bottom:3px}
@@ -207,6 +207,18 @@
   .prog a{color:inherit;text-decoration:none}
   .prog a:hover .pn{text-decoration:underline}
   .proghead{display:flex;justify-content:space-between;align-items:center}
+  .num{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.4em;display:inline-block;font-weight:400}
+  .prog .num{margin-top:1px}
+  .pr{font-size:11px;border-radius:9px;padding:0 6px;margin-left:4px;vertical-align:1px;border:1px solid var(--line);color:var(--muted)}
+  .pr.urgent{border-color:#b4544f;color:#b4544f;font-weight:600}
+  .pr.p1{border-color:var(--accent);color:var(--accent)}
+  .bot+.bot{margin-top:8px}
+  /* 補時間 */
+  .clockbtn{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:18px;padding:7px 10px;font:inherit;cursor:pointer;white-space:nowrap}
+  .clockbtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .backfill{display:none;background:#fff;border-top:1px solid var(--line);padding:8px 12px 0;font-size:13px;color:var(--muted);align-items:center;gap:6px;flex-wrap:wrap}
+  .backfill.show{display:flex}
+  .backfill input,.backfill select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:12px;padding:3px 8px;background:#fff;color:var(--ink)}
   .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
   .toast.show{opacity:.92}
   .hide{display:none!important}
@@ -232,8 +244,13 @@
       <button class="g" id="nSnooze">這次先不用</button>
     </div>
   </div>
+  <div class="backfill" id="backfill">
+    補記時間：<select id="bfDay"><option value="0">今天</option><option value="-1">昨天</option></select><input type="time" id="bfTime">
+    <span>這則會記在這個時間</span><button class="linkbtn" id="bfOff" style="margin-left:auto">取消補記</button>
+  </div>
   <div class="inputbar">
     <button class="settle" id="settleBtn">結算<span class="badge hide" id="badge"></span></button>
+    <button class="clockbtn" id="clockBtn" title="補記時間（例如早上其實已經開始了）">🕐</button>
     <textarea id="input" rows="1" placeholder="現在在做什麼…" title="Enter 換行，Ctrl+Enter 送出"></textarea>
     <button class="send" id="sendBtn" disabled>送出</button>
   </div>
@@ -536,14 +553,40 @@ function send(){
     save();input.value='';autoSize();$('sendBtn').disabled=true;updateTodoCount();renderTodos();
     toast(`已加入 ${n} 筆待辦`);return;
   }
-  const now=Date.now();const all=sortedMsgs();const prevMsg=all[all.length-1];
-  const firstOfDay=!prevMsg||now-prevMsg.ts>=GAP&&ymd(new Date(now))!==workday(prevMsg.ts);
-  const id=uid();S.msgs.push({id,ts:now,text});
+  // 補記時間：用 🕐 選的時間，或開頭直接打「7:10 內容」
+  let ts=Date.now(),body=text,back=false;
+  const bf=backfillTs();
+  const lead=text.match(/^(\d{1,2})[:：](\d{2})\s+([\s\S]+)/);
+  if(bf){ts=bf;back=true}
+  else if(lead&&+lead[1]<24&&+lead[2]<60){
+    const d=new Date();d.setHours(+lead[1],+lead[2],0,0);
+    if(d.getTime()>Date.now()+MIN)d.setDate(d.getDate()-1);   // 比現在晚 → 當成昨天
+    ts=d.getTime();body=lead[3].trim();back=true;
+  }
+  const all=sortedMsgs().filter(m=>m.ts<=ts);const prevMsg=all[all.length-1];
+  const firstOfDay=(!prevMsg||ts-prevMsg.ts>=GAP&&ymd(new Date(ts))!==workday(prevMsg.ts));
+  const id=uid();S.msgs.push({id,ts,text:body});
   wdCache=null;
-  if(firstOfDay){S.briefs.push(makeBrief(id,now,prevMsg));fetchProgress()}
+  if(firstOfDay){S.briefs.push(makeBrief(id,ts,prevMsg));fetchProgress()}
   save();
-  input.value='';autoSize();$('sendBtn').disabled=true;render();checkNudge();input.focus();
+  input.value='';autoSize();$('sendBtn').disabled=true;setBackfill(false);render();checkNudge();input.focus();
+  if(back)toast(settleOf(ts)?`已補記在 ${hm(new Date(ts))}，但這段已經結算過，要「重新結算」才會算進去`:`已補記在 ${dtLabel(ts)}`);
 }
+
+/* 補記時間 */
+function backfillTs(){
+  if(!$('backfill').classList.contains('show'))return null;
+  const v=$('bfTime').value;if(!v)return null;
+  const [h,m]=v.split(':').map(Number);const d=new Date();d.setDate(d.getDate()+(+$('bfDay').value));d.setHours(h,m,0,0);
+  return Math.min(d.getTime(),Date.now());
+}
+function setBackfill(on){
+  $('backfill').classList.toggle('show',on);$('clockBtn').classList.toggle('on',on);
+  input.placeholder=on?'補記：那時候在做什麼…':'現在在做什麼…';
+  if(on){const d=new Date(Date.now()-60*MIN);$('bfTime').value=hm(d);$('bfDay').value=ymd(d)===ymd(new Date())?'0':'-1';input.focus()}
+}
+$('clockBtn').onclick=()=>setBackfill(!$('backfill').classList.contains('show'));
+$('bfOff').onclick=()=>setBackfill(false);
 
 /* 點擊：訊息／時間段／重新結算 */
 let editingId=null,editingBlock=null,blkPick='';
@@ -674,7 +717,7 @@ $('applyBtn').onclick=()=>{
   const q=blocks.filter(b=>b.unsure).length;toast((q?`已結算，有 ${q} 段待確認`:'已結算')+(doneIds.length?`，勾掉 ${doneIds.length} 項待辦`:''));renderTodos();
 };
 
-/* ===== 開工提醒 ===== */
+/* ===== 工作提醒 ===== */
 // 上次最後在做：已結算的話用最後一段工作的細項（避免只看到「收工」），沒結算就用最後一則訊息
 function lastDoing(prevMsg){
   if(!prevMsg)return null;
@@ -702,7 +745,7 @@ function renderBrief(x){
   const hidden=all.length-list.length;
   const [y,mo]=x.month.label.split('-').map(Number);
   return `<div class="bot"><div class="botcard brief">
-    <div class="h"><span><b>開工提醒</b>　${md(d)}（${WEEK[d.getDay()]}）</span></div>
+    <div class="h"><span><b>工作提醒</b>　${md(d)}（${WEEK[d.getDay()]}）</span></div>
     ${x.last?`<div class="bsec"><div class="lbl">上次最後在做（${dtLabel(x.last.ts)}${x.last.end?'–'+hm(new Date(x.last.end)):''}）</div><div class="lastdo">${esc(x.last.text)}</div></div>`:''}
     ${x.summary?`<div class="bsec"><div class="lbl">上次結算的小結</div><div class="lastdo">${esc(x.summary)}</div></div>`:''}
     ${x.pending?`<div class="warnline">上次還有 ${x.pending} 則訊息沒結算（從 ${dtLabel(x.pendFrom)} 開始），記得找時間結算。</div>`:''}
@@ -712,11 +755,12 @@ function renderBrief(x){
       :'<div class="muted">這個月還沒有結算紀錄</div>'}
     </div>
     ${x.id===latestBriefId()?progressSection():''}
-    <div class="bsec"><div class="lbl">待辦事項（${S.todos.filter(t=>!t.done).length}）</div>
-      ${list.length?list.map(todoRow).join(''):'<div class="muted">近期沒有待辦</div>'}
-      ${hidden?`<div class="more-todo">另外 ${hidden} 項（較晚到期或長期）在待辦頁</div>`:''}
-      <div class="cardfoot"><button class="linkbtn" data-opentodo="1">到待辦頁</button></div>
-    </div>
+  </div></div>
+  <div class="bot"><div class="botcard brief">
+    <div class="h"><span><b>待辦事項</b>　${list.filter(t=>!t.done).length} 項</span></div>
+    ${list.length?list.map((t,i)=>todoRow(t,i)).join(''):'<div class="muted">近期沒有待辦</div>'}
+    ${hidden?`<div class="more-todo">另外 ${hidden} 項（較晚到期或長期）在待辦頁</div>`:''}
+    <div class="cardfoot"><button class="linkbtn" data-opentodo="1">到待辦頁</button></div>
   </div></div>`;
 }
 
@@ -738,7 +782,7 @@ function dueInfo(t){
   if(kindOf(t)==='long')return {cls:'',txt:`${md(d)}・還有 ${n} 天`};
   return {cls:'',txt:`${md(d)}（${WEEK[d.getDay()]}）${tm}`};
 }
-// 開工提醒要列的：短期裡逾期／今天／明天／沒期限的，長期裡 7 天內到期的
+// 工作提醒要列的：短期裡逾期／今天／明天／沒期限的，長期裡 7 天內到期的
 function inBrief(t){
   if(t.done)return false;
   if(kindOf(t)==='long')return !!t.due&&dayDiff(t.due)<=7;
@@ -764,9 +808,9 @@ function parseDue(str){
 function dueHtml(t){const i=dueInfo(t);return i?`<span class="due ${i.cls}">${i.txt}</span>`:''}
 function catTag(t){const c=t.cat&&catOf(t.cat);return c?`<span class="tg" style="background:${c.color}">${esc(c.name)}</span>`:''}
 // 卡片裡用的精簡版
-function todoRow(t){
+function todoRow(t,i){
   return `<div class="todo ${t.done?'done':''}" data-tid="${t.id}"><input type="checkbox" ${t.done?'checked':''}>
-    <span class="tx">${esc(t.text)}${kindOf(t)==='long'?'<span class="longtag">長期</span>':''}</span>${dueHtml(t)}${catTag(t)}</div>`;
+    <span class="tx">${i!=null?`<span class="num">${i+1}.</span>`:''}${esc(t.text)}${kindOf(t)==='long'?'<span class="longtag">長期</span>':''}</span>${dueHtml(t)}${catTag(t)}</div>`;
 }
 function updateTodoCount(){const n=S.todos.filter(t=>!t.done&&kindOf(t)==='short').length;$('todoCount').textContent=n||''}
 const ago=ts=>{const d=new Date(ts);return `${md(d)} ${hm(d)}`};
@@ -826,7 +870,7 @@ $('tdSave').onclick=()=>{if(!editTodo)return;const v=$('tdText').value.trim();if
   editTodo.kind=tdKind;editTodo.due=$('tdDate').value;editTodo.dueTime=editTodo.due?$('tdTime').value:'';editTodo.cat=$('tdCat').value;
   save();close();renderTodos();render(true)};
 $('tdDel').onclick=()=>{if(!editTodo||!confirm('刪除這個待辦？'))return;S.todos=S.todos.filter(x=>x!==editTodo);save();close();renderTodos();render(true)};
-// 打勾／點文字編輯：待辦頁、開工提醒卡、結算卡共用
+// 打勾／點文字編輯：待辦頁、工作提醒卡、結算卡共用
 function todoClick(ev){
   if(ev.target.id==='clearDone'){if(!confirm('清掉所有已完成的待辦？'))return true;S.todos=S.todos.filter(t=>!t.done);save();renderTodos();render(true);return true}
   const row=ev.target.closest('.todo');if(!row)return false;
@@ -844,9 +888,12 @@ function nextStep(it){
   const st=(it.steps||[]).filter(x=>!x.done&&!x.skip&&x.due).sort((a,b)=>a.due.localeCompare(b.due));
   return st[0]||null;
 }
+function prRank(it){const p=it.priority;if(p==='急案')return 0;const n=parseInt(p,10);return isNaN(n)?99:n}
+function prBadge(it){const p=it.priority;if(!p||p==='-')return '';return `<span class="pr ${p==='急案'?'urgent':p==='1'?'p1':''}">${p==='急案'?'急案':'優先 '+esc(p)}</span>`}
 function progSorted(){
   const items=(S.progress&&S.progress.items)||[];
-  return items.slice().sort((a,b)=>{const x=nextStep(a),y=nextStep(b);return (x?x.due:'9999').localeCompare(y?y.due:'9999')});
+  // 有優先順序的排前面（急案 > 1 > 2 …），同級再照最近要交的日期
+  return items.slice().sort((a,b)=>prRank(a)-prRank(b)||((nextStep(a)?.due||'9999').localeCompare(nextStep(b)?.due||'9999')));
 }
 function stepLabel(n){
   if(!n)return {cls:'',txt:'沒有排交件日'};
@@ -857,10 +904,10 @@ function stepLabel(n){
   if(d<=3)return {cls:'soon',txt:`${name}・${md(dt)}（還有 ${d} 天）`};
   return {cls:'',txt:`${name}・${md(dt)}（${WEEK[dt.getDay()]}）`};
 }
-function progRow(it){
+function progRow(it,i){
   const n=stepLabel(nextStep(it));
-  return `<div class="prog"><a class="pm" href="${esc(it.url||'#')}" target="_blank" rel="noopener">
-    <span class="pn">${esc(it.name)}</span> <span class="pc">${esc(it.client)}${it.priority&&it.priority!=='-'?`・優先 ${esc(it.priority)}`:''}</span>
+  return `<div class="prog"><span class="num">${i+1}.</span><a class="pm" href="${esc(it.url||'#')}" target="_blank" rel="noopener">
+    <span class="pn">${esc(it.name)}</span>${prBadge(it)} <span class="pc">${esc(it.client)}</span>
     <span class="nx ${n.cls}">${n.txt}</span></a><span class="stage">${esc(it.stage||'—')}</span></div>`;
 }
 function progMeta(){
@@ -872,16 +919,16 @@ function progMeta(){
 function progressList(limit){
   if(!S.progress)return `<div class="muted" style="padding:6px 0 10px">${progLoading?'讀取中…':(progErr||'還沒讀到資料')}</div>`;
   const l=progSorted();if(!l.length)return '<div class="muted" style="padding:6px 0 10px">目前沒有進行中的案子</div>';
-  return l.slice(0,limit).map(progRow).join('')+(l.length>limit?`<div class="more-todo">另外 ${l.length-limit} 案在待辦頁</div>`:'');
+  return l.slice(0,limit).map((it,i)=>progRow(it,i)).join('')+(l.length>limit?`<div class="more-todo">另外 ${l.length-limit} 案在待辦頁</div>`:'');
 }
-// 開工提醒：14 天內要交的，或正在做的；最多 6 案
+// 工作提醒：14 天內要交的，或正在做的；最多 6 案
 function progressSection(){
   if(!S.progress&&!progErr&&!progLoading)return '';
   let l=progSorted();
-  const active=l.filter(it=>{const n=nextStep(it);return (n&&dayDiff(n.due.slice(0,10))<=14)||/中$/.test(it.stage||'')});
+  const active=l.filter(it=>{const n=nextStep(it);return prRank(it)<99||(n&&dayDiff(n.due.slice(0,10))<=14)||/中$/.test(it.stage||'')});
   const shown=active.slice(0,6);
   return `<div class="bsec"><div class="proghead"><span class="lbl">剪輯進度（Notion）</span><span class="lbl">${S.progress?ago(S.progress.fetchedAt)+' 更新':''}</span></div>
-    ${S.progress?(shown.length?shown.map(progRow).join(''):'<div class="muted">近兩週沒有要交的</div>')+(l.length>shown.length?`<div class="more-todo">共 ${l.length} 案進行中，完整清單在待辦頁</div>`:''):`<div class="muted">${progLoading?'讀取中…':progErr}</div>`}
+    ${S.progress?(shown.length?shown.map((it,i)=>progRow(it,i)).join(''):'<div class="muted">近兩週沒有要交的</div>')+(l.length>shown.length?`<div class="more-todo">共 ${l.length} 案進行中，完整清單在待辦頁</div>`:''):`<div class="muted">${progLoading?'讀取中…':progErr}</div>`}
   </div>`;
 }
 async function fetchProgress(){
@@ -941,7 +988,7 @@ function statsData(from,to){
   const days=Object.keys(perDay).sort();
   return {by,total,perDay,days,pend};
 }
-// 給開工提醒用（整個月）
+// 給工作提醒用（整個月）
 function monthData(month){return statsData(`${month}-01`,`${month}-31`)}
 function renderStats(){
   const P=period();$('pLabel').textContent=P.label;
