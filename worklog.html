@@ -330,7 +330,7 @@
   <div class="chips" id="blkChips"></div>
   <div class="row"><span class="muted">細項</span><input id="blkSub" style="flex:1"></div>
   <label class="row muted" style="gap:6px;cursor:pointer"><input type="checkbox" id="blkBg">同時進行（例如輸出時在做別的事）</label>
-  <div class="row between"><span></span>
+  <div class="row between"><button class="b danger" id="blkDel">刪除這段</button>
     <div class="row" style="margin:0"><button class="b" data-close>取消</button><button class="b p" id="blkSave">儲存</button></div>
   </div>
 </div></div>
@@ -530,7 +530,7 @@ function renderSettle(x){
     <div class="cbar">${keys.map(k=>`<div style="width:${cum?by[k]/cum*100:0}%;background:${color(k)}"></div>`).join('')}</div>
     ${keys.map(k=>`<div class="crow"><span><span class="dot" style="background:${color(k)}"></span>${esc(k)}</span><span>${fmtH(by[k])}　<span class="muted">${cum?Math.round(by[k]/cum*100):0}%</span></span></div>`).join('')}
     ${unsure?`<div class="unsure-note">有 ${unsure} 段 Claude 不太確定，標了「?」，點一下就能改分類</div>`:''}
-    <details ${unsure?'open':''}><summary>時間段明細（${x.blocks.length}）・點一段可以改</summary><div class="blocks">
+    <details data-dsid="${x.id}" ${unsure||openSettles.has(x.id)?'open':''}><summary>時間段明細（${x.blocks.length}）・點一段可以改</summary><div class="blocks">
       ${x.blocks.map((b,i)=>`<div class="blk ${b.unsure?'q':''}" data-bi="${i}"><span class="bt">${bt(b)}</span><span class="tag" style="background:${color(b.cat)}">${esc(b.cat)}</span><span class="bs">${b.bg?'<span class="pr">同時</span> ':''}${esc(b.sub||'')}${b.unsure?` <b class="qm">?</b>${b.why?`<span class="why">${esc(b.why)}</span>`:''}`:''}</span></div>`).join('')}
     </div></details>
     ${x.summary?`<div class="sum">${esc(x.summary)}</div>`:''}
@@ -598,7 +598,10 @@ $('clockBtn').onclick=()=>setBackfill(!$('backfill').classList.contains('show'))
 $('bfOff').onclick=()=>setBackfill(false);
 
 /* 點擊：訊息／時間段／重新結算 */
-let editingId=null,editingBlock=null,blkPick='';
+let editingId=null,editingBlock=null,editingSettle=null,blkPick='';
+// 記住哪些結算卡的明細是展開的，重畫後保持展開
+const openSettles=new Set();
+$('msgs').addEventListener('toggle',e=>{const id=e.target.dataset&&e.target.dataset.dsid;if(!id)return;e.target.open?openSettles.add(id):openSettles.delete(id)},true);
 $('msgs').addEventListener('click',ev=>{
   if(ev.target.dataset.opentodo){showTab('todo');return}
   if(ev.target.closest('.todo')){todoClick(ev);return}
@@ -610,7 +613,7 @@ $('msgs').addEventListener('click',ev=>{
   const blk=ev.target.closest('.blk');
   if(blk){
     const x=S.settles.find(s=>s.id===blk.closest('.botcard').dataset.sid);const b=x&&x.blocks[+blk.dataset.bi];if(!b)return;
-    editingBlock=b;blkPick=b.cat;
+    editingBlock=b;editingSettle=x;blkPick=b.cat;
     $('blkTime').textContent=`${dtLabel(b.s)}–${hm(new Date(b.e))}`;
     $('blkWhy').textContent=b.unsure&&b.why?`Claude 的猶豫：${b.why}`:'';
     $('blkSub').value=b.sub||'';$('blkBg').checked=!!b.bg;renderChips();open('blockSheet');return;
@@ -622,6 +625,13 @@ $('msgs').addEventListener('click',ev=>{
 });
 function renderChips(){$('blkChips').innerHTML=S.cats.map(c=>`<button class="chip ${c.name===blkPick?'on':''}" data-c="${esc(c.name)}" style="background:${c.color}">${esc(c.name)}</button>`).join('')}
 $('blkChips').addEventListener('click',e=>{const c=e.target.dataset.c;if(c==null)return;blkPick=c;renderChips()});
+$('blkDel').onclick=()=>{
+  if(!editingBlock||!editingSettle)return;
+  if(!confirm('刪除這一段？這段時間就不會算進統計。'))return;
+  editingSettle.blocks=editingSettle.blocks.filter(b=>b!==editingBlock);
+  if(!editingSettle.blocks.length)S.settles=S.settles.filter(x=>x!==editingSettle);  // 刪光了就整張結算卡移除，訊息變回未結算
+  save();close();render(true);toast('已刪除這段');
+};
 $('blkSave').onclick=()=>{if(!editingBlock)return;editingBlock.cat=blkPick;editingBlock.sub=$('blkSub').value.trim();editingBlock.bg=$('blkBg').checked;editingBlock.unsure=false;save();close();render(true)};
 $('editSave').onclick=()=>{const m=S.msgs.find(x=>x.id===editingId);if(!m)return;
   const t=fromLocalInput($('editTime').value);if(!isNaN(t))m.ts=t;m.text=$('editText').value.trim()||m.text;save();close();render(true)};
@@ -637,13 +647,18 @@ $('settleBtn').onclick=()=>{
   const dr=S.draft;
   if(dr&&pending.some(m=>m.ts<=dr.end)){
     $('endTime').value=toLocalInput(dr.end);promptTodos=dr.todoIds||[];
-  }else{S.draft=null;$('endTime').value=toLocalInput(Math.max(now,last));promptTodos=[]}
+  }else{
+    S.draft=null;promptTodos=[];
+    // 最後一則是「下班／收工」→ 收工時間就是那一則，不是現在
+    const lastM=pending[pending.length-1];
+    $('endTime').value=toLocalInput(OFF_RE.test(lastM.text)?lastM.ts:Math.max(now,last));
+  }
   updateRange();
   $('promptView').classList.add('hide');$('pasteBack').value='';$('settleMsg').textContent='';
   open('settleSheet');
 };
 $('endTime').addEventListener('change',updateRange);
-function inRange(){const end=fromLocalInput($('endTime').value);return pending.filter(m=>isNaN(end)||m.ts<=end)}
+function inRange(){const end=fromLocalInput($('endTime').value);return pending.filter(m=>isNaN(end)||m.ts<end+MIN)}  // 收工那一分鐘內的訊息也算進來
 function updateRange(){
   const r=inRange();const end=fromLocalInput($('endTime').value);
   if(!r.length){$('settleRange').textContent='收工時間比第一則訊息還早，請調整。';return}
@@ -666,19 +681,20 @@ function buildPrompt(){
   promptTodos=openTodos().map(t=>t.id);
   const r=inRange();const end=fromLocalInput($('endTime').value);
   const lines=r.map(m=>`[${fullStamp(m.ts)}] ${m.text.replace(/\n+/g,' / ')}`).join('\n');
-  const catText=S.cats.map(c=>`・${c.name}${c.rest?'（非工作時間）':''}：${c.hint||'（無說明）'}`).join('\n');
+  const catText=S.cats.map(c=>`・${c.name}：${c.hint||'（無說明）'}${c.rest?'。這類不算工時':''}`).join('\n');
   return `以下是我的工作隨手記，像聊天紀錄一樣隨手打的：每一則前面是我送出的日期時間，通常代表「從這時候開始做這件事」，直到下一則為止。可能會跨過午夜。最後收工時間是 ${fullStamp(end)}。
 
 【隨手記】
 ${lines}
 
-【分類】只能用下面這幾個名稱，冒號後是哪些事算這一類：
+【分類】只能用下面這幾個名稱，冒號後是哪些事算這一類。回覆的 cat 只填名稱本身（例如「休息」），不要加括號或其他字：
 ${catText}
 
 【請幫我做】
 1. 把整段時間切成連續的時間段，每段給一個分類和一個簡短「細項」（10 字內，例如「阿滴 EP.120 粗剪」「樹洞個案解牌」）。同一件事的細項用同樣的寫法，方便我月底加總。
-2. 主要的時間段要首尾相接，從第一則到收工時間全部涵蓋。只是心情或補充說明的訊息（例如「好累」「卡住了」），以及「（還在做）」這種接續訊息，不要另切一段，併入前一段。
-2-1. 同時進行：如果某件事在背景持續進行（例如輸出、算圖、上傳、轉檔），同時我又在做別的事，兩件事都要記，時間段可以重疊。背景那件事從開始記到它結束，加上 "bg":true。
+2. 主要的時間段要首尾相接，從第一則到收工時間全部涵蓋（下班之後的空檔除外，見 2-1）。只是心情或補充說明的訊息（例如「好累」「卡住了」），以及「（還在做）」這種接續訊息，不要另切一段，併入前一段。
+2-1. 「下班」「收工」「睡了」「今天先這樣」這類訊息代表工作結束：那一則之後到下一則訊息之間，不要記任何時間段，也不要算成休息。「休息」只用在工作中間的短暫休息（吃飯、午睡、出門一下再回來工作）。
+2-2. 同時進行：如果某件事在背景持續進行（例如輸出、算圖、上傳、轉檔），同時我又在做別的事，兩件事都要記，時間段可以重疊。背景那件事從開始記到它結束，加上 "bg":true。
    例：10:00 剪片／11:00 等輸出／11:30 等輸出時邊做網站／12:00 輸出完
    → 10:00–11:30 剪片（剪輯+等輸出），11:30–12:00 剪片「輸出」"bg":true，11:30–12:00 寫程式「網站」。
    等輸出、沒在做別的事的時間，算在那件事本身。
@@ -716,8 +732,14 @@ $('applyBtn').onclick=()=>{
   (d.blocks||[]).forEach(b=>{
     const s=parseStamp(b.start,cursor);if(isNaN(s))return;
     const e=parseStamp(b.end,s);if(isNaN(e)||e<=s)return;
-    if(!b.bg)cursor=e;const known=names.includes(b.cat);
-    blocks.push({s,e,cat:known?b.cat:fb,sub:String(b.sub||''),bg:!!b.bg,unsure:!!b.unsure||!known,why:known?String(b.why||''):`Claude 給了清單外的分類「${b.cat}」`});
+    if(!b.bg)cursor=e;
+    // 下班／收工之後的那段不記
+    if(OFF_RE.test(String(b.sub||''))&&!/剪|改|做|寫|回|整理/.test(String(b.sub||'')))return;
+    // 分類名稱多了括號或說明（例如「休息（非工作時間）」）→ 對回清單裡的名稱
+    let cat=String(b.cat||'').trim();
+    if(!names.includes(cat)){const hit=names.filter(n=>cat.startsWith(n)||cat.includes(n)).sort((a,b)=>b.length-a.length)[0];if(hit)cat=hit}
+    const known=names.includes(cat);b.cat=known?cat:b.cat;
+    blocks.push({s,e,cat:known?cat:fb,sub:String(b.sub||''),bg:!!b.bg,unsure:!!b.unsure||!known,why:known?String(b.why||''):`Claude 給了清單外的分類「${b.cat}」`});
   });
   if(!blocks.length){$('settleMsg').textContent='沒有讀到時間段';return}
   const end=fromLocalInput($('endTime').value);
