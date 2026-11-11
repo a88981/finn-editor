@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>隨手記</title>
+<style>
+  :root{
+    --bg:#eef1f4; --chat:#dfe6ec; --card:#fff; --ink:#33302e; --muted:#878380; --line:#e3ddd9;
+    --me:#c97b84; --me-ink:#fff; --accent:#c97b84; --accent-soft:#f5e4e6; --warn:#fbf0e6; --warn-ink:#a8641f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:15px;line-height:1.5}
+  .app{max-width:640px;height:100%;margin:0 auto;display:flex;flex-direction:column;background:var(--chat);box-shadow:0 0 0 1px var(--line)}
+  .top{background:#fff;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line)}
+  .top h1{font-size:17px;margin:0;font-weight:600}
+  .icon{border:0;background:transparent;font-size:15px;color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:8px}
+  .icon:hover{background:var(--bg);color:var(--ink)}
+  .pill{border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--ink)}
+  .pill:hover{border-color:var(--accent)}
+  /* 對話 */
+  .msgs{flex:1;overflow-y:auto;padding:10px 12px 8px}
+  .more{display:block;margin:4px auto 10px;border:0;background:rgba(0,0,0,.08);color:var(--muted);font-size:12px;padding:4px 12px;border-radius:10px;cursor:pointer}
+  .daychip{text-align:center;margin:14px 0 10px}
+  .daychip span{background:rgba(0,0,0,.14);color:#fff;font-size:12px;padding:3px 10px;border-radius:10px}
+  .m{display:flex;justify-content:flex-end;align-items:flex-end;gap:6px;margin:6px 0}
+  .m .t{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;line-height:1.3}
+  .m.done .bubble{opacity:.82}
+  .bubble{background:var(--me);color:var(--me-ink);padding:8px 12px;border-radius:16px 16px 4px 16px;max-width:76%;white-space:pre-wrap;word-break:break-word;cursor:pointer}
+  .bubble:hover{filter:brightness(.97)}
+  .gapnote{text-align:center;font-size:11px;color:var(--muted);margin:2px 0}
+  .flash .bubble{animation:fl 1.4s}
+  @keyframes fl{0%,60%{box-shadow:0 0 0 3px #fff}100%{box-shadow:none}}
+  .bot{display:flex;justify-content:flex-start;margin:14px 0 6px}
+  .botcard{background:#fff;border-radius:16px 16px 16px 4px;padding:12px 14px;max-width:90%;width:100%}
+  .botcard .h{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .cbar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--line);margin:6px 0 8px}
+  .crow{display:flex;justify-content:space-between;font-size:14px;padding:2px 0}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .blocks{margin-top:6px;font-size:13px;border-top:1px solid var(--line);padding-top:6px}
+  .blk{display:flex;gap:8px;cursor:pointer;border-radius:6px;padding:4px;align-items:flex-start}
+  .blk:hover{background:var(--bg)}
+  .blk.q{background:var(--warn)}
+  .bt{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tag{color:#fff;font-size:11px;padding:1px 7px;border-radius:9px;white-space:nowrap;margin-top:2px}
+  .bs{flex:1}
+  .qm{color:#c77a2e}
+  .why{display:block;font-size:12px;color:var(--muted)}
+  .unsure-note{font-size:13px;color:var(--warn-ink);background:var(--warn);border-radius:8px;padding:6px 10px;margin-top:8px}
+  .sum{margin-top:8px;font-size:14px;background:var(--bg);border-radius:10px;padding:8px 10px;white-space:pre-wrap}
+  .cardfoot{display:flex;justify-content:flex-end;margin-top:6px}
+  .linkbtn{border:0;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;padding:2px 4px}
+  .linkbtn:hover{color:var(--accent)}
+  details summary{cursor:pointer;font-size:13px;color:var(--muted);margin-top:4px}
+  .empty{text-align:center;color:var(--muted);font-size:14px;margin-top:30vh}
+  /* 輸入列 */
+  .inputbar{background:#fff;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:flex-end}
+  .inputbar textarea{flex:1;font:inherit;border:1px solid var(--line);border-radius:18px;padding:8px 14px;resize:none;max-height:140px;background:var(--bg);color:var(--ink)}
+  .inputbar textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+  .send{border:0;background:var(--accent);color:#fff;border-radius:18px;padding:8px 16px;font:inherit;cursor:pointer;white-space:nowrap}
+  .send:disabled{opacity:.4}
+  .settle{position:relative;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:18px;padding:7px 14px;font:inherit;cursor:pointer;white-space:nowrap}
+  .badge{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#fff;font-size:11px;min-width:18px;height:18px;border-radius:9px;padding:0 5px;line-height:18px}
+  /* 面板 */
+  .sheet{position:fixed;inset:0;background:rgba(40,34,32,.35);display:none;align-items:flex-end;justify-content:center;z-index:20}
+  .sheet.show{display:flex}
+  .panel{background:#fff;width:min(640px,100%);max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
+  .panel h2{font-size:16px;margin:0 0 4px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .between{justify-content:space-between}
+  .panel input,.panel textarea,.panel select{font:inherit;color:inherit;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff}
+  .panel textarea{width:100%;resize:vertical}
+  .b{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;color:var(--ink)}
+  .b:hover{border-color:var(--accent)}
+  .b.p{background:var(--accent);border-color:var(--accent);color:#fff}
+  .b.danger{color:#b4544f}
+  .muted{color:var(--muted);font-size:13px}
+  .step{font-size:13px;color:var(--muted);margin:14px 0 4px}
+  .rangebox{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:14px;margin-top:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{border:2px solid transparent;border-radius:16px;padding:5px 12px;font:inherit;font-size:14px;cursor:pointer;color:#fff}
+  .chip.on{border-color:var(--ink)}
+  /* 月 */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .stat{background:var(--bg);border-radius:10px;padding:8px 10px}
+  .stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+  .catrow{margin:12px 0}
+  .catrow .tp{display:flex;justify-content:space-between;font-size:14px}
+  .bar{height:11px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:5px}
+  .bar>div{height:100%;border-radius:6px}
+  .subtable{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  .subtable td{padding:4px 2px;border-top:1px solid var(--line)}
+  .subtable td:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+  .cal .h{font-size:12px;color:var(--muted);text-align:center}
+  .cal .d{border-radius:8px;background:var(--bg);font-size:12px;padding:4px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;min-height:48px}
+  .cal .d:hover{outline:1px solid var(--accent)}
+  .cal .d .hrs{font-weight:600;font-variant-numeric:tabular-nums}
+  .cal .d .mini{display:flex;height:4px;border-radius:2px;overflow:hidden}
+  .cal .d.pending{background:var(--warn)}
+  .monthnav{display:flex;align-items:center;gap:2px;font-weight:600}
+  /* 設定卡 */
+  .catcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;background:#fff}
+  .catcard .r1{display:flex;gap:8px;align-items:center}
+  .catcard .cd{width:12px;height:12px;border-radius:50%;background:var(--cc);flex:none}
+  .catcard .nm{font-weight:600;flex:1;min-width:0;border:0!important;padding:4px 2px!important;font-size:15px}
+  .catcard .nm:focus{outline:none;border-bottom:1px solid var(--accent)!important}
+  .catcard textarea{margin-top:6px;font-size:13px;border:0!important;background:var(--bg)!important;padding:6px 8px!important}
+  .catcard .r2{display:flex;gap:6px;align-items:center;justify-content:space-between;margin-top:6px;flex-wrap:wrap}
+  .sw{display:flex;gap:4px}
+  .sw button{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .sw button.on{box-shadow:0 0 0 2px var(--ink)}
+  .restlbl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer}
+  .mini-btn{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 4px}
+  .mini-btn:hover{color:var(--accent)}
+  .addcat{width:100%;margin-top:8px;border:1px dashed var(--line);background:transparent;border-radius:10px;padding:9px;color:var(--muted);cursor:pointer;font:inherit}
+  .addcat:hover{border-color:var(--accent);color:var(--accent)}
+  /* 開工提醒 */
+  .brief .h b{color:var(--ink);font-weight:600}
+  .bsec{margin-top:10px}
+  .bsec .lbl{font-size:12px;color:var(--muted);margin-bottom:3px}
+  .lastdo{font-size:14px;background:var(--bg);border-radius:8px;padding:6px 10px;white-space:pre-wrap}
+  .mtags{display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+  .warnline{font-size:13px;color:var(--warn-ink);background:var(--warn);border-radius:8px;padding:6px 10px;margin-top:10px}
+  /* 待辦 */
+  .todo{display:flex;align-items:flex-start;gap:8px;padding:6px 2px;border-top:1px solid var(--line)}
+  .todo:first-child{border-top:0}
+  .todo input[type=checkbox]{margin-top:4px;width:16px;height:16px;accent-color:var(--accent);flex:none;cursor:pointer}
+  .todo .tx{flex:1;white-space:pre-wrap;word-break:break-word;font-size:14px}
+  .todo.done .tx{color:var(--muted);text-decoration:line-through}
+  .todo .tg{font-size:11px;color:#fff;padding:1px 7px;border-radius:9px;white-space:nowrap;margin-top:2px}
+  .todo .x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:0 4px}
+  .todo .x:hover{color:#b4544f}
+  .todoadd{display:flex;gap:6px;margin-top:10px}
+  .todoadd input{flex:1;min-width:0}
+  .todoadd .b{white-space:nowrap}
+  /* 沒更新提醒 */
+  .nudge{background:#fff;border-top:1px solid var(--line);padding:10px 12px;display:none}
+  .nudge.show{display:block;animation:up .25s}
+  @keyframes up{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+  .nudge .q{font-size:14px}
+  .nudge .q b{font-weight:600}
+  .nudge .acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .nudge .acts button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:5px 12px;cursor:pointer;color:var(--ink)}
+  .nudge .acts button.p{background:var(--accent);border-color:var(--accent);color:#fff}
+  .nudge .acts button.g{border:0;color:var(--muted);margin-left:auto}
+  /* 分頁 */
+  .tabs{display:flex;gap:2px;background:var(--bg);padding:3px;border-radius:10px}
+  .tabs button{border:0;background:transparent;font:inherit;font-size:14px;padding:5px 14px;border-radius:8px;color:var(--muted);cursor:pointer;position:relative}
+  .tabs button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .tabs .n{font-size:11px;color:var(--accent);margin-left:3px;font-weight:600}
+  .page{flex:1;min-height:0;display:flex;flex-direction:column}
+  /* 待辦頁 */
+  .todopage{flex:1;overflow-y:auto;padding:12px;background:var(--bg)}
+  .tgroup{background:#fff;border-radius:14px;padding:4px 14px;margin-bottom:10px}
+  .tgroup .gh{font-size:12px;color:var(--muted);padding:8px 0 2px;display:flex;justify-content:space-between}
+  .todopage .todo{padding:10px 0}
+  .todopage .todo .tx{font-size:15px;outline:none;border-radius:4px}
+  .todopage .todo .tx:focus{background:var(--bg);padding:0 4px}
+  .todo .meta2{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+  .tip{font-size:12px;color:var(--muted);text-align:center;margin:6px 0 14px}
+  .tip code{background:#fff;border-radius:4px;padding:0 4px;font-family:inherit;color:var(--accent)}
+  .addbar{background:#fff;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center}
+  .addbar input{flex:1;min-width:0;font:inherit;border:1px solid var(--line);border-radius:18px;padding:8px 14px;background:var(--bg);color:var(--ink)}
+  .addbar input:focus{outline:none;border-color:var(--accent);background:#fff}
+  .addbar select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:14px;padding:6px 8px;background:#fff;color:var(--ink);max-width:96px}
+  .doneauto{font-size:13px;margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+  .doneauto .lbl{color:var(--muted);font-size:12px}
+  .doneauto div{padding:2px 0}
+  .addwrap{background:#fff;border-top:1px solid var(--line)}
+  .addopts{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:8px 10px 0;white-space:nowrap}
+  .addopts::-webkit-scrollbar{display:none}
+  .addopts>*{flex:none}
+  .addopts input[type=date]{width:128px}
+  .addopts input[type=time]{width:96px}
+  .seg{display:inline-flex;background:var(--bg);border-radius:14px;padding:2px}
+  .seg button{border:0;background:transparent;font:inherit;font-size:13px;padding:3px 10px;border-radius:12px;cursor:pointer;color:var(--muted)}
+  .seg button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .addopts select,.addopts input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:12px;padding:3px 8px;background:#fff;color:var(--ink)}
+  .addopts .sep{width:1px;height:16px;background:var(--line)}
+  .addwrap .addbar{border-top:0}
+  .due{font-size:12px;color:var(--muted);white-space:nowrap}
+  .due.late{color:#b4544f;font-weight:600}
+  .due.today{color:var(--accent);font-weight:600}
+  .todo .tx{cursor:pointer}
+  .longtag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:0 6px;margin-left:4px;vertical-align:1px}
+  .more-todo{font-size:12px;color:var(--muted);padding:6px 0 0}
+  .cstat{display:flex;justify-content:space-between;font-size:14px;align-items:baseline}
+  .cstat .nums{display:flex;gap:10px;font-variant-numeric:tabular-nums}
+  .cstat .nums span:first-child{font-weight:600}
+  .weekrow{display:grid;grid-template-columns:72px 1fr 44px;gap:8px;align-items:center;font-size:13px;padding:5px 0;cursor:pointer}
+  .weekrow:hover{background:var(--bg)}
+  .weekrow .wb{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line)}
+  .weekrow .wh{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .weekrow.pending .wd{color:var(--warn-ink)}
+  /* 剪輯進度 */
+  .prog{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+  .prog:first-child{border-top:0}
+  .prog .pm{flex:1;min-width:0}
+  .prog .pn{font-weight:600}
+  .prog .pc{font-size:12px;color:var(--muted)}
+  .prog .stage{font-size:11px;border-radius:9px;padding:1px 8px;background:var(--bg);color:var(--ink);white-space:nowrap;margin-top:2px}
+  .prog .nx{font-size:12px;color:var(--muted);display:block;margin-top:1px}
+  .prog .nx.late{color:#b4544f;font-weight:600}
+  .prog .nx.soon{color:var(--accent);font-weight:600}
+  .prog a{color:inherit;text-decoration:none}
+  .prog a:hover .pn{text-decoration:underline}
+  .proghead{display:flex;justify-content:space-between;align-items:center}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
+  .toast.show{opacity:.92}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="tabs"><button id="tabChat" class="on">隨手記</button><button id="tabTodo">待辦<span class="n" id="todoCount"></span></button><button id="tabStat">統計</button></div>
+    <div style="display:flex;gap:4px;align-items:center">
+      <button class="icon" id="openSet" title="設定">⚙︎</button>
+    </div>
+  </div>
+  <div class="page" id="pageChat">
+  <div class="msgs" id="msgs"></div>
+  <div class="nudge" id="nudge">
+    <div class="q" id="nudgeQ"></div>
+    <div class="acts">
+      <button class="p" id="nStill">還在做</button>
+      <button id="nSwitch">換事情了</button>
+      <button id="nRest">在休息</button>
+      <button id="nOff">收工了</button>
+      <button class="g" id="nSnooze">這次先不用</button>
+    </div>
+  </div>
+  <div class="inputbar">
+    <button class="settle" id="settleBtn">結算<span class="badge hide" id="badge"></span></button>
+    <textarea id="input" rows="1" placeholder="現在在做什麼…" title="Enter 換行，Ctrl+Enter 送出"></textarea>
+    <button class="send" id="sendBtn" disabled>送出</button>
+  </div>
+  </div>
+  <div class="page hide" id="pageTodo">
+    <div class="todopage" id="todoPage"></div>
+    <div class="addwrap">
+      <div class="addopts">
+        <div class="seg" id="addKind"><button data-k="short" class="on">短期</button><button data-k="long">長期</button></div>
+        <span class="sep"></span>
+        <div class="seg" id="addDue"><button data-d="" class="on">無期限</button><button data-d="0">今天</button><button data-d="1">明天</button><button data-d="pick">選日期</button></div>
+        <input type="date" id="addDate" class="hide">
+        <input type="time" id="addTime" class="hide" title="時間可不填">
+      </div>
+      <div class="addbar">
+        <input id="todoInput" placeholder="新增待辦…">
+        <select id="todoCat"></select>
+        <button class="send" id="todoAdd">加入</button>
+      </div>
+    </div>
+  </div>
+  <div class="page hide" id="pageStat">
+    <div class="todopage" id="statPage">
+      <div class="tgroup" style="padding:10px 14px">
+        <div class="row between" style="margin-top:0">
+          <div class="seg" id="statMode"><button data-m="week">週</button><button data-m="month" class="on">月</button></div>
+          <div class="monthnav"><button class="icon" id="prevP">◀</button><span id="pLabel"></span><button class="icon" id="nextP">▶</button></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="muted">總工時</span><b id="mTotal"></b></div>
+          <div class="stat"><span class="muted">工作天數</span><b id="mDays"></b></div>
+          <div class="stat"><span class="muted">平均每天</span><b id="mAvg"></b></div>
+        </div>
+        <p class="muted" id="mExtra" style="margin:8px 0 0"></p>
+        <p class="muted hide" id="mPending" style="margin:8px 0 0;color:var(--warn-ink)"></p>
+      </div>
+      <div class="tgroup" style="padding:10px 14px">
+        <div class="gh" style="padding-top:0"><span>各類別</span><span>總時數・佔比・平均每個工作天</span></div>
+        <div id="catList"></div>
+      </div>
+      <div class="tgroup" style="padding:10px 14px">
+        <div class="gh" style="padding-top:0"><span>每日分佈</span><span>點日期跳到那天的對話</span></div>
+        <div id="cal"></div>
+      </div>
+      <div class="row" style="margin:4px 0 20px"><button class="b" id="copyMonthPrompt">複製回顧 Prompt</button><button class="b" id="csvBtn">匯出 CSV</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯訊息 -->
+<div class="sheet" id="editSheet"><div class="panel">
+  <h2>編輯這則</h2>
+  <div class="row"><span class="muted">時間</span><input type="datetime-local" id="editTime"></div>
+  <textarea id="editText" rows="3" style="margin-top:10px"></textarea>
+  <p class="muted hide" id="editLocked" style="margin:6px 0 0">這則已經結算過。改了時間或內容，結算卡不會自動更新，要按卡片下方的「重新結算」。</p>
+  <div class="row between">
+    <button class="b danger" id="editDel">刪除</button>
+    <div class="row" style="margin:0"><button class="b" data-close>取消</button><button class="b p" id="editSave">儲存</button></div>
+  </div>
+</div></div>
+
+<!-- 編輯待辦 -->
+<div class="sheet" id="todoSheet"><div class="panel">
+  <h2>編輯待辦</h2>
+  <textarea id="tdText" rows="2" style="margin-top:8px"></textarea>
+  <div class="row"><span class="muted" style="width:3em">類型</span><div class="seg" id="tdKind"><button data-k="short">短期</button><button data-k="long">長期</button></div></div>
+  <div class="row"><span class="muted" style="width:3em">期限</span><input type="date" id="tdDate"><input type="time" id="tdTime"><button class="b" id="tdClear" style="padding:5px 10px">不設期限</button></div>
+  <div class="row"><span class="muted" style="width:3em">分類</span><select id="tdCat"></select></div>
+  <div class="row between">
+    <button class="b danger" id="tdDel">刪除</button>
+    <div class="row" style="margin:0"><button class="b" data-close>取消</button><button class="b p" id="tdSave">儲存</button></div>
+  </div>
+</div></div>
+
+<!-- 改一段 -->
+<div class="sheet" id="blockSheet"><div class="panel">
+  <h2>改這一段 <span class="muted" id="blkTime"></span></h2>
+  <p class="muted" id="blkWhy" style="margin:4px 0 0"></p>
+  <div class="chips" id="blkChips"></div>
+  <div class="row"><span class="muted">細項</span><input id="blkSub" style="flex:1"></div>
+  <div class="row between"><span></span>
+    <div class="row" style="margin:0"><button class="b" data-close>取消</button><button class="b p" id="blkSave">儲存</button></div>
+  </div>
+</div></div>
+
+<!-- 結算 -->
+<div class="sheet" id="settleSheet"><div class="panel">
+  <h2>結算</h2>
+  <div class="rangebox" id="settleRange"></div>
+  <div class="row"><span class="muted">收工時間</span><input type="datetime-local" id="endTime"></div>
+  <p class="step">① 複製 Prompt，貼給 Claude</p>
+  <div class="row" style="margin-top:0"><button class="b p" id="copyPrompt">複製 Prompt</button><button class="b" id="togglePrompt">看內容</button></div>
+  <textarea id="promptView" rows="12" class="hide" style="margin-top:8px;font-size:13px"></textarea>
+  <p class="step">② Claude 回覆後，整段複製貼回下面這格，按「完成結算」</p>
+  <textarea id="pasteBack" rows="4" placeholder="貼在這裡"></textarea>
+  <div class="row between">
+    <span class="muted" id="settleMsg"></span>
+    <div class="row" style="margin:0"><button class="b" data-close>關閉</button><button class="b p" id="applyBtn">完成結算</button></div>
+  </div>
+</div></div>
+
+<!-- 設定 -->
+<div class="sheet" id="setSheet"><div class="panel">
+  <div class="row between" style="margin-top:0"><h2>設定</h2><button class="b" data-close>關閉</button></div>
+  <p class="step" style="margin-top:6px">剪輯進度來源</p>
+  <div class="row" style="margin-top:0"><input id="progUrl" style="flex:1;min-width:200px" placeholder="/api/worklog-progress"><button class="b" id="progTest">測試</button></div>
+  <p class="muted" style="margin:4px 0 0" id="progTestMsg">從 Notion「小玩剪輯進度_DB」讀還沒完成的案子。放在 finn-editor.vercel.app 上才讀得到。</p>
+  <p class="step">沒更新多久要提醒</p>
+  <div class="row" style="margin-top:0">
+    <select id="remindSel"><option value="0">不提醒</option><option value="60">1 小時</option><option value="90">1.5 小時</option><option value="120">2 小時</option><option value="180">3 小時</option></select>
+    <span class="muted">最後一則訊息超過這個時間沒更新，就問你還在做嗎。要開著這個頁面才會提醒。</span>
+  </div>
+  <p class="step">分類　<span style="font-weight:normal">每一類寫幾個例子讓 Claude 抓方向就好，不用列出所有關鍵字；它會依意思判斷。勾「不算工時」的類別，月統計不會加進去。</span></p>
+  <div id="catCards"></div>
+  <button class="addcat" id="addCat">＋ 新增分類</button>
+  <div class="row"><button class="b p" id="saveSet">儲存設定</button><span class="muted">改名字的話，舊紀錄會一起改過去</span></div>
+  <p class="step">備份（資料只存在這台電腦的瀏覽器）</p>
+  <div class="row" style="margin-top:0">
+    <button class="b" id="exportBtn">匯出備份</button>
+    <label class="b" style="cursor:pointer">匯入備份<input type="file" id="importFile" accept=".json" class="hide"></label>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 基本工具 ===== */
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const WEEK=['日','一','二','三','四','五','六'];
+const MIN=60000,DAY=86400000;
+const fmtDur=m=>{m=Math.round(m);const h=Math.floor(m/60),mm=m%60;return h?(mm?`${h} 小時 ${mm} 分`:`${h} 小時`):`${mm} 分`};
+const fmtH=m=>(m/60).toFixed(1)+' h';
+const toLocalInput=ts=>{const d=new Date(ts);return `${ymd(d)}T${hm(d)}`};
+const fromLocalInput=v=>v?new Date(v).getTime():NaN;
+const dtLabel=ts=>{const d=new Date(ts);return `${md(d)}（${WEEK[d.getDay()]}）${hm(d)}`};
+const fullStamp=ts=>{const d=new Date(ts);return `${ymd(d)} ${hm(d)}`};
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2000)}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast('已複製')}catch(e){$('promptView').value=t;$('promptView').classList.remove('hide');toast('請手動複製')}}
+
+/* ===== 資料 =====
+  msgs:    [{id, ts, text}]
+  settles: [{id, from, to, blocks:[{s,e,cat,sub,unsure,why}], summary}]
+  一則訊息若落在某次結算的 from–to 之間，就算已結算。
+*/
+const KEY='worklog_v2', OLD_KEY='worklog_chat_v1';
+const SWATCH=['#7a9cc6','#a98bc4','#e0a46b','#6fae9a','#c97b84','#8fb36b','#6b9eb3','#b39b6b','#a7a29e','#b9b0aa'];
+const DEFAULT_CATS=[
+  {id:'c1',name:'剪片',color:'#7a9cc6',rest:false,hint:'剪輯、粗剪、精剪、字幕、調色、混音、跟阿滴或其他客戶溝通剪輯、報價、看素材'},
+  {id:'c2',name:'占卜',color:'#a98bc4',rest:false,hint:'樹洞✦占心室個案、解牌、回覆占卜客人、官網與預約維護、牌卡設計'},
+  {id:'c3',name:'暖暖',color:'#e0a46b',rest:false,hint:'暖暖（占卜樹屋）的直播、企劃、會員、素材'},
+  {id:'c4',name:'寫程式',color:'#6fae9a',rest:false,hint:'自製工具開發、修 bug、部署網站、跟 Claude 討論工具'},
+  {id:'c5',name:'其他',color:'#a7a29e',rest:false,hint:'行政、記帳、報稅、學習、雜事，以及判斷不出來的工作'},
+  {id:'c6',name:'休息',color:'#b9b0aa',rest:true,hint:'吃飯、午睡、滑手機、外出私事等非工作時間'}
+];
+function blank(){return {v:2,msgs:[],settles:[],cats:clone(DEFAULT_CATS),todos:[],briefs:[],remind:120,progressUrl:'/api/worklog-progress',progress:null}}
+
+function normCats(d){
+  if(d.cats&&d.cats.length&&typeof d.cats[0]==='object')return d.cats;
+  const hints={};(d.hint||'').split('\n').forEach(l=>{const m=l.match(/^(.+?)[：:](.*)$/);if(m)hints[m[1].trim()]=m[2].trim()});
+  return (d.cats||DEFAULT_CATS.map(c=>c.name)).map((n,i)=>{const def=DEFAULT_CATS.find(c=>c.name===n);
+    return {id:'c'+uid(),name:n,color:def?def.color:SWATCH[i%SWATCH.length],rest:n==='休息',hint:hints[n]??(def?def.hint:'')}});
+}
+// V1.x（每天一頁）→ V2（連續對話）
+function fromV1(d){
+  const out=blank();out.cats=normCats(d);
+  const at=(date,t)=>new Date(`${date}T${t}`).getTime();
+  out.msgs=(d.msgs||[]).map(m=>({id:m.id||uid(),ts:at(m.date,m.time),text:m.text})).sort((a,b)=>a.ts-b.ts);
+  Object.entries(d.days||{}).forEach(([date,day])=>{
+    let cursor=null;
+    const blocks=(day.blocks||[]).map(b=>{
+      let s=at(date,b.start);if(cursor!=null)while(s<cursor-MIN)s+=DAY;
+      let e=at(date,b.end);while(e<s)e+=DAY;cursor=e;
+      return {s,e,cat:b.cat,sub:b.sub||'',unsure:!!b.unsure,why:b.why||''};
+    });
+    if(!blocks.length)return;
+    const dm=out.msgs.filter(m=>ymd(new Date(m.ts))===date);
+    const from=Math.min(blocks[0].s,...dm.map(m=>m.ts));
+    out.settles.push({id:uid(),from,to:blocks[blocks.length-1].e,blocks,summary:day.summary||''});
+  });
+  return out;
+}
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.v===2){d.cats=normCats(d);return Object.assign(blank(),d)}}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem(OLD_KEY));if(o&&o.msgs){const d=fromV1(o);localStorage.setItem(KEY,JSON.stringify(d));return d}}catch(e){}
+  return blank();
+}
+function save(){wdCache=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('儲存失敗')}}
+let S=load();
+
+const catOf=n=>S.cats.find(c=>c.name===n);
+const catNames=()=>S.cats.map(c=>c.name);
+const isRest=n=>!!catOf(n)?.rest;
+const color=n=>catOf(n)?.color||'#cfc8c4';
+const fallbackCat=()=>catOf('其他')?'其他':(S.cats.filter(c=>!c.rest).slice(-1)[0]||S.cats[0]).name;
+// 工作日：扣掉「一天開始的時間」後的日期
+// 工作日：連續工作（中間沒停超過 4 小時）算同一天，日期用這一輪第一則訊息的日期。
+// 例：11/10 21:30 做到 11/11 02:30 → 整段算 11/10；睡醒 11/11 10:00 再開始 → 11/11。
+const GAP=4*3600000;
+let wdCache=null;
+function buildWd(){
+  const arr=S.msgs.map(m=>m.ts).sort((a,b)=>a-b);const out=[];let cur=null,prev=null;
+  arr.forEach(t=>{if(prev==null||t-prev>=GAP)cur=ymd(new Date(t));out.push([t,cur]);prev=t});
+  return out;
+}
+function workday(ts){
+  if(!wdCache)wdCache=buildWd();
+  let lo=0,hi=wdCache.length-1,f=-1;
+  while(lo<=hi){const mid=(lo+hi)>>1;if(wdCache[mid][0]<=ts+MIN){f=mid;lo=mid+1}else hi=mid-1}
+  if(f>=0&&ts-wdCache[f][0]<GAP)return wdCache[f][1];
+  return ymd(new Date(ts));
+}
+const sortedMsgs=()=>S.msgs.slice().sort((a,b)=>a.ts-b.ts);
+const settleOf=ts=>S.settles.find(x=>ts>=x.from&&ts<=x.to);
+const unsettled=()=>sortedMsgs().filter(m=>!settleOf(m.ts));
+const bmin=b=>(b.e-b.s)/MIN;
+
+/* ===== 對話畫面 ===== */
+let since=Date.now()-45*DAY;
+function render(keepScroll){
+  const box=$('msgs');const prevBottom=box.scrollHeight-box.scrollTop;
+  const all=sortedMsgs();
+  const vis=all.filter(m=>m.ts>=since);
+  const older=all.length-vis.length;
+  // 組合訊息和結算卡，照時間排
+  const items=vis.map(m=>({k:'m',ts:m.ts,m}));
+  S.settles.filter(x=>x.to>=since).forEach(x=>items.push({k:'s',ts:x.to+1,x}));
+  S.briefs.filter(x=>x.ts>=since).forEach(x=>items.push({k:'b',ts:x.ts,x}));
+  items.sort((a,b)=>a.ts-b.ts);
+  if(!items.length){
+    box.innerHTML=`${older?`<button class="more" id="moreBtn">載入更早的紀錄（${older} 則）</button>`:''}<div class="empty">開始工作時，打一句現在在做什麼就好。<br>換事情就再打一句，收工按「結算」。<br><span style="font-size:12px">跨過午夜也沒關係，結算會一起算。</span></div>`;
+    bindMore();updateBadge();return;
+  }
+  let html=older?`<button class="more" id="moreBtn">載入更早的紀錄（${older} 則）</button>`:'';
+  let lastDate=null,prev=null;
+  items.forEach(it=>{
+    if(it.k==='m'){
+      const m=it.m,d=new Date(m.ts),ds=ymd(d);
+      if(ds!==lastDate){html+=`<div class="daychip" data-date="${ds}"><span>${d.getFullYear()}/${md(d)}（${WEEK[d.getDay()]}）${ds===ymd(new Date())?'· 今天':''}</span></div>`;lastDate=ds;prev=null}
+      if(prev){const g=(m.ts-prev.ts)/MIN;if(g>=60)html+=`<div class="gapnote">${fmtDur(g)}</div>`}
+      const done=!!settleOf(m.ts);
+      html+=`<div class="m ${done?'done':''}" data-id="${m.id}" data-wd="${workday(m.ts)}"><span class="t">${done?'✓<br>':''}${hm(d)}</span><div class="bubble">${esc(m.text)}</div></div>`;
+      prev=m;
+    }else if(it.k==='b'){html+=renderBrief(it.x)}else{html+=renderSettle(it.x);prev=null}
+  });
+  box.innerHTML=html;bindMore();updateBadge();updateTodoCount();
+  box.scrollTop=keepScroll?box.scrollHeight-prevBottom:box.scrollHeight;
+}
+function bindMore(){const b=$('moreBtn');if(b)b.onclick=()=>{since-=60*DAY;render(true)}}
+function updateBadge(){const n=unsettled().length;$('badge').textContent=n;$('badge').classList.toggle('hide',!n)}
+
+function renderSettle(x){
+  const by={};let work=0,rest=0;
+  x.blocks.forEach(b=>{const m=bmin(b);if(isRest(b.cat)){rest+=m;return}by[b.cat]=(by[b.cat]||0)+m;work+=m});
+  const keys=Object.keys(by).sort((a,b)=>by[b]-by[a]);
+  const unsure=x.blocks.filter(b=>b.unsure).length;
+  const crossDay=ymd(new Date(x.from))!==ymd(new Date(x.to));
+  const bt=b=>{const s=new Date(b.s),e=new Date(b.e);const sameDay=ymd(s)===ymd(e);
+    return crossDay?`${md(s)} ${hm(s)}–${sameDay?'':md(e)+' '}${hm(e)}`:`${hm(s)}–${hm(e)}`};
+  return `<div class="bot"><div class="botcard" data-sid="${x.id}">
+    <div class="h"><span>結算　${dtLabel(x.from)} → ${crossDay?dtLabel(x.to):hm(new Date(x.to))}</span><span>工作 ${fmtDur(work)}${rest?`・休息 ${fmtDur(rest)}`:''}</span></div>
+    <div class="cbar">${keys.map(k=>`<div style="width:${work?by[k]/work*100:0}%;background:${color(k)}"></div>`).join('')}</div>
+    ${keys.map(k=>`<div class="crow"><span><span class="dot" style="background:${color(k)}"></span>${esc(k)}</span><span>${fmtH(by[k])}　<span class="muted">${work?Math.round(by[k]/work*100):0}%</span></span></div>`).join('')}
+    ${unsure?`<div class="unsure-note">有 ${unsure} 段 Claude 不太確定，標了「?」，點一下就能改分類</div>`:''}
+    <details ${unsure?'open':''}><summary>時間段明細（${x.blocks.length}）・點一段可以改</summary><div class="blocks">
+      ${x.blocks.map((b,i)=>`<div class="blk ${b.unsure?'q':''}" data-bi="${i}"><span class="bt">${bt(b)}</span><span class="tag" style="background:${color(b.cat)}">${esc(b.cat)}</span><span class="bs">${esc(b.sub||'')}${b.unsure?` <b class="qm">?</b>${b.why?`<span class="why">${esc(b.why)}</span>`:''}`:''}</span></div>`).join('')}
+    </div></details>
+    ${x.summary?`<div class="sum">${esc(x.summary)}</div>`:''}
+    ${(x.doneTodos||[]).length?`<div class="doneauto"><div class="lbl">這次自動勾掉的待辦（點一下可以取消）</div>${x.doneTodos.map(id=>{const t=S.todos.find(y=>y.id===id);return t?`<div class="todo ${t.done?'done':''}" data-tid="${t.id}"><input type="checkbox" ${t.done?'checked':''}><span class="tx">${esc(t.text)}</span></div>`:''}).join('')}</div>`:''}
+    <div class="cardfoot"><button class="linkbtn" data-redo="${x.id}">重新結算</button></div>
+  </div></div>`;
+}
+
+/* 送出 */
+const input=$('input');
+function autoSize(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,140)+'px'}
+input.addEventListener('input',()=>{$('sendBtn').disabled=!input.value.trim();autoSize()});
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&!e.isComposing){e.preventDefault();send()}});
+$('sendBtn').onclick=send;
+function send(){
+  askNotify();
+  const text=input.value.trim();if(!text)return;
+  // 「+」或「＋」開頭 → 加成待辦，不算隨手記
+  // 「++」開頭 → 長期；結尾可加期限：今天／明天／後天／週五／11/20，後面可再加時間 18:00
+  if(/^[+＋]/.test(text)){
+    let n=0;
+    text.split('\n').forEach((line,i)=>{
+      line=line.trim();if(!line)return;
+      const long=/^[+＋]{2}/.test(line)||(i>0&&/^[+＋]{2}/.test(text)&&!/^[+＋]/.test(line));
+      const body=line.replace(/^[+＋]+\s*/,'').trim();if(!body)return;
+      const p=parseDue(body);
+      S.todos.push(newTodo(p.text,{kind:long?'long':'short',due:p.due,dueTime:p.time}));n++;
+    });
+    save();input.value='';autoSize();$('sendBtn').disabled=true;updateTodoCount();renderTodos();
+    toast(`已加入 ${n} 筆待辦`);return;
+  }
+  const now=Date.now();const all=sortedMsgs();const prevMsg=all[all.length-1];
+  const firstOfDay=!prevMsg||now-prevMsg.ts>=GAP&&ymd(new Date(now))!==workday(prevMsg.ts);
+  const id=uid();S.msgs.push({id,ts:now,text});
+  wdCache=null;
+  if(firstOfDay){S.briefs.push(makeBrief(id,now,prevMsg));fetchProgress()}
+  save();
+  input.value='';autoSize();$('sendBtn').disabled=true;render();checkNudge();input.focus();
+}
+
+/* 點擊：訊息／時間段／重新結算 */
+let editingId=null,editingBlock=null,blkPick='';
+$('msgs').addEventListener('click',ev=>{
+  if(ev.target.dataset.opentodo){showTab('todo');return}
+  if(ev.target.closest('.todo')){todoClick(ev);return}
+  const redo=ev.target.dataset.redo;
+  if(redo){
+    if(!confirm('取消這次結算？裡面的訊息會變回「未結算」，可以再按結算重算。'))return;
+    S.settles=S.settles.filter(x=>x.id!==redo);save();render(true);toast('已取消，可以重新結算');return;
+  }
+  const blk=ev.target.closest('.blk');
+  if(blk){
+    const x=S.settles.find(s=>s.id===blk.closest('.botcard').dataset.sid);const b=x&&x.blocks[+blk.dataset.bi];if(!b)return;
+    editingBlock=b;blkPick=b.cat;
+    $('blkTime').textContent=`${dtLabel(b.s)}–${hm(new Date(b.e))}`;
+    $('blkWhy').textContent=b.unsure&&b.why?`Claude 的猶豫：${b.why}`:'';
+    $('blkSub').value=b.sub||'';renderChips();open('blockSheet');return;
+  }
+  const row=ev.target.closest('.m');if(!row)return;
+  const m=S.msgs.find(x=>x.id===row.dataset.id);if(!m)return;
+  editingId=m.id;$('editTime').value=toLocalInput(m.ts);$('editText').value=m.text;
+  $('editLocked').classList.toggle('hide',!settleOf(m.ts));open('editSheet');
+});
+function renderChips(){$('blkChips').innerHTML=S.cats.map(c=>`<button class="chip ${c.name===blkPick?'on':''}" data-c="${esc(c.name)}" style="background:${c.color}">${esc(c.name)}</button>`).join('')}
+$('blkChips').addEventListener('click',e=>{const c=e.target.dataset.c;if(c==null)return;blkPick=c;renderChips()});
+$('blkSave').onclick=()=>{if(!editingBlock)return;editingBlock.cat=blkPick;editingBlock.sub=$('blkSub').value.trim();editingBlock.unsure=false;save();close();render(true)};
+$('editSave').onclick=()=>{const m=S.msgs.find(x=>x.id===editingId);if(!m)return;
+  const t=fromLocalInput($('editTime').value);if(!isNaN(t))m.ts=t;m.text=$('editText').value.trim()||m.text;save();close();render(true)};
+$('editDel').onclick=()=>{S.msgs=S.msgs.filter(x=>x.id!==editingId);S.briefs=S.briefs.filter(x=>x.msgId!==editingId);save();close();render(true)};
+
+/* ===== 結算 ===== */
+let pending=[];
+$('settleBtn').onclick=()=>{
+  pending=unsettled();
+  if(!pending.length){toast('沒有未結算的訊息');return}
+  const now=Date.now(),last=pending[pending.length-1].ts;
+  // 上次複製了 Prompt 但還沒貼回（例如中途關掉頁面）→ 帶回當時的收工時間和待辦編號
+  const dr=S.draft;
+  if(dr&&pending.some(m=>m.ts<=dr.end)){
+    $('endTime').value=toLocalInput(dr.end);promptTodos=dr.todoIds||[];
+  }else{S.draft=null;$('endTime').value=toLocalInput(Math.max(now,last));promptTodos=[]}
+  updateRange();
+  $('promptView').classList.add('hide');$('pasteBack').value='';$('settleMsg').textContent='';
+  open('settleSheet');
+};
+$('endTime').addEventListener('change',updateRange);
+function inRange(){const end=fromLocalInput($('endTime').value);return pending.filter(m=>isNaN(end)||m.ts<=end)}
+function updateRange(){
+  const r=inRange();const end=fromLocalInput($('endTime').value);
+  if(!r.length){$('settleRange').textContent='收工時間比第一則訊息還早，請調整。';return}
+  const left=pending.length-r.length;
+  const dr=S.draft;const restored=dr&&dr.end===end;
+  $('settleRange').innerHTML=(restored?`<div style="color:var(--warn-ink);margin-bottom:4px">上次 ${dtLabel(dr.copied)} 複製的 Prompt 還沒貼回，已經帶回當時的設定，直接貼 Claude 的回覆就好。</div>`:'')+`這次會結算 <b>${r.length}</b> 則訊息：${dtLabel(r[0].ts)} → ${isNaN(end)?'':dtLabel(end)}`+
+    (ymd(new Date(r[0].ts))!==ymd(new Date(end))?'<br><span class="muted">有跨日，會一起算。整段會算在開始的那一天。</span>':'')+
+    (left?`<br><span class="muted">收工時間之後還有 ${left} 則，這次不算。</span>`:'');
+}
+const openTodos=()=>S.todos.filter(t=>!t.done);
+function todoBlock(){
+  const o=openTodos();if(!o.length)return '';
+  return `
+7. 下面是我還沒完成的待辦。對照隨手記，如果明確看得出某一項已經做完，把它的編號放進 "done"，例如 [1,3]。只是「有在做」但沒說完成的不要放；沒有就給空陣列 []。
+【待辦】
+${o.map((t,i)=>`${i+1}. ${t.text.replace(/\n+/g,' / ')}${t.kind==='long'?'（長期）':''}${t.due?`（期限 ${t.due}${t.dueTime?' '+t.dueTime:''}）`:''}`).join('\n')}`;
+}
+let promptTodos=[];
+function buildPrompt(){
+  promptTodos=openTodos().map(t=>t.id);
+  const r=inRange();const end=fromLocalInput($('endTime').value);
+  const lines=r.map(m=>`[${fullStamp(m.ts)}] ${m.text.replace(/\n+/g,' / ')}`).join('\n');
+  const catText=S.cats.map(c=>`・${c.name}${c.rest?'（非工作時間）':''}：${c.hint||'（無說明）'}`).join('\n');
+  return `以下是我的工作隨手記，像聊天紀錄一樣隨手打的：每一則前面是我送出的日期時間，通常代表「從這時候開始做這件事」，直到下一則為止。可能會跨過午夜。最後收工時間是 ${fullStamp(end)}。
+
+【隨手記】
+${lines}
+
+【分類】只能用下面這幾個名稱，冒號後是哪些事算這一類：
+${catText}
+
+【請幫我做】
+1. 把整段時間切成連續的時間段，每段給一個分類和一個簡短「細項」（10 字內，例如「阿滴 EP.120 粗剪」「樹洞個案解牌」）。同一件事的細項用同樣的寫法，方便我月底加總。
+2. 時間段要首尾相接，從第一則到收工時間全部涵蓋。只是心情或補充說明的訊息（例如「好累」「卡住了」），以及「（還在做）」這種接續訊息，不要另切一段，併入前一段。
+3. 如果訊息表示中途做了別的事又回來，照實際時間切開。
+4. 判斷方式：上面的說明只是舉例，不是關鍵字清單。請依照意思判斷，例如「後製修改」「改片」「出片」「調字卡」都算剪片，即使說明裡沒有這幾個字。訊息太短看不出來時就看前後文，例如前後都在剪片，中間一則「匯出」也算剪片。
+5. 不確定時：還是選一個最可能的分類，但加上 "unsure":true 和 "why"（一句話說你在哪兩類之間猶豫），我會自己確認。完全看不出是什麼工作，歸到「${fallbackCat()}」並標 unsure。不要自己發明新的分類名稱。
+6. 寫一段小結，3 句以內：時間主要花在哪、是否被切得很碎、值得留意的地方。語氣平穩，不用鼓勵或誇獎。${todoBlock()}
+
+【回覆格式】只回下面這個 JSON，不要其他文字。時間一律寫完整的「YYYY-MM-DD HH:MM」：
+{"blocks":[{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項"},{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項","unsure":true,"why":"不確定原因"}],"summary":"小結"${openTodos().length?',"done":[]':''}}`;
+}
+$('copyPrompt').onclick=()=>{if(!inRange().length){toast('請先調整收工時間');return}const p=buildPrompt();rememberDraft();copyText(p)};
+function rememberDraft(){S.draft={end:fromLocalInput($('endTime').value),todoIds:promptTodos.slice(),copied:Date.now()};save();updateRange()}
+$('togglePrompt').onclick=()=>{const v=$('promptView');v.value=buildPrompt();rememberDraft();v.classList.toggle('hide')};
+
+// 解析時間：接受「YYYY-MM-DD HH:MM」「MM-DD HH:MM」「HH:MM」；缺日期就從前一段往後推
+function parseStamp(str,cursor){
+  str=String(str||'').trim().replace(/\//g,'-');
+  let m=str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
+  if(m)return new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]).getTime();
+  const base=new Date(cursor);
+  m=str.match(/^(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
+  if(m)return new Date(base.getFullYear(),m[1]-1,+m[2],+m[3],+m[4]).getTime();
+  m=str.match(/^(\d{1,2}):(\d{2})/);
+  if(m){let t=new Date(base.getFullYear(),base.getMonth(),base.getDate(),+m[1],+m[2]).getTime();while(t<cursor-MIN)t+=DAY;return t}
+  return NaN;
+}
+$('applyBtn').onclick=()=>{
+  const r=inRange();if(!r.length){$('settleMsg').textContent='範圍內沒有訊息';return}
+  const raw=$('pasteBack').value;const mm=raw.match(/\{[\s\S]*\}/);
+  if(!mm){$('settleMsg').textContent='找不到 JSON，請整段貼上';return}
+  let d;try{d=JSON.parse(mm[0])}catch(e){$('settleMsg').textContent='格式看不懂，確認有貼完整';return}
+  const names=catNames(),fb=fallbackCat();
+  let cursor=r[0].ts;const blocks=[];
+  (d.blocks||[]).forEach(b=>{
+    const s=parseStamp(b.start,cursor);if(isNaN(s))return;
+    const e=parseStamp(b.end,s);if(isNaN(e)||e<=s)return;
+    cursor=e;const known=names.includes(b.cat);
+    blocks.push({s,e,cat:known?b.cat:fb,sub:String(b.sub||''),unsure:!!b.unsure||!known,why:known?String(b.why||''):`Claude 給了清單外的分類「${b.cat}」`});
+  });
+  if(!blocks.length){$('settleMsg').textContent='沒有讀到時間段';return}
+  const end=fromLocalInput($('endTime').value);
+  // 自動勾掉做完的待辦（用複製 Prompt 當下的編號對應）
+  const ids=promptTodos.length?promptTodos:openTodos().map(t=>t.id);
+  const doneIds=[];
+  (Array.isArray(d.done)?d.done:[]).forEach(n=>{const t=S.todos.find(x=>x.id===ids[(n|0)-1]);if(t&&!t.done){t.done=true;t.doneTs=Date.now();doneIds.push(t.id)}});
+  S.settles.push({id:uid(),from:Math.min(r[0].ts,blocks[0].s),to:Math.max(end,r[r.length-1].ts),blocks,summary:String(d.summary||''),doneTodos:doneIds});
+  S.draft=null;save();close();render();
+  const q=blocks.filter(b=>b.unsure).length;toast((q?`已結算，有 ${q} 段待確認`:'已結算')+(doneIds.length?`，勾掉 ${doneIds.length} 項待辦`:''));renderTodos();
+};
+
+/* ===== 開工提醒 ===== */
+// 上次最後在做：已結算的話用最後一段工作的細項（避免只看到「收工」），沒結算就用最後一則訊息
+function lastDoing(prevMsg){
+  if(!prevMsg)return null;
+  const st=settleOf(prevMsg.ts);
+  if(st){const b=st.blocks.filter(b=>!isRest(b.cat)).slice(-1)[0];
+    if(b)return {text:`${b.cat}｜${b.sub||''}`,ts:b.s,end:b.e}}
+  return {text:prevMsg.text,ts:prevMsg.ts};
+}
+function makeBrief(msgId,ts,prevMsg){
+  const lastSettle=S.settles.slice().sort((a,b)=>b.to-a.to)[0];
+  const pendMsgs=unsettled().filter(m=>m.id!==msgId);
+  const mon=monthData(workday(ts).slice(0,7));
+  const top=Object.entries(mon.by).sort((a,b)=>b[1].t-a[1].t).map(([c,v])=>({c,t:Math.round(v.t)}));
+  return {id:uid(),ts:ts+1,msgId,
+    last:lastDoing(prevMsg),
+    summary:lastSettle?lastSettle.summary:'',
+    pending:pendMsgs.length,pendFrom:pendMsgs[0]?.ts||null,
+    month:{label:workday(ts).slice(0,7),total:Math.round(mon.total),days:mon.days.length,top}};
+}
+function renderBrief(x){
+  const d=new Date(x.ts);
+  // 待辦：目前沒做完的，加上開工之後才打勾的（劃線顯示）
+  const all=S.todos.filter(t=>!t.done||(t.doneTs&&t.doneTs>=x.ts));
+  const list=sortTodos(all.filter(t=>t.done||inBrief(t)));
+  const hidden=all.length-list.length;
+  const [y,mo]=x.month.label.split('-').map(Number);
+  return `<div class="bot"><div class="botcard brief">
+    <div class="h"><span><b>開工提醒</b>　${md(d)}（${WEEK[d.getDay()]}）</span></div>
+    ${x.last?`<div class="bsec"><div class="lbl">上次最後在做（${dtLabel(x.last.ts)}${x.last.end?'–'+hm(new Date(x.last.end)):''}）</div><div class="lastdo">${esc(x.last.text)}</div></div>`:''}
+    ${x.summary?`<div class="bsec"><div class="lbl">上次結算的小結</div><div class="lastdo">${esc(x.summary)}</div></div>`:''}
+    ${x.pending?`<div class="warnline">上次還有 ${x.pending} 則訊息沒結算（從 ${dtLabel(x.pendFrom)} 開始），記得找時間結算。</div>`:''}
+    <div class="bsec"><div class="lbl">${mo} 月到目前</div>
+      ${x.month.total?`<div style="font-size:14px">已工作 ${fmtH(x.month.total)}，${x.month.days} 天</div>
+      <div class="mtags" style="margin-top:4px">${x.month.top.map(o=>`<span><span class="dot" style="background:${color(o.c)}"></span>${esc(o.c)} ${fmtH(o.t)}</span>`).join('')}</div>`
+      :'<div class="muted">這個月還沒有結算紀錄</div>'}
+    </div>
+    ${x.id===latestBriefId()?progressSection():''}
+    <div class="bsec"><div class="lbl">待辦事項（${S.todos.filter(t=>!t.done).length}）</div>
+      ${list.length?list.map(todoRow).join(''):'<div class="muted">近期沒有待辦</div>'}
+      ${hidden?`<div class="more-todo">另外 ${hidden} 項（較晚到期或長期）在待辦頁</div>`:''}
+      <div class="cardfoot"><button class="linkbtn" data-opentodo="1">到待辦頁</button></div>
+    </div>
+  </div></div>`;
+}
+
+/* ===== 待辦 =====
+  todo: {id,text,cat,kind:'short'|'long',due:'YYYY-MM-DD'|'',dueTime:'HH:MM'|'',done,created,doneTs}
+*/
+const kindOf=t=>t.kind==='long'?'long':'short';
+function newTodo(text,o={}){return {id:uid(),text,cat:o.cat||'',kind:o.kind||'short',due:o.due||'',dueTime:o.dueTime||'',done:false,created:Date.now(),doneTs:null}}
+const todayStr=()=>ymd(new Date());
+const addDays=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return ymd(d)};
+const dayDiff=ds=>Math.round((new Date(ds+'T00:00')-new Date(todayStr()+'T00:00'))/DAY);
+function dueInfo(t){
+  if(!t.due)return null;
+  const n=dayDiff(t.due);const d=new Date(t.due+'T00:00');const tm=t.dueTime?' '+t.dueTime:'';
+  if(t.done)return {cls:'',txt:`期限 ${md(d)}${tm}`};
+  if(n<0)return {cls:'late',txt:`逾期 ${-n} 天`};
+  if(n===0)return {cls:'today',txt:`今天${tm}`};
+  if(n===1)return {cls:'',txt:`明天${tm}`};
+  if(kindOf(t)==='long')return {cls:'',txt:`${md(d)}・還有 ${n} 天`};
+  return {cls:'',txt:`${md(d)}（${WEEK[d.getDay()]}）${tm}`};
+}
+// 開工提醒要列的：短期裡逾期／今天／明天／沒期限的，長期裡 7 天內到期的
+function inBrief(t){
+  if(t.done)return false;
+  if(kindOf(t)==='long')return !!t.due&&dayDiff(t.due)<=7;
+  return !t.due||dayDiff(t.due)<=1;
+}
+function sortTodos(l){return l.slice().sort((a,b)=>(a.done-b.done)||((a.due||'9999')+(a.dueTime||'99')).localeCompare((b.due||'9999')+(b.dueTime||'99'))||a.created-b.created)}
+// 解析結尾的期限
+function parseDue(str){
+  const orig=str.trim();let rest=orig,time='';
+  const tmM=rest.match(/\s+(\d{1,2}):(\d{2})$/);
+  if(tmM){time=`${pad(+tmM[1])}:${tmM[2]}`;rest=rest.slice(0,tmM.index).trim()}
+  let due='',m;
+  if((m=rest.match(/\s+(今天|明天|後天)$/)))due=addDays({今天:0,明天:1,後天:2}[m[1]]);
+  else if((m=rest.match(/\s+(?:週|星期|禮拜)([一二三四五六日天])$/))){
+    const tgt='日一二三四五六'.indexOf(m[1]==='天'?'日':m[1]);due=addDays((tgt-new Date().getDay()+7)%7)}
+  else if((m=rest.match(/\s+(\d{1,2})\/(\d{1,2})$/))){
+    const now=new Date();let y=now.getFullYear();
+    if(new Date(y,m[1]-1,+m[2])<new Date(y,now.getMonth(),now.getDate()-30))y++;
+    due=`${y}-${pad(+m[1])}-${pad(+m[2])}`}
+  if(!due)return {text:orig,due:'',time:''};   // 沒有日期就整句當內容
+  return {text:rest.slice(0,m.index).trim()||orig,due,time};
+}
+function dueHtml(t){const i=dueInfo(t);return i?`<span class="due ${i.cls}">${i.txt}</span>`:''}
+function catTag(t){const c=t.cat&&catOf(t.cat);return c?`<span class="tg" style="background:${c.color}">${esc(c.name)}</span>`:''}
+// 卡片裡用的精簡版
+function todoRow(t){
+  return `<div class="todo ${t.done?'done':''}" data-tid="${t.id}"><input type="checkbox" ${t.done?'checked':''}>
+    <span class="tx">${esc(t.text)}${kindOf(t)==='long'?'<span class="longtag">長期</span>':''}</span>${dueHtml(t)}${catTag(t)}</div>`;
+}
+function updateTodoCount(){const n=S.todos.filter(t=>!t.done&&kindOf(t)==='short').length;$('todoCount').textContent=n||''}
+const ago=ts=>{const d=new Date(ts);return `${md(d)} ${hm(d)}`};
+function pageTodoRow(t){
+  return `<div class="todo ${t.done?'done':''}" data-tid="${t.id}"><input type="checkbox" ${t.done?'checked':''}>
+    <span style="flex:1;min-width:0"><span class="tx" data-edit="1">${esc(t.text)}</span>
+    <span class="meta2">${t.done?`完成於 ${ago(t.doneTs)}`:dueInfo(t)?dueHtml(t):'沒有期限'}</span></span>
+    ${catTag(t)}</div>`;
+}
+function group(title,l,extra=''){return l.length?`<div class="tgroup"><div class="gh"><span>${title}</span><span>${extra||l.length}</span></div>${sortTodos(l).map(pageTodoRow).join('')}</div>`:''}
+function renderTodos(){
+  updateTodoCount();
+  const box=$('todoPage');if(!box)return;
+  const short=S.todos.filter(t=>!t.done&&kindOf(t)==='short');
+  const long=S.todos.filter(t=>!t.done&&kindOf(t)==='long');
+  const done=S.todos.filter(t=>t.done).sort((a,b)=>b.doneTs-a.doneTs);
+  const by=f=>short.filter(t=>t.due&&f(dayDiff(t.due)));
+  let html=`<details class="tgroup" ${S.progOpen===false?'':'open'} id="progGroup"><summary style="padding:8px 0;font-size:13px;color:var(--muted)">剪輯進度（Notion）${progMeta()}</summary>${progressList(99)}
+    <div style="padding:6px 0 8px"><button class="linkbtn" data-progrefresh="1">重新讀取</button></div></details>`;
+  html+=`<div class="tip">在隨手記打 <code>+ 內容</code> 加短期、<code>++ 內容</code> 加長期；結尾加「明天」「週五」「11/20」就是期限</div>`;
+  const parts=[group('<b style="color:#b4544f">逾期</b>',by(n=>n<0)),group('今天',by(n=>n===0)),group('明天',by(n=>n===1)),group('之後',by(n=>n>1)),group('有空再做（沒有期限）',short.filter(t=>!t.due))].join('');
+  html+=`<p class="step" style="margin:0 2px 6px">短期</p>`+(parts||'<div class="tgroup"><div class="muted" style="padding:14px 0;text-align:center">沒有短期待辦</div></div>');
+  html+=`<p class="step" style="margin:14px 2px 6px">長期</p>`+(long.length?group('目標與專案',long):'<div class="tgroup"><div class="muted" style="padding:14px 0;text-align:center">沒有長期待辦</div></div>');
+  if(done.length)html+=`<details class="tgroup" style="margin-top:14px"><summary style="padding:8px 0">已完成（${done.length}）</summary>${done.slice(0,50).map(pageTodoRow).join('')}
+    <div style="padding:8px 0"><button class="linkbtn" id="clearDone">清掉已完成</button></div></details>`;
+  const doneOpen=box.querySelector('details.donegrp[open]');const st=box.scrollTop;
+  box.innerHTML=html.replace('<details class="tgroup" style="margin-top:14px">','<details class="tgroup donegrp" style="margin-top:14px"'+(doneOpen?' open':'')+'>');box.scrollTop=st;
+}
+const catOptions=()=>'<option value="">不分類</option>'+S.cats.filter(c=>!c.rest).map(c=>`<option>${esc(c.name)}</option>`).join('');
+function fillTodoCat(){$('todoCat').innerHTML=catOptions()}
+// 新增列的選項
+let addKind='short',addDue='';
+function segPick(segId,attr,val){$(segId).querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset[attr]===val))}
+$('addKind').onclick=e=>{const k=e.target.dataset.k;if(!k)return;addKind=k;segPick('addKind','k',k)};
+$('addDue').onclick=e=>{const d=e.target.dataset.d;if(d==null)return;addDue=d;segPick('addDue','d',d);
+  $('addDate').classList.toggle('hide',d!=='pick');$('addTime').classList.toggle('hide',d==='');
+  if(d==='pick'&&!$('addDate').value)$('addDate').value=addDays(2)};
+function addTodo(){
+  const v=$('todoInput').value.trim();if(!v)return;
+  let due='';if(addDue==='0')due=todayStr();else if(addDue==='1')due=addDays(1);else if(addDue==='pick')due=$('addDate').value;
+  S.todos.push(newTodo(v,{kind:addKind,cat:$('todoCat').value,due,dueTime:due?$('addTime').value:''}));
+  save();$('todoInput').value='';renderTodos();$('todoInput').focus();
+}
+$('todoAdd').onclick=addTodo;
+$('todoInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();addTodo()}});
+// 編輯待辦
+let editTodo=null,tdKind='short';
+function openTodoEdit(t){
+  editTodo=t;tdKind=kindOf(t);
+  $('tdText').value=t.text;$('tdDate').value=t.due||'';$('tdTime').value=t.dueTime||'';
+  $('tdCat').innerHTML=catOptions();$('tdCat').value=catNames().includes(t.cat)?t.cat:'';
+  segPick('tdKind','k',tdKind);open('todoSheet');
+}
+$('tdKind').onclick=e=>{const k=e.target.dataset.k;if(!k)return;tdKind=k;segPick('tdKind','k',k)};
+$('tdClear').onclick=()=>{$('tdDate').value='';$('tdTime').value=''};
+$('tdSave').onclick=()=>{if(!editTodo)return;const v=$('tdText').value.trim();if(v)editTodo.text=v;
+  editTodo.kind=tdKind;editTodo.due=$('tdDate').value;editTodo.dueTime=editTodo.due?$('tdTime').value:'';editTodo.cat=$('tdCat').value;
+  save();close();renderTodos();render(true)};
+$('tdDel').onclick=()=>{if(!editTodo||!confirm('刪除這個待辦？'))return;S.todos=S.todos.filter(x=>x!==editTodo);save();close();renderTodos();render(true)};
+// 打勾／點文字編輯：待辦頁、開工提醒卡、結算卡共用
+function todoClick(ev){
+  if(ev.target.id==='clearDone'){if(!confirm('清掉所有已完成的待辦？'))return true;S.todos=S.todos.filter(t=>!t.done);save();renderTodos();render(true);return true}
+  const row=ev.target.closest('.todo');if(!row)return false;
+  const t=S.todos.find(x=>x.id===row.dataset.tid);if(!t)return true;
+  if(ev.target.type==='checkbox'){t.done=ev.target.checked;t.doneTs=t.done?Date.now():null;save();renderTodos();render(true);return true}
+  openTodoEdit(t);return true;
+}
+$('todoPage').addEventListener('click',todoClick);
+
+/* ===== 剪輯進度（Notion） ===== */
+let progErr='',progLoading=false;
+const latestBriefId=()=>{const b=S.briefs.slice().sort((a,c)=>c.ts-a.ts)[0];return b&&b.id};
+// 下一個要交的階段：沒完成、沒標「無」、有日期的裡面最早的
+function nextStep(it){
+  const st=(it.steps||[]).filter(x=>!x.done&&!x.skip&&x.due).sort((a,b)=>a.due.localeCompare(b.due));
+  return st[0]||null;
+}
+function progSorted(){
+  const items=(S.progress&&S.progress.items)||[];
+  return items.slice().sort((a,b)=>{const x=nextStep(a),y=nextStep(b);return (x?x.due:'9999').localeCompare(y?y.due:'9999')});
+}
+function stepLabel(n){
+  if(!n)return {cls:'',txt:'沒有排交件日'};
+  const d=dayDiff(n.due.slice(0,10));const dt=new Date(n.due.slice(0,10)+'T00:00');
+  const name=n.key==='Final'?'Final 截止':`${n.key} 交件`;
+  if(d<0)return {cls:'late',txt:`${name}・逾期 ${-d} 天`};
+  if(d===0)return {cls:'late',txt:`${name}・今天`};
+  if(d<=3)return {cls:'soon',txt:`${name}・${md(dt)}（還有 ${d} 天）`};
+  return {cls:'',txt:`${name}・${md(dt)}（${WEEK[dt.getDay()]}）`};
+}
+function progRow(it){
+  const n=stepLabel(nextStep(it));
+  return `<div class="prog"><a class="pm" href="${esc(it.url||'#')}" target="_blank" rel="noopener">
+    <span class="pn">${esc(it.name)}</span> <span class="pc">${esc(it.client)}${it.priority&&it.priority!=='-'?`・優先 ${esc(it.priority)}`:''}</span>
+    <span class="nx ${n.cls}">${n.txt}</span></a><span class="stage">${esc(it.stage||'—')}</span></div>`;
+}
+function progMeta(){
+  if(progLoading)return '・讀取中…';
+  if(progErr&&!S.progress)return `・${progErr}`;
+  if(S.progress)return `・${S.progress.items.length} 案・${ago(S.progress.fetchedAt)} 更新${progErr?'（這次讀取失敗，顯示上次資料）':''}`;
+  return '';
+}
+function progressList(limit){
+  if(!S.progress)return `<div class="muted" style="padding:6px 0 10px">${progLoading?'讀取中…':(progErr||'還沒讀到資料')}</div>`;
+  const l=progSorted();if(!l.length)return '<div class="muted" style="padding:6px 0 10px">目前沒有進行中的案子</div>';
+  return l.slice(0,limit).map(progRow).join('')+(l.length>limit?`<div class="more-todo">另外 ${l.length-limit} 案在待辦頁</div>`:'');
+}
+// 開工提醒：14 天內要交的，或正在做的；最多 6 案
+function progressSection(){
+  if(!S.progress&&!progErr&&!progLoading)return '';
+  let l=progSorted();
+  const active=l.filter(it=>{const n=nextStep(it);return (n&&dayDiff(n.due.slice(0,10))<=14)||/中$/.test(it.stage||'')});
+  const shown=active.slice(0,6);
+  return `<div class="bsec"><div class="proghead"><span class="lbl">剪輯進度（Notion）</span><span class="lbl">${S.progress?ago(S.progress.fetchedAt)+' 更新':''}</span></div>
+    ${S.progress?(shown.length?shown.map(progRow).join(''):'<div class="muted">近兩週沒有要交的</div>')+(l.length>shown.length?`<div class="more-todo">共 ${l.length} 案進行中，完整清單在待辦頁</div>`:''):`<div class="muted">${progLoading?'讀取中…':progErr}</div>`}
+  </div>`;
+}
+async function fetchProgress(){
+  const url=S.progressUrl||'/api/worklog-progress';
+  if(location.protocol==='file:'){progErr='要放到 finn-editor.vercel.app 上才讀得到';return false}
+  progLoading=true;refreshProgViews();
+  try{
+    const r=await fetch(url,{cache:'no-store'});
+    if(!r.ok)throw new Error(r.status===404?'找不到 API（api/worklog-progress.js 還沒上傳？）':r.status===500?'Notion 連線設定有問題':'讀取失敗 '+r.status);
+    const j=await r.json();if(!Array.isArray(j.items))throw new Error('回傳格式不對');
+    S.progress={items:j.items,fetchedAt:j.fetchedAt||Date.now()};progErr='';save();return true;
+  }catch(e){progErr=e.message||'讀取失敗';return false}
+  finally{progLoading=false;refreshProgViews()}
+}
+function refreshProgViews(){
+  if(!$('pageTodo').classList.contains('hide'))renderTodos();
+  if(!$('pageChat').classList.contains('hide')){const lb=latestBriefId();if(lb&&document.querySelector('.brief'))render(true)}
+}
+$('todoPage').addEventListener('click',e=>{if(e.target.dataset.progrefresh)fetchProgress()},true);
+$('todoPage').addEventListener('toggle',e=>{if(e.target.id==='progGroup'){S.progOpen=e.target.open;save()}},true);
+$('progTest').onclick=async()=>{S.progressUrl=$('progUrl').value.trim()||'/api/worklog-progress';$('progTestMsg').textContent='測試中…';
+  const ok=await fetchProgress();$('progTestMsg').textContent=ok?`成功，讀到 ${S.progress.items.length} 個進行中的案子`:`失敗：${progErr}`};
+setInterval(fetchProgress,30*60000);
+
+/* ===== 分頁切換 ===== */
+function showTab(t){
+  ['Chat','Todo','Stat'].forEach(k=>{$('tab'+k).classList.toggle('on',t===k.toLowerCase());$('page'+k).classList.toggle('hide',t!==k.toLowerCase())});
+  if(t==='todo'){fillTodoCat();renderTodos()}else if(t==='stat'){renderStats()}else{render()}
+}
+$('tabChat').onclick=()=>showTab('chat');
+$('tabTodo').onclick=()=>showTab('todo');
+$('tabStat').onclick=()=>{statAnchor=Date.now();showTab('stat')};
+
+/* ===== 統計 ===== */
+let statMode='month',statAnchor=Date.now();
+function period(){
+  const d=new Date(workday(statAnchor)+'T00:00');
+  if(statMode==='month'){const y=d.getFullYear(),m=d.getMonth();
+    return {from:ymd(new Date(y,m,1)),to:ymd(new Date(y,m+1,0)),label:`${y} 年 ${m+1} 月`,key:`${y}-${pad(m+1)}`}}
+  const mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  return {from:ymd(mon),to:ymd(sun),label:`${md(mon)}–${md(sun)}`,key:`${ymd(mon)}_week`};
+}
+$('statMode').onclick=e=>{const m=e.target.dataset.m;if(!m)return;statMode=m;segPick('statMode','m',m);renderStats()};
+$('prevP').onclick=()=>shiftP(-1);$('nextP').onclick=()=>shiftP(1);
+function shiftP(n){const d=new Date(statAnchor);if(statMode==='month'){d.setDate(1);d.setMonth(d.getMonth()+n)}else d.setDate(d.getDate()+7*n);statAnchor=d.getTime();renderStats()}
+function statsData(from,to){
+  const inP=wd=>wd>=from&&wd<=to;
+  const by={},perDay={};let total=0;
+  S.settles.forEach(x=>x.blocks.forEach(b=>{
+    const wd=workday(b.s);if(!inP(wd)||isRest(b.cat))return;
+    const m=bmin(b);total+=m;
+    by[b.cat]=by[b.cat]||{t:0,sub:{},days:new Set()};by[b.cat].t+=m;by[b.cat].days.add(wd);
+    const s=b.sub||'(未寫)';by[b.cat].sub[s]=(by[b.cat].sub[s]||0)+m;
+    perDay[wd]=perDay[wd]||{t:0,c:{}};perDay[wd].t+=m;perDay[wd].c[b.cat]=(perDay[wd].c[b.cat]||0)+m;
+  }));
+  const pend=[...new Set(unsettled().map(m=>workday(m.ts)).filter(inP))].sort();
+  const days=Object.keys(perDay).sort();
+  return {by,total,perDay,days,pend};
+}
+// 給開工提醒用（整個月）
+function monthData(month){return statsData(`${month}-01`,`${month}-31`)}
+function renderStats(){
+  const P=period();$('pLabel').textContent=P.label;
+  const {by,total,perDay,days,pend}=statsData(P.from,P.to);
+  $('mTotal').textContent=fmtH(total);$('mDays').textContent=days.length;
+  $('mAvg').textContent=days.length?fmtH(total/days.length):'0 h';
+  if(days.length){const top=days.slice().sort((a,b)=>perDay[b].t-perDay[a].t)[0];
+    $('mExtra').textContent=`最長的一天：${top.slice(5).replace('-','/')}，${fmtH(perDay[top].t)}`}else $('mExtra').textContent='';
+  $('mPending').classList.toggle('hide',!pend.length);
+  $('mPending').textContent=`還有 ${pend.length} 天有訊息沒結算，沒算進來：${pend.map(d=>d.slice(5).replace('-','/')).join('、')}`;
+  const order=catNames().filter(c=>by[c]).concat(Object.keys(by).filter(c=>!catNames().includes(c)));
+  const max=Math.max(1,...order.map(c=>by[c].t));
+  $('catList').innerHTML=order.length?order.map(c=>{const v=by[c];const subs=Object.entries(v.sub).sort((a,b)=>b[1]-a[1]);
+    return `<div class="catrow"><div class="cstat"><span><span class="dot" style="background:${color(c)}"></span>${esc(c)} <span class="muted">（${v.days.size} 天有做）</span></span>
+      <span class="nums"><span>${fmtH(v.t)}</span><span class="muted">${total?Math.round(v.t/total*100):0}%</span><span class="muted">${days.length?fmtH(v.t/days.length):'-'}/天</span></span></div>
+    <div class="bar"><div style="width:${v.t/max*100}%;background:${color(c)}"></div></div>
+    <details><summary>細項（${subs.length}）</summary><table class="subtable">${subs.map(([k,t])=>`<tr><td>${esc(k)}</td><td>${fmtH(t)}</td></tr>`).join('')}</table></details></div>`}).join('')
+    :`<p class="muted" style="margin:10px 0">這段期間還沒有結算過的紀錄。<br>隨手記按「結算」完成後，數字就會出現在這裡。</p>`;
+  const pset=new Set(pend);
+  if(statMode==='month'){
+    const[y,mo]=P.key.split('-').map(Number);const first=new Date(y,mo-1,1);const n=new Date(y,mo,0).getDate();
+    let html='<div class="cal">'+WEEK.map(w=>`<div class="h">${w}</div>`).join('');
+    for(let i=0;i<first.getDay();i++)html+='<div></div>';
+    for(let d=1;d<=n;d++){const ds=`${P.key}-${pad(d)}`;const p=perDay[ds];
+      html+=`<div class="d ${pset.has(ds)?'pending':''}" data-day="${ds}"><span>${d}</span><span class="hrs">${p?(p.t/60).toFixed(1):''}</span><div class="mini">${p?Object.entries(p.c).map(([c,v])=>`<div style="width:${v/p.t*100}%;background:${color(c)}"></div>`).join(''):''}</div></div>`}
+    $('cal').innerHTML=html+'</div><p class="muted" style="margin:6px 0 0">橘底＝有訊息還沒結算</p>';
+  }else{
+    const mx=Math.max(60,...Object.values(perDay).map(p=>p.t));let html='';
+    for(let i=0;i<7;i++){const d=new Date(P.from+'T00:00');d.setDate(d.getDate()+i);const ds=ymd(d);const p=perDay[ds];
+      html+=`<div class="weekrow ${pset.has(ds)?'pending':''}" data-day="${ds}"><span class="wd">${md(d)}（${WEEK[d.getDay()]}）</span>
+        <div class="wb"><div style="display:flex;width:${p?p.t/mx*100:0}%">${p?Object.entries(p.c).map(([c,v])=>`<div style="width:${v/p.t*100}%;background:${color(c)}"></div>`).join(''):''}</div></div>
+        <span class="wh">${p?(p.t/60).toFixed(1)+'h':pset.has(ds)?'未結算':''}</span></div>`}
+    $('cal').innerHTML=html;
+  }
+}
+$('cal').addEventListener('click',ev=>{
+  const el=ev.target.closest('[data-day]');if(!el)return;const ds=el.dataset.day;
+  const m=sortedMsgs().find(x=>workday(x.ts)===ds);
+  if(!m){toast('這天沒有訊息');return}
+  if(m.ts<since)since=m.ts-DAY;
+  showTab('chat');
+  const row=document.querySelector(`.m[data-id="${m.id}"]`);
+  if(row){row.scrollIntoView({block:'start'});$('msgs').scrollTop-=40;row.classList.add('flash');setTimeout(()=>row.classList.remove('flash'),1500)}
+});
+$('copyMonthPrompt').onclick=()=>{
+  const P=period();const {by,total,days,pend}=statsData(P.from,P.to);if(!days.length){toast('這段期間還沒有結算過');return}
+  const block=Object.entries(by).sort((a,b)=>b[1].t-a[1].t).map(([c,v])=>`■ ${c}：${fmtH(v.t)}（${Math.round(v.t/total*100)}%，${v.days.size} 天有做，平均每個工作天 ${fmtH(v.t/days.length)}）\n`+Object.entries(v.sub).sort((a,b)=>b[1]-a[1]).map(([k,t])=>`  - ${k}：${fmtH(t)}`).join('\n')).join('\n');
+  const sums=S.settles.filter(x=>x.summary&&workday(x.from)>=P.from&&workday(x.from)<=P.to).sort((a,b)=>a.from-b.from).map(x=>`${workday(x.from).slice(5)}：${x.summary}`).join('\n');
+  const unit=statMode==='month'?'月':'週';
+  copyText(`這是我 ${P.label} 的工作時間統計。我是自由接案的影片剪輯／製作，同時經營占卜、暖暖（VTuber 占卜）和自製工具開發，常常工作到半夜。
+
+工作總時數 ${fmtH(total)}（不含休息），有工作的天數 ${days.length} 天，平均每天 ${fmtH(total/days.length)}。${pend.length?`另有 ${pend.length} 天的訊息沒結算，不在統計內。`:''}
+
+${block}
+${sums?`\n【每次結算的小結】\n${sums}\n`:''}
+請幫我做這${unit}的回顧：
+1. 各類別時間佔比是否合理，有沒有哪一塊明顯吃掉太多或太少時間
+2. 哪些細項最花時間，有沒有可以工具化、批次處理或外包的
+3. 下${unit}可以調整的 2–3 個具體方向
+語氣平穩理性，直接講重點。`);
+};
+$('csvBtn').onclick=()=>{
+  const P=period();const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;const rows=[];
+  S.settles.forEach(x=>x.blocks.forEach(b=>{const wd=workday(b.s);if(wd>=P.from&&wd<=P.to)rows.push([wd,fullStamp(b.s),fullStamp(b.e),Math.round(bmin(b)),b.cat,b.sub,isRest(b.cat)?'否':'是'])}));
+  rows.sort((a,b)=>a[1].localeCompare(b[1]));
+  download(`worklog-${P.key}.csv`,'﻿工作日,開始,結束,分鐘,分類,細項,算工時\n'+rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv');
+};
+
+/* ===== 設定 ===== */
+let draft=[];
+$('openSet').onclick=()=>{draft=clone(S.cats);$('remindSel').value=S.remind;$('progUrl').value=S.progressUrl||'';renderCatCards();open('setSheet')};
+function renderCatCards(){
+  $('catCards').innerHTML=draft.map((c,i)=>`<div class="catcard" style="--cc:${c.color}" data-i="${i}">
+    <div class="r1"><span class="cd"></span><input class="nm" value="${esc(c.name)}" data-f="name" placeholder="分類名稱">
+      <button class="mini-btn" data-act="up" title="上移">↑</button><button class="mini-btn" data-act="down" title="下移">↓</button><button class="mini-btn" data-act="del">刪除</button></div>
+    <textarea rows="2" data-f="hint" placeholder="哪些事算這一類？例：剪輯、字幕、跟客戶溝通">${esc(c.hint)}</textarea>
+    <div class="r2"><div class="sw">${SWATCH.map(w=>`<button data-color="${w}" class="${w===c.color?'on':''}" style="background:${w}"></button>`).join('')}</div>
+      <label class="restlbl"><input type="checkbox" data-f="rest" ${c.rest?'checked':''}>不算工時</label></div>
+  </div>`).join('');
+}
+$('catCards').addEventListener('input',e=>{const card=e.target.closest('.catcard');const f=e.target.dataset.f;if(!card||!f)return;
+  draft[+card.dataset.i][f]=f==='rest'?e.target.checked:e.target.value});
+$('catCards').addEventListener('click',e=>{const card=e.target.closest('.catcard');if(!card)return;const i=+card.dataset.i;
+  if(e.target.dataset.color){draft[i].color=e.target.dataset.color;renderCatCards();return}
+  const a=e.target.dataset.act;if(!a)return;
+  if(a==='del'){if(draft.length<=1){toast('至少要一個分類');return}if(!confirm(`刪除「${draft[i].name}」？舊紀錄會保留原名，但不會再出現在選單裡。`))return;draft.splice(i,1)}
+  if(a==='up'&&i>0)[draft[i-1],draft[i]]=[draft[i],draft[i-1]];
+  if(a==='down'&&i<draft.length-1)[draft[i+1],draft[i]]=[draft[i],draft[i+1]];
+  renderCatCards()});
+$('addCat').onclick=()=>{draft.push({id:'c'+uid(),name:'',color:SWATCH[draft.length%SWATCH.length],rest:false,hint:''});renderCatCards();
+  const ins=$('catCards').querySelectorAll('.nm');ins[ins.length-1].focus()};
+$('saveSet').onclick=()=>{
+  draft.forEach(c=>c.name=c.name.trim());
+  if(draft.some(c=>!c.name)){toast('有分類沒取名字');return}
+  if(new Set(draft.map(c=>c.name)).size!==draft.length){toast('分類名稱重複了');return}
+  S.cats.forEach(old=>{const nw=draft.find(c=>c.id===old.id);if(nw&&nw.name!==old.name)
+    S.settles.forEach(x=>x.blocks.forEach(b=>{if(b.cat===old.name)b.cat=nw.name}))});
+  S.cats=clone(draft);S.remind=+$('remindSel').value;S.progressUrl=$('progUrl').value.trim()||'/api/worklog-progress';askNotify();save();checkNudge();close();render(true);toast('設定已儲存');
+};
+$('exportBtn').onclick=()=>{const d=new Date();download(`worklog-backup_${String(d.getFullYear()).slice(2)}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`,JSON.stringify(S),'application/json')};
+$('importFile').onchange=ev=>{
+  const f=ev.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{let d=JSON.parse(r.result);if(!d.msgs)throw 0;
+    d=d.v===2?Object.assign(blank(),d,{cats:normCats(d)}):fromV1(d);
+    if(!confirm(`用備份取代目前資料？（備份有 ${d.msgs.length} 則訊息）`))return;
+    S=d;save();close();render();toast('已匯入')}catch(e){toast('檔案格式不對')}};
+  r.readAsText(f);ev.target.value='';
+};
+function download(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+
+/* ===== 面板 ===== */
+function open(id){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'));$(id).classList.add('show')}
+function close(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show'))}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
+document.querySelectorAll('.sheet').forEach(s=>s.addEventListener('click',e=>{if(e.target===s)close()}));
+
+/* ===== 沒更新提醒 ===== */
+const OFF_RE=/收工|下班|睡了|睡覺|去睡|結束今天|今天先這樣/;
+let snoozedFor=null,notifiedStep=0,notifiedFor=null;
+function askNotify(){try{if('Notification' in window&&Notification.permission==='default'&&S.remind)Notification.requestPermission()}catch(e){}}
+function lastMsg(){const a=sortedMsgs();return a[a.length-1]}
+// 往回找最後一則「真的在做的事」，跳過（還在做）
+function lastTask(){const a=sortedMsgs();for(let i=a.length-1;i>=0;i--){if(!/^（還在做）/.test(a[i].text))return a[i]}return null}
+function checkNudge(){
+  const box=$('nudge');const m=lastMsg();
+  const off=!S.remind||!m||settleOf(m.ts)||OFF_RE.test(m.text)||snoozedFor===m.id;
+  const el=m?(Date.now()-m.ts)/MIN:0;
+  if(off||el<S.remind){box.classList.remove('show');document.title='隨手記';return}
+  const t=lastTask();const label=t?t.text.split('\n')[0].slice(0,30):'';
+  $('nudgeQ').innerHTML=`已經 <b>${fmtDur(el)}</b> 沒更新了。還在做「${esc(label)}」嗎？`;
+  if(!box.classList.contains('show')){box.classList.add('show');const msgs=$('msgs');msgs.scrollTop=msgs.scrollHeight}
+  document.title='⏰ 還在做嗎？｜隨手記';
+  // 系統通知：每過一個提醒間隔通知一次
+  const step=Math.floor(el/S.remind);
+  if(notifiedFor!==m.id){notifiedFor=m.id;notifiedStep=0}
+  if(step>notifiedStep){notifiedStep=step;
+    try{if('Notification' in window&&Notification.permission==='granted'&&document.hidden)
+      new Notification('隨手記：還在做嗎？',{body:`已經 ${fmtDur(el)} 沒更新：${label}`,tag:'worklog'})}catch(e){}}
+}
+function quickSend(text){
+  const now=Date.now();const all=sortedMsgs();const prevMsg=all[all.length-1];
+  S.msgs.push({id:uid(),ts:now,text});wdCache=null;save();render();checkNudge();
+}
+$('nStill').onclick=()=>{quickSend('（還在做）');toast('已記一筆「還在做」')};
+$('nSwitch').onclick=()=>{snoozedFor=lastMsg()?.id;checkNudge();input.focus();toast('打一句現在在做什麼')};
+$('nRest').onclick=()=>quickSend('休息');
+$('nOff').onclick=()=>{quickSend('收工');toast('收工了，有空記得按結算')};
+$('nSnooze').onclick=()=>{snoozedFor=lastMsg()?.id;checkNudge()};
+setInterval(checkNudge,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkNudge()});
+
+render();
+checkNudge();
+fetchProgress();
+input.focus();
+</script>
+</body>
+</html>
