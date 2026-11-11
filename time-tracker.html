@@ -188,6 +188,8 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 .ac-meta .note{cursor:pointer;border-bottom:1px dashed transparent;padding-bottom:1px}
 .ac-meta .note:hover{border-bottom-color:var(--yellow-mid);color:var(--ink-soft)}
 .ac-meta .note.empty{color:var(--ink-light);opacity:0.75}
+.ac-meta .note.rest{margin-left:10px;color:var(--ink-light);opacity:0.8}
+.ac-meta .note.rest:hover{color:var(--yellow-mid);opacity:1}
 .ac-note-input{font-family:'Noto Sans TC',sans-serif;font-style:normal;font-size:11.5px;color:var(--ink);background:#fff;border:1px solid var(--yellow);border-radius:2px;padding:2px 6px;min-width:150px;max-width:100%}
 .ac-note-input:focus{outline:none;border-color:var(--yellow-mid)}
 .ac-time-start{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--green);letter-spacing:0.04em;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
@@ -1285,6 +1287,11 @@ function onModalProjChange(sel){
 }
 function modalSpan(){
   var f=state.modalForm;
+  // 進行中的打卡:範圍是「開始」到「現在」
+  if(state.modal==='acpause'){
+    var st=f.startAt||0;
+    return {startAt:st,endAt:Math.max(st,Date.now()),ok:!!st};
+  }
   var a=new Date(f.startDate+'T'+f.startTime+':00').getTime();
   var b=new Date(f.endDate+'T'+f.endTime+':00').getTime();
   return {startAt:a,endAt:b,ok:!isNaN(a)&&!isNaN(b)&&b>a};
@@ -1331,8 +1338,8 @@ function setModalPause(i,field,val,commit){
 }
 // 更新算出來的那幾個數字;writeBack 為真才動輸入框(打字途中動它游標會亂跳)
 function refreshModalCalc(writeBack){
-  if(state.modal!=='edit'&&state.modal!=='manual')return; // 上下班那個視窗沒有暫停,不用算
-  recalcModalDur();
+  if(state.modal!=='edit'&&state.modal!=='manual'&&state.modal!=='acpause')return; // 上下班那個視窗沒有暫停,不用算
+  if(state.modal!=='acpause')recalcModalDur();
   var f=state.modalForm;
   (f.pauses||[]).forEach(function(p,i){
     var d=document.getElementById('pz-dur-'+i),x=document.getElementById('pz-xd-'+i);
@@ -1346,6 +1353,11 @@ function refreshModalCalc(writeBack){
   });
   var sum=document.getElementById('pz-sum');
   if(sum)sum.textContent='暫停共 '+fmtDur(modalPauseMs(f));
+  if(state.modal==='acpause'){
+    var aw=document.getElementById('ac-worked');
+    if(aw)aw.textContent=fmtDur(acWorkedMs());
+    return;
+  }
   var di=document.getElementById('modal-dur');
   if(di)di.value=(typeof f.overrideDurMin==='number')?f.overrideDurMin:'';
   var dh=document.getElementById('modal-dur-hint');
@@ -1365,6 +1377,40 @@ function addModalPause(){
   f.pauses.push({from:from,to:to,auto:false});
   recalcModalDur();render();
 }
+// 進行中這筆,扣掉休息後實際做了多久
+function acWorkedMs(){
+  var f=state.modalForm,sp=modalSpan();
+  if(!sp.ok)return 0;
+  return Math.max(0,(sp.endAt-sp.startAt)-modalPauseMs(f));
+}
+function openActivePause(id){
+  var item=state.active.find(function(x){return x.id===id;});
+  if(!item)return;
+  state.modalForm={
+    acId:item.id,startAt:item.startAt,
+    label:item.projectLabel||'(無)',stage:item.stage||'',
+    // 改副本,按取消就不會動到原本的
+    pauses:(item.pauses||[]).map(function(p){return {from:p.from,to:p.to,auto:p.auto};})
+  };
+  state.modal='acpause';
+  render();
+}
+function saveActivePause(){
+  var f=state.modalForm;
+  var item=state.active.find(function(x){return x.id===f.acId;});
+  if(!item){closeModal();return;}
+  var segs=(f.pauses||[]).filter(function(p){return p.from;});
+  segs.sort(function(a,b){return a.from-b.from;});
+  var total=0,open=null;
+  segs.forEach(function(p){
+    if(p.to)total+=Math.max(0,p.to-p.from); else open=p;
+  });
+  item.pauses=segs;
+  item.pauseTotal=total;            // 已結束的休息加總
+  item.pausedAt=open?open.from:null; // 還開著的那段 = 現在正在休息
+  ls_set(ACTIVE_KEY,state.active);   // 這個 key 有同步,手機那邊會跟上
+  closeModal();
+}
 function pauseEditorHtml(f){
   var sp=modalSpan();
   var h='<div class="flabel" style="margin-top:2px">暫停紀錄 · Pause Log <span style="color:var(--ink-light);font-family:Cormorant Garamond,serif;font-style:italic;font-size:10px;text-transform:none;letter-spacing:0">改時間會自動重算工時</span></div>';
@@ -1383,7 +1429,11 @@ function pauseEditorHtml(f){
       h+='    <span class="dur" id="pz-dur-'+i+'">'+dur+'</span>';
       h+='    <button class="del" onclick="delModalPause('+i+')" title="刪掉這段">×</button></div>';
       h+='  <div class="pz-ab"><span class="k">開始</span><input type="datetime-local" id="pz-from-'+i+'" class="fc" value="'+(p.from?dtLocal(p.from):'')+'" oninput="setModalPause('+i+',\'from\',this.value,false)" onblur="setModalPause('+i+',\'from\',this.value,true)"></div>';
-      h+='  <div class="pz-ab"><span class="k">結束</span><input type="datetime-local" id="pz-to-'+i+'" class="fc" value="'+(p.to?dtLocal(p.to):'')+'" oninput="setModalPause('+i+',\'to\',this.value,false)" onblur="setModalPause('+i+',\'to\',this.value,true)"></div>';
+      if(!p.to&&state.modal==='acpause'){
+        h+='  <div class="pz-ab"><span class="k">結束</span><input type="text" class="fc" value="還在休息中" disabled style="color:var(--red);font-style:italic"></div>';
+      } else {
+        h+='  <div class="pz-ab"><span class="k">結束</span><input type="datetime-local" id="pz-to-'+i+'" class="fc" value="'+(p.to?dtLocal(p.to):'')+'" oninput="setModalPause('+i+',\'to\',this.value,false)" onblur="setModalPause('+i+',\'to\',this.value,true)"></div>';
+      }
       h+='</div>';
     });
     h+='<div class="pz-sum" id="pz-sum">暫停共 '+fmtDur(modalPauseMs(f))+'</div>';
@@ -1702,9 +1752,10 @@ function render(){
         } else {
           html+='<span class="note empty" title="點擊加備註" onclick="event.stopPropagation();openNoteEdit(\''+item.id+'\')">+ 備註</span>';
         }
+        html+='<span class="note rest" title="補記中途離開的時間" onclick="event.stopPropagation();openActivePause(\''+item.id+'\')">＋ 休息</span>';
         html+='</div>';
         var acPause=pauseSegsHtml(item);
-        if(acPause)html+='      <div class="ac-pauselog"><span class="pl-label">Pause</span>'+acPause+'</div>';
+        if(acPause)html+='      <div class="ac-pauselog" style="cursor:pointer" title="點擊修改休息時段" onclick="event.stopPropagation();openActivePause(\''+item.id+'\')"><span class="pl-label">Pause</span>'+acPause+'</div>';
         html+='    </div>';
         html+='    <div class="ac-btns">';
         var onBreak=!!(state.shift&&state.shift.breakAt);
@@ -2061,6 +2112,21 @@ function render(){
     html+='    <div class="modal-btns">';
     html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
     html+='      <button class="btn-sub primary" onclick="saveShiftEdit()">儲存</button>';
+    html+='    </div>';
+    html+='  </div>';
+    html+='</div>';
+  } else if(state.modal==='acpause'){
+    var af=state.modalForm;
+    html+='<div class="modal-overlay">';
+    html+='  <div class="modal">';
+    html+='    <div class="modal-title">中途休息 · Breaks</div>';
+    html+='    <div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:12px;color:var(--ink-light);margin-bottom:14px">'+escAttr(af.label)+(af.stage?' · '+escAttr(af.stage):'')+' — '+fmtTime(af.startAt)+' 開始,忘了按暫停的時段可以補在這裡</div>';
+    html+=pauseEditorHtml(af);
+    html+='    <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:12.5px;color:var(--ink-soft);margin:2px 0 4px">';
+    html+='      <span>扣掉休息,實際做了</span><span id="ac-worked" style="color:var(--yellow-mid)">'+fmtDur(acWorkedMs())+'</span></div>';
+    html+='    <div class="modal-btns">';
+    html+='      <button class="btn-sub" onclick="closeModal()">取消</button>';
+    html+='      <button class="btn-sub primary" onclick="saveActivePause()">儲存</button>';
     html+='    </div>';
     html+='  </div>';
     html+='</div>';
