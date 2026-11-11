@@ -331,6 +331,7 @@
   <p class="muted" id="blkWhy" style="margin:4px 0 0"></p>
   <div class="chips" id="blkChips"></div>
   <div class="row"><span class="muted">細項</span><input id="blkSub" style="flex:1"></div>
+  <label class="row muted" style="gap:6px;cursor:pointer"><input type="checkbox" id="blkBg">同時進行（例如輸出時在做別的事）</label>
   <div class="row between"><span></span>
     <div class="row" style="margin:0"><button class="b" data-close>取消</button><button class="b p" id="blkSave">儲存</button></div>
   </div>
@@ -473,6 +474,12 @@ const sortedMsgs=()=>S.msgs.slice().sort((a,b)=>a.ts-b.ts);
 const settleOf=ts=>S.settles.find(x=>ts>=x.from&&ts<=x.to);
 const unsettled=()=>sortedMsgs().filter(m=>!settleOf(m.ts));
 const bmin=b=>(b.e-b.s)/MIN;
+// 實際時間：把重疊的時間段合併後再算（同時做兩件事只算一次）
+function unionMin(list){
+  const iv=list.map(b=>[b.s,b.e]).sort((a,b)=>a[0]-b[0]);let tot=0,cs=null,ce=null;
+  iv.forEach(([a,b])=>{if(cs==null){cs=a;ce=b}else if(a<=ce){ce=Math.max(ce,b)}else{tot+=ce-cs;cs=a;ce=b}});
+  if(cs!=null)tot+=ce-cs;return tot/MIN;
+}
 
 /* ===== 對話畫面 ===== */
 let since=Date.now()-45*DAY;
@@ -509,20 +516,24 @@ function bindMore(){const b=$('moreBtn');if(b)b.onclick=()=>{since-=60*DAY;rende
 function updateBadge(){const n=unsettled().length;$('badge').textContent=n;$('badge').classList.toggle('hide',!n)}
 
 function renderSettle(x){
-  const by={};let work=0,rest=0;
-  x.blocks.forEach(b=>{const m=bmin(b);if(isRest(b.cat)){rest+=m;return}by[b.cat]=(by[b.cat]||0)+m;work+=m});
+  const by={};let cum=0;
+  x.blocks.forEach(b=>{if(isRest(b.cat))return;const m=bmin(b);by[b.cat]=(by[b.cat]||0)+m;cum+=m});
+  const work=unionMin(x.blocks.filter(b=>!isRest(b.cat)));
+  const rest=unionMin(x.blocks.filter(b=>isRest(b.cat)));
+  const overlap=cum-work>1;
   const keys=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   const unsure=x.blocks.filter(b=>b.unsure).length;
   const crossDay=ymd(new Date(x.from))!==ymd(new Date(x.to));
   const bt=b=>{const s=new Date(b.s),e=new Date(b.e);const sameDay=ymd(s)===ymd(e);
     return crossDay?`${md(s)} ${hm(s)}–${sameDay?'':md(e)+' '}${hm(e)}`:`${hm(s)}–${hm(e)}`};
   return `<div class="bot"><div class="botcard" data-sid="${x.id}">
-    <div class="h"><span>結算　${dtLabel(x.from)} → ${crossDay?dtLabel(x.to):hm(new Date(x.to))}</span><span>工作 ${fmtDur(work)}${rest?`・休息 ${fmtDur(rest)}`:''}</span></div>
-    <div class="cbar">${keys.map(k=>`<div style="width:${work?by[k]/work*100:0}%;background:${color(k)}"></div>`).join('')}</div>
-    ${keys.map(k=>`<div class="crow"><span><span class="dot" style="background:${color(k)}"></span>${esc(k)}</span><span>${fmtH(by[k])}　<span class="muted">${work?Math.round(by[k]/work*100):0}%</span></span></div>`).join('')}
+    <div class="h"><span>結算　${dtLabel(x.from)} → ${crossDay?dtLabel(x.to):hm(new Date(x.to))}</span><span>實際工作 ${fmtDur(work)}${rest?`・休息 ${fmtDur(rest)}`:''}</span></div>
+    ${overlap?`<div class="muted" style="font-size:12px">有 ${fmtDur(cum-work)} 是同時在做兩件事，各類別都算進去，所以加總是 ${fmtDur(cum)}</div>`:''}
+    <div class="cbar">${keys.map(k=>`<div style="width:${cum?by[k]/cum*100:0}%;background:${color(k)}"></div>`).join('')}</div>
+    ${keys.map(k=>`<div class="crow"><span><span class="dot" style="background:${color(k)}"></span>${esc(k)}</span><span>${fmtH(by[k])}　<span class="muted">${cum?Math.round(by[k]/cum*100):0}%</span></span></div>`).join('')}
     ${unsure?`<div class="unsure-note">有 ${unsure} 段 Claude 不太確定，標了「?」，點一下就能改分類</div>`:''}
     <details ${unsure?'open':''}><summary>時間段明細（${x.blocks.length}）・點一段可以改</summary><div class="blocks">
-      ${x.blocks.map((b,i)=>`<div class="blk ${b.unsure?'q':''}" data-bi="${i}"><span class="bt">${bt(b)}</span><span class="tag" style="background:${color(b.cat)}">${esc(b.cat)}</span><span class="bs">${esc(b.sub||'')}${b.unsure?` <b class="qm">?</b>${b.why?`<span class="why">${esc(b.why)}</span>`:''}`:''}</span></div>`).join('')}
+      ${x.blocks.map((b,i)=>`<div class="blk ${b.unsure?'q':''}" data-bi="${i}"><span class="bt">${bt(b)}</span><span class="tag" style="background:${color(b.cat)}">${esc(b.cat)}</span><span class="bs">${b.bg?'<span class="pr">同時</span> ':''}${esc(b.sub||'')}${b.unsure?` <b class="qm">?</b>${b.why?`<span class="why">${esc(b.why)}</span>`:''}`:''}</span></div>`).join('')}
     </div></details>
     ${x.summary?`<div class="sum">${esc(x.summary)}</div>`:''}
     ${(x.doneTodos||[]).length?`<div class="doneauto"><div class="lbl">這次自動勾掉的待辦（點一下可以取消）</div>${x.doneTodos.map(id=>{const t=S.todos.find(y=>y.id===id);return t?`<div class="todo ${t.done?'done':''}" data-tid="${t.id}"><input type="checkbox" ${t.done?'checked':''}><span class="tx">${esc(t.text)}</span></div>`:''}).join('')}</div>`:''}
@@ -604,7 +615,7 @@ $('msgs').addEventListener('click',ev=>{
     editingBlock=b;blkPick=b.cat;
     $('blkTime').textContent=`${dtLabel(b.s)}–${hm(new Date(b.e))}`;
     $('blkWhy').textContent=b.unsure&&b.why?`Claude 的猶豫：${b.why}`:'';
-    $('blkSub').value=b.sub||'';renderChips();open('blockSheet');return;
+    $('blkSub').value=b.sub||'';$('blkBg').checked=!!b.bg;renderChips();open('blockSheet');return;
   }
   const row=ev.target.closest('.m');if(!row)return;
   const m=S.msgs.find(x=>x.id===row.dataset.id);if(!m)return;
@@ -613,7 +624,7 @@ $('msgs').addEventListener('click',ev=>{
 });
 function renderChips(){$('blkChips').innerHTML=S.cats.map(c=>`<button class="chip ${c.name===blkPick?'on':''}" data-c="${esc(c.name)}" style="background:${c.color}">${esc(c.name)}</button>`).join('')}
 $('blkChips').addEventListener('click',e=>{const c=e.target.dataset.c;if(c==null)return;blkPick=c;renderChips()});
-$('blkSave').onclick=()=>{if(!editingBlock)return;editingBlock.cat=blkPick;editingBlock.sub=$('blkSub').value.trim();editingBlock.unsure=false;save();close();render(true)};
+$('blkSave').onclick=()=>{if(!editingBlock)return;editingBlock.cat=blkPick;editingBlock.sub=$('blkSub').value.trim();editingBlock.bg=$('blkBg').checked;editingBlock.unsure=false;save();close();render(true)};
 $('editSave').onclick=()=>{const m=S.msgs.find(x=>x.id===editingId);if(!m)return;
   const t=fromLocalInput($('editTime').value);if(!isNaN(t))m.ts=t;m.text=$('editText').value.trim()||m.text;save();close();render(true)};
 $('editDel').onclick=()=>{S.msgs=S.msgs.filter(x=>x.id!==editingId);S.briefs=S.briefs.filter(x=>x.msgId!==editingId);save();close();render(true)};
@@ -668,14 +679,18 @@ ${catText}
 
 【請幫我做】
 1. 把整段時間切成連續的時間段，每段給一個分類和一個簡短「細項」（10 字內，例如「阿滴 EP.120 粗剪」「樹洞個案解牌」）。同一件事的細項用同樣的寫法，方便我月底加總。
-2. 時間段要首尾相接，從第一則到收工時間全部涵蓋。只是心情或補充說明的訊息（例如「好累」「卡住了」），以及「（還在做）」這種接續訊息，不要另切一段，併入前一段。
+2. 主要的時間段要首尾相接，從第一則到收工時間全部涵蓋。只是心情或補充說明的訊息（例如「好累」「卡住了」），以及「（還在做）」這種接續訊息，不要另切一段，併入前一段。
+2-1. 同時進行：如果某件事在背景持續進行（例如輸出、算圖、上傳、轉檔），同時我又在做別的事，兩件事都要記，時間段可以重疊。背景那件事從開始記到它結束，加上 "bg":true。
+   例：10:00 剪片／11:00 等輸出／11:30 等輸出時邊做網站／12:00 輸出完
+   → 10:00–11:30 剪片（剪輯+等輸出），11:30–12:00 剪片「輸出」"bg":true，11:30–12:00 寫程式「網站」。
+   等輸出、沒在做別的事的時間，算在那件事本身。
 3. 如果訊息表示中途做了別的事又回來，照實際時間切開。
 4. 判斷方式：上面的說明只是舉例，不是關鍵字清單。請依照意思判斷，例如「後製修改」「改片」「出片」「調字卡」都算剪片，即使說明裡沒有這幾個字。訊息太短看不出來時就看前後文，例如前後都在剪片，中間一則「匯出」也算剪片。
 5. 不確定時：還是選一個最可能的分類，但加上 "unsure":true 和 "why"（一句話說你在哪兩類之間猶豫），我會自己確認。完全看不出是什麼工作，歸到「${fallbackCat()}」並標 unsure。不要自己發明新的分類名稱。
 6. 寫一段小結，3 句以內：時間主要花在哪、是否被切得很碎、值得留意的地方。語氣平穩，不用鼓勵或誇獎。${todoBlock()}
 
 【回覆格式】只回下面這個 JSON，不要其他文字。時間一律寫完整的「YYYY-MM-DD HH:MM」：
-{"blocks":[{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項"},{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項","unsure":true,"why":"不確定原因"}],"summary":"小結"${openTodos().length?',"done":[]':''}}`;
+{"blocks":[{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項"},{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項","unsure":true,"why":"不確定原因"},{"start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM","cat":"分類","sub":"細項","bg":true}],"summary":"小結"${openTodos().length?',"done":[]':''}}`;
 }
 $('copyPrompt').onclick=()=>{if(!inRange().length){toast('請先調整收工時間');return}const p=buildPrompt();rememberDraft();copyText(p)};
 function rememberDraft(){S.draft={end:fromLocalInput($('endTime').value),todoIds:promptTodos.slice(),copied:Date.now()};save();updateRange()}
@@ -690,7 +705,7 @@ function parseStamp(str,cursor){
   m=str.match(/^(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
   if(m)return new Date(base.getFullYear(),m[1]-1,+m[2],+m[3],+m[4]).getTime();
   m=str.match(/^(\d{1,2}):(\d{2})/);
-  if(m){let t=new Date(base.getFullYear(),base.getMonth(),base.getDate(),+m[1],+m[2]).getTime();while(t<cursor-MIN)t+=DAY;return t}
+  if(m){let t=new Date(base.getFullYear(),base.getMonth(),base.getDate(),+m[1],+m[2]).getTime();while(t<cursor-6*60*MIN)t+=DAY;return t}
   return NaN;
 }
 $('applyBtn').onclick=()=>{
@@ -703,8 +718,8 @@ $('applyBtn').onclick=()=>{
   (d.blocks||[]).forEach(b=>{
     const s=parseStamp(b.start,cursor);if(isNaN(s))return;
     const e=parseStamp(b.end,s);if(isNaN(e)||e<=s)return;
-    cursor=e;const known=names.includes(b.cat);
-    blocks.push({s,e,cat:known?b.cat:fb,sub:String(b.sub||''),unsure:!!b.unsure||!known,why:known?String(b.why||''):`Claude 給了清單外的分類「${b.cat}」`});
+    if(!b.bg)cursor=e;const known=names.includes(b.cat);
+    blocks.push({s,e,cat:known?b.cat:fb,sub:String(b.sub||''),bg:!!b.bg,unsure:!!b.unsure||!known,why:known?String(b.why||''):`Claude 給了清單外的分類「${b.cat}」`});
   });
   if(!blocks.length){$('settleMsg').textContent='沒有讀到時間段';return}
   const end=fromLocalInput($('endTime').value);
@@ -976,34 +991,36 @@ $('prevP').onclick=()=>shiftP(-1);$('nextP').onclick=()=>shiftP(1);
 function shiftP(n){const d=new Date(statAnchor);if(statMode==='month'){d.setDate(1);d.setMonth(d.getMonth()+n)}else d.setDate(d.getDate()+7*n);statAnchor=d.getTime();renderStats()}
 function statsData(from,to){
   const inP=wd=>wd>=from&&wd<=to;
-  const by={},perDay={};let total=0;
+  const by={},perDay={},raw={};let cum=0;
   S.settles.forEach(x=>x.blocks.forEach(b=>{
     const wd=workday(b.s);if(!inP(wd)||isRest(b.cat))return;
-    const m=bmin(b);total+=m;
+    const m=bmin(b);cum+=m;(raw[wd]=raw[wd]||[]).push(b);
     by[b.cat]=by[b.cat]||{t:0,sub:{},days:new Set()};by[b.cat].t+=m;by[b.cat].days.add(wd);
     const s=b.sub||'(未寫)';by[b.cat].sub[s]=(by[b.cat].sub[s]||0)+m;
-    perDay[wd]=perDay[wd]||{t:0,c:{}};perDay[wd].t+=m;perDay[wd].c[b.cat]=(perDay[wd].c[b.cat]||0)+m;
+    perDay[wd]=perDay[wd]||{t:0,cum:0,c:{}};perDay[wd].cum+=m;perDay[wd].c[b.cat]=(perDay[wd].c[b.cat]||0)+m;
   }));
+  // 每天的實際工時（重疊只算一次）
+  let total=0;Object.keys(perDay).forEach(wd=>{perDay[wd].t=unionMin(raw[wd]);total+=perDay[wd].t});
   const pend=[...new Set(unsettled().map(m=>workday(m.ts)).filter(inP))].sort();
   const days=Object.keys(perDay).sort();
-  return {by,total,perDay,days,pend};
+  return {by,total,cum,perDay,days,pend};
 }
 // 給工作提醒用（整個月）
 function monthData(month){return statsData(`${month}-01`,`${month}-31`)}
 function renderStats(){
   const P=period();$('pLabel').textContent=P.label;
-  const {by,total,perDay,days,pend}=statsData(P.from,P.to);
+  const {by,total,cum,perDay,days,pend}=statsData(P.from,P.to);
   $('mTotal').textContent=fmtH(total);$('mDays').textContent=days.length;
   $('mAvg').textContent=days.length?fmtH(total/days.length):'0 h';
   if(days.length){const top=days.slice().sort((a,b)=>perDay[b].t-perDay[a].t)[0];
-    $('mExtra').textContent=`最長的一天：${top.slice(5).replace('-','/')}，${fmtH(perDay[top].t)}`}else $('mExtra').textContent='';
+    $('mExtra').textContent=`最長的一天：${top.slice(5).replace('-','/')}，${fmtH(perDay[top].t)}`+(cum-total>1?`。各類別加總 ${fmtH(cum)}，多出的 ${fmtH(cum-total)} 是同時在做兩件事`:'')}else $('mExtra').textContent='';
   $('mPending').classList.toggle('hide',!pend.length);
   $('mPending').textContent=`還有 ${pend.length} 天有訊息沒結算，沒算進來：${pend.map(d=>d.slice(5).replace('-','/')).join('、')}`;
   const order=catNames().filter(c=>by[c]).concat(Object.keys(by).filter(c=>!catNames().includes(c)));
   const max=Math.max(1,...order.map(c=>by[c].t));
   $('catList').innerHTML=order.length?order.map(c=>{const v=by[c];const subs=Object.entries(v.sub).sort((a,b)=>b[1]-a[1]);
     return `<div class="catrow"><div class="cstat"><span><span class="dot" style="background:${color(c)}"></span>${esc(c)} <span class="muted">（${v.days.size} 天有做）</span></span>
-      <span class="nums"><span>${fmtH(v.t)}</span><span class="muted">${total?Math.round(v.t/total*100):0}%</span><span class="muted">${days.length?fmtH(v.t/days.length):'-'}/天</span></span></div>
+      <span class="nums"><span>${fmtH(v.t)}</span><span class="muted">${cum?Math.round(v.t/cum*100):0}%</span><span class="muted">${days.length?fmtH(v.t/days.length):'-'}/天</span></span></div>
     <div class="bar"><div style="width:${v.t/max*100}%;background:${color(c)}"></div></div>
     <details><summary>細項（${subs.length}）</summary><table class="subtable">${subs.map(([k,t])=>`<tr><td>${esc(k)}</td><td>${fmtH(t)}</td></tr>`).join('')}</table></details></div>`}).join('')
     :`<p class="muted" style="margin:10px 0">這段期間還沒有結算過的紀錄。<br>隨手記按「結算」完成後，數字就會出現在這裡。</p>`;
@@ -1013,13 +1030,13 @@ function renderStats(){
     let html='<div class="cal">'+WEEK.map(w=>`<div class="h">${w}</div>`).join('');
     for(let i=0;i<first.getDay();i++)html+='<div></div>';
     for(let d=1;d<=n;d++){const ds=`${P.key}-${pad(d)}`;const p=perDay[ds];
-      html+=`<div class="d ${pset.has(ds)?'pending':''}" data-day="${ds}"><span>${d}</span><span class="hrs">${p?(p.t/60).toFixed(1):''}</span><div class="mini">${p?Object.entries(p.c).map(([c,v])=>`<div style="width:${v/p.t*100}%;background:${color(c)}"></div>`).join(''):''}</div></div>`}
+      html+=`<div class="d ${pset.has(ds)?'pending':''}" data-day="${ds}"><span>${d}</span><span class="hrs">${p?(p.t/60).toFixed(1):''}</span><div class="mini">${p?Object.entries(p.c).map(([c,v])=>`<div style="width:${v/p.cum*100}%;background:${color(c)}"></div>`).join(''):''}</div></div>`}
     $('cal').innerHTML=html+'</div><p class="muted" style="margin:6px 0 0">橘底＝有訊息還沒結算</p>';
   }else{
     const mx=Math.max(60,...Object.values(perDay).map(p=>p.t));let html='';
     for(let i=0;i<7;i++){const d=new Date(P.from+'T00:00');d.setDate(d.getDate()+i);const ds=ymd(d);const p=perDay[ds];
       html+=`<div class="weekrow ${pset.has(ds)?'pending':''}" data-day="${ds}"><span class="wd">${md(d)}（${WEEK[d.getDay()]}）</span>
-        <div class="wb"><div style="display:flex;width:${p?p.t/mx*100:0}%">${p?Object.entries(p.c).map(([c,v])=>`<div style="width:${v/p.t*100}%;background:${color(c)}"></div>`).join(''):''}</div></div>
+        <div class="wb"><div style="display:flex;width:${p?p.t/mx*100:0}%">${p?Object.entries(p.c).map(([c,v])=>`<div style="width:${v/p.cum*100}%;background:${color(c)}"></div>`).join(''):''}</div></div>
         <span class="wh">${p?(p.t/60).toFixed(1)+'h':pset.has(ds)?'未結算':''}</span></div>`}
     $('cal').innerHTML=html;
   }
@@ -1034,13 +1051,13 @@ $('cal').addEventListener('click',ev=>{
   if(row){row.scrollIntoView({block:'start'});$('msgs').scrollTop-=40;row.classList.add('flash');setTimeout(()=>row.classList.remove('flash'),1500)}
 });
 $('copyMonthPrompt').onclick=()=>{
-  const P=period();const {by,total,days,pend}=statsData(P.from,P.to);if(!days.length){toast('這段期間還沒有結算過');return}
-  const block=Object.entries(by).sort((a,b)=>b[1].t-a[1].t).map(([c,v])=>`■ ${c}：${fmtH(v.t)}（${Math.round(v.t/total*100)}%，${v.days.size} 天有做，平均每個工作天 ${fmtH(v.t/days.length)}）\n`+Object.entries(v.sub).sort((a,b)=>b[1]-a[1]).map(([k,t])=>`  - ${k}：${fmtH(t)}`).join('\n')).join('\n');
+  const P=period();const {by,total,cum,days,pend}=statsData(P.from,P.to);if(!days.length){toast('這段期間還沒有結算過');return}
+  const block=Object.entries(by).sort((a,b)=>b[1].t-a[1].t).map(([c,v])=>`■ ${c}：${fmtH(v.t)}（${Math.round(v.t/cum*100)}%，${v.days.size} 天有做，平均每個工作天 ${fmtH(v.t/days.length)}）\n`+Object.entries(v.sub).sort((a,b)=>b[1]-a[1]).map(([k,t])=>`  - ${k}：${fmtH(t)}`).join('\n')).join('\n');
   const sums=S.settles.filter(x=>x.summary&&workday(x.from)>=P.from&&workday(x.from)<=P.to).sort((a,b)=>a.from-b.from).map(x=>`${workday(x.from).slice(5)}：${x.summary}`).join('\n');
   const unit=statMode==='month'?'月':'週';
   copyText(`這是我 ${P.label} 的工作時間統計。我是自由接案的影片剪輯／製作，同時經營占卜、暖暖（VTuber 占卜）和自製工具開發，常常工作到半夜。
 
-工作總時數 ${fmtH(total)}（不含休息），有工作的天數 ${days.length} 天，平均每天 ${fmtH(total/days.length)}。${pend.length?`另有 ${pend.length} 天的訊息沒結算，不在統計內。`:''}
+實際工作時數 ${fmtH(total)}（不含休息）${cum-total>1?`；各類別加總 ${fmtH(cum)}，多出的部分是同時在做兩件事（例如輸出時做別的事），兩邊都有算`:''}。有工作的天數 ${days.length} 天，平均每天 ${fmtH(total/days.length)}。${pend.length?`另有 ${pend.length} 天的訊息沒結算，不在統計內。`:''}
 
 ${block}
 ${sums?`\n【每次結算的小結】\n${sums}\n`:''}
@@ -1052,9 +1069,9 @@ ${sums?`\n【每次結算的小結】\n${sums}\n`:''}
 };
 $('csvBtn').onclick=()=>{
   const P=period();const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;const rows=[];
-  S.settles.forEach(x=>x.blocks.forEach(b=>{const wd=workday(b.s);if(wd>=P.from&&wd<=P.to)rows.push([wd,fullStamp(b.s),fullStamp(b.e),Math.round(bmin(b)),b.cat,b.sub,isRest(b.cat)?'否':'是'])}));
+  S.settles.forEach(x=>x.blocks.forEach(b=>{const wd=workday(b.s);if(wd>=P.from&&wd<=P.to)rows.push([wd,fullStamp(b.s),fullStamp(b.e),Math.round(bmin(b)),b.cat,b.sub,isRest(b.cat)?'否':'是',b.bg?'是':''])}));
   rows.sort((a,b)=>a[1].localeCompare(b[1]));
-  download(`worklog-${P.key}.csv`,'﻿工作日,開始,結束,分鐘,分類,細項,算工時\n'+rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv');
+  download(`worklog-${P.key}.csv`,'﻿工作日,開始,結束,分鐘,分類,細項,算工時,同時進行\n'+rows.map(r=>r.map(q).join(',')).join('\n'),'text/csv');
 };
 
 /* ===== 設定 ===== */
