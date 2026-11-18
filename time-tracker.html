@@ -380,6 +380,12 @@ html,body{background:#E8E8E2;color:var(--ink);font-family:'Noto Sans TC','Inter'
 }
 
 /* ── 手機 ───────────────────────────────── */
+.dup-bar{display:flex;align-items:center;gap:10px;margin:8px 0 2px;padding:7px 12px;
+  border:1px solid #E3C98A;background:#FDF6E3;border-radius:3px;
+  font-size:11.5px;color:#8A6D2F;letter-spacing:.02em}
+.dup-bar .lk{margin-left:auto;background:none;border:none;padding:0;cursor:pointer;font-family:inherit;
+  font-size:11.5px;color:#8A6D2F;text-decoration:underline;text-decoration-style:dotted;white-space:nowrap}
+.dup-bar .lk:hover{color:var(--yellow-mid)}
 @media (max-width:560px){
   .viewport{padding:14px 0 50px}
   .a4{padding:22px 16px 20px}
@@ -475,7 +481,7 @@ function applyLiveState(st){
   if(!st)return false;
   var before=JSON.stringify(liveState());
   state.shift=st.shift||null;
-  state.active=st.active||[];
+  state.active=dropFinished(st.active||[]);
   state.shifts=st.shifts||[];
   var after=JSON.stringify(liveState());
   // 寫回 localStorage,但不要再觸發上傳
@@ -527,6 +533,7 @@ function pullState(cb){
       setSyncStatus('ok');
       // 進行中的清單變了 = 對方開始或結束了某筆,完成紀錄要另外去 Notion 撈
       if(activeBefore!==activeAfter)entriesRefetchSoon();
+      if(liveDropped>0)schedulePush();   // 剛濾掉已結束的,把乾淨的狀態推回去
       render();
       if(cb)cb(null,changed);
       return;
@@ -557,7 +564,8 @@ function pushState(force){
       // 另一台在我拿到資料之後改過了 → 以那邊為準,把它換過來
       applyLiveState(d.state);setSyncRev(d.rev);
       setSyncStatus('ok');
-      alert('另一台裝置剛剛改過狀態,已經把那邊的同步過來了。\n\n如果你的操作沒生效,請再按一次。');
+      if(liveDropped>0)schedulePush();
+      alert('另一台裝置剛剛改過狀態,已經把那邊的同步過來了。\n\n如果你的操作沒生效,請再按一次(已經存好的紀錄不會因此存成兩筆)。');
       render();return;
     }
     if(!d||!d.ok){setSyncStatus('err',(d&&d.error)||'寫入失敗');render();return;}
@@ -664,6 +672,73 @@ function pauseSegsHtml(o){
 function entryDur(e){
   if(typeof e.durMin==='number'&&e.durMin>0)return e.durMin*60000;
   return Math.max(0,(e.endAt||0)-(e.startAt||0)-(e.pauseTotal||0));
+}
+// ══ 重複紀錄的防呆 ══════════════════════════
+// 同一筆打卡可能出現兩次:
+//   a) 本機剛存的那筆 + 雲端撈回來的同一筆(id 對不起來時)
+//   b) 兩台裝置搶著按「結束」,Notion 真的被寫成兩筆
+// 判定同一筆:notionId 一樣、或 id 一樣、或(專案+開始分鐘+結束分鐘)一樣。
+var dupNotionIds=[];
+function normId(x){return String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function entrySig(e){
+  if(!e.endAt)return null;                       // 還沒結束的不靠內容比對
+  return [e.projectId||e.projectLabel||'',
+          Math.round((e.startAt||0)/60000),
+          Math.round(e.endAt/60000)].join('|');
+}
+function dedupeEntries(list){
+  var out=[],seen={},dups=[];
+  (list||[]).forEach(function(e){
+    if(!e)return;
+    var keys=[];
+    if(e.notionId)keys.push('n:'+normId(e.notionId));
+    if(e.id)keys.push('i:'+e.id);
+    var sg=entrySig(e);if(sg)keys.push('s:'+sg);
+    var hit=-1;
+    for(var i=0;i<keys.length;i++){if(seen[keys[i]]!==undefined){hit=seen[keys[i]];break;}}
+    if(hit<0){
+      var idx=out.length;out.push(e);
+      keys.forEach(function(k){seen[k]=idx;});
+      return;
+    }
+    var keep=out[hit];
+    // 本機剛存的那筆 vs 雲端撈回來的同一筆 → 留雲端那筆(編號才對得上 Notion)
+    if(e._cloud&&!keep._cloud){
+      if((!e.pauses||!e.pauses.length)&&keep.pauses&&keep.pauses.length)e.pauses=keep.pauses;
+      if(!e.pauseTotal&&keep.pauseTotal)e.pauseTotal=keep.pauseTotal;
+      out[hit]=e;keep=e;
+    }
+    // 只有「兩筆都是從雲端撈回來的」才算 Notion 真的多存了一筆。
+    // 本機那份跟雲端那份編號對不上是正常的(時間紀錄 DB 沒存本機編號),不能當重複去刪。
+    if(e._cloud&&keep._cloud&&e.notionId&&keep.notionId&&
+       normId(e.notionId)!==normId(keep.notionId)&&dups.indexOf(e.notionId)<0)dups.push(e.notionId);
+    keys.forEach(function(k){if(seen[k]===undefined)seen[k]=hit;});
+  });
+  dupNotionIds=dups;
+  return out;
+}
+// 清掉 Notion 上多出來的那幾筆(本機畫面本來就只顯示一筆)
+function cleanDupes(){
+  var ids=dupNotionIds.slice();
+  if(!ids.length)return;
+  if(!confirm('Notion 上有 '+ids.length+' 筆重複的紀錄,要把多的刪掉嗎?\n(畫面上留著的那筆不會動)'))return;
+  dupNotionIds=[];render();
+  var left=ids.length;
+  ids.forEach(function(nid){
+    apiDeleteEntry(nid,function(err){
+      if(err)console.warn('清除重複失敗',err);
+      left--;if(left<=0)setTimeout(syncFromCloud,600);
+    });
+  });
+}
+// 已經結束、存成紀錄的打卡,不會因為另一台的舊狀態又變回「進行中」
+var liveDropped=0;
+function dropFinished(list){
+  var done={};
+  (state.entries||[]).forEach(function(e){if(e.id)done[e.id]=true;});
+  var kept=(list||[]).filter(function(x){return !(x&&done[x.id]);});
+  liveDropped=(list||[]).length-kept.length;
+  return kept;
 }
 function prevMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-2,1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
 function nextMonth(){var p=state.dailyMonth.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1]),1);state.dailyMonth=d.getFullYear()+'-'+pad(d.getMonth()+1);state.dailySelectedDay=null;render();}
@@ -882,7 +957,7 @@ var state={
   shift:ls_get(SHIFT_KEY)||null, // {startAt, workDay: 'YYYY-MM-DD', breakAt:?, breakTotal:0}
   shifts:ls_get(SHIFTS_KEY)||[], // 歷史 shift 紀錄 [{workDay, startAt, endAt}]
   active:ls_get(ACTIVE_KEY)||[],
-  entries:ls_get(ENTRIES_KEY)||[],
+  entries:dedupeEntries(ls_get(ENTRIES_KEY)||[]),
   projects:ls_get(PROJECTS_KEY)||[],
   modal:null,modalForm:{},loading:false,loadError:null
 };
@@ -1154,6 +1229,11 @@ function resumePunch(id){
 function stopPunch(id){
   var item=state.active.find(function(x){return x.id===id;});
   if(!item)return;
+  // 這筆已經結束存過了(例如同步把舊狀態帶回來)→ 只把它從進行中拿掉,不要再存一次
+  if(state.entries.some(function(e){return e.id===id;})){
+    state.active=state.active.filter(function(x){return x.id!==id;});
+    ls_set(ACTIVE_KEY,state.active);render();return;
+  }
   var endAt=Date.now();
   // 若還在暫停中,先把暫停時段結算掉
   var pauseTotal=item.pauseTotal||0;
@@ -1494,7 +1574,7 @@ function syncFromCloud(){
   // 本地有、雲端還沒有,而且從來沒存上去過(沒有 notionId)→ 是還在路上的,先留著,
   // 否則剛按完結束就被雲端的舊清單洗掉。有 notionId 卻不在雲端 = 真的被刪了,就放掉。
   var cloudIds={};
-  entries.forEach(function(e){if(e.id)cloudIds[e.id]=true;});
+  entries.forEach(function(e){e._cloud=true;if(e.id)cloudIds[e.id]=true;});
   var keepFrom=Date.now()-7*86400000;      // 只留近七天的,免得永遠累積
   var JUST_NOW=120000;                     // 剛結束兩分鐘內的,雲端列表可能還沒跟上
   var pending=state.entries.filter(function(e){
@@ -1502,7 +1582,7 @@ function syncFromCloud(){
     if(!e.notionId)return true;                                  // 從來沒存成功
     return (Date.now()-(e.endAt||e.startAt))<JUST_NOW;           // 剛存完,列表還沒看到
   });
-  state.entries=pending.concat(entries);
+  state.entries=dedupeEntries(pending.concat(entries));
   ls_set(ENTRIES_KEY,state.entries);
   render();
 });}
@@ -1774,7 +1854,7 @@ function render(){
 
     var today=todayKey();
     // 「今天」= 上班中當前 workDay,或 today date(沒上班時用日曆日)
-    var todayKey2=state.shift?state.shift.workDay:todayKey();
+    var todayKey2=state.shift?(state.shift.workDay||dateKey(state.shift.startAt)):todayKey();
     var todayEntries=state.entries.filter(function(e){return (e.workDay||dateKey(e.startAt))===todayKey2;});
     todayEntries.sort(function(a,b){return a.startAt-b.startAt;});
     var workMs=todayEntries.reduce(function(s,e){return s+(entryDur(e));},0);
@@ -1818,6 +1898,10 @@ function render(){
       });
       // 時間軸區
       html+='<div class="section-head" style="margin-top:18px"><div class="section-title">今日時間軸 · <span class="section-en">Timeline</span></div></div>';
+      if(dupNotionIds.length>0){
+        html+='<div class="dup-bar"><span>Notion 上有 '+dupNotionIds.length+' 筆重複的紀錄(這裡只顯示一筆)</span>'+
+              '<button class="lk" onclick="cleanDupes()">清掉重複</button></div>';
+      }
       timeline.forEach(function(t){
         if(t.type==='rest'){
           html+='<div class="tl"><span class="t">'+fmtTime(t.startAt)+'</span>';
